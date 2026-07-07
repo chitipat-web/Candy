@@ -163,6 +163,8 @@ const G = {
   bestCoins: +(localStorage.getItem('cr_coins') || 0),
   shake: 0, flash: 0, banner: null, bannerT: 0,
   overT: 0, newBest: false,
+  bonusT: 0,        // BONUS TIME บินเก็บเยลลี่
+  revives: 0,       // ชุบชีวิตที่เหลือ
 };
 
 /* ---------- player ---------- */
@@ -174,8 +176,11 @@ const P = {
   invT: 0,          // อมตะชั่วคราวหลังโดนชน
   giantT: 0,        // โหมดยักษ์
   magnetT: 0,       // แม่เหล็กเยลลี่
+  boostT: 0,        // Rocket Start ตอนเริ่มเกม
   anim: 0, dead: false, fallingPit: false,
 };
+/* สัตว์เลี้ยงบินตาม */
+const Pet = { x: 90, y: 300, wing: 0 };
 const GROUND_Y = 442;
 const GRAV = 2400, JUMP_V = -880, JUMP2_V = -760;
 
@@ -183,6 +188,7 @@ const GRAV = 2400, JUMP_V = -880, JUMP2_V = -760;
 let jellyList = [];     // เยลลี่ / ไอเทม
 let obstacles = [];     // สิ่งกีดขวาง
 let pits = [];          // หลุม
+let platforms = [];     // ชั้นลอยให้กระโดดขึ้นไปวิ่ง
 let particles = [];
 let floaters = [];      // ตัวเลขคะแนนลอย
 let clouds = [];
@@ -199,7 +205,7 @@ for (let i = 0; i < 7; i++)
 const J = (x, y, type) => jellyList.push({ x, y, type, t: rnd(0, TAU), dead: false });
 const OB = (x, type) => obstacles.push({ x, type, dead: false });
 
-const JSIZE = { bar: 22, pink: 26, coin: 24, bear: 46, potion: 30, giant: 32, magnet: 32 };
+const JSIZE = { bar: 22, pink: 26, coin: 24, bear: 46, potion: 30, giant: 32, magnet: 32, star: 32 };
 const JSCORE = { bar: 10, pink: 50, coin: 20, bear: 1000 };
 
 function rowJellies(x, n, y = GROUND_Y - 36, type = 'bar') {
@@ -283,21 +289,58 @@ const PATTERNS = [
       J(x + i * 48, GROUND_Y - 36 - (i % 4 < 2 ? 0 : 120), 'bar');
     return 10 * 48 + 120;
   },
+  // 10: ชั้นลอย! วิ่งบนได้ + เหรียญข้างล่าง (แบบเกมจริง)
+  x => {
+    const y = GROUND_Y - 150;
+    const w = rndi(6, 9) * 60;
+    platforms.push({ x: x + 80, w, y });
+    for (let i = 0; i < Math.floor(w / 52) - 1; i++) J(x + 110 + i * 52, y - 34, 'bar');
+    for (let i = 0; i < 4; i++) J(x + 150 + i * 62, GROUND_Y - 36, 'coin');
+    if (Math.random() < 0.5) OB(x + 120 + w * 0.5, 'spike');   // ล่างมีหนาม เลือกเส้นทางเอา
+    return w + 240;
+  },
+  // 11: ชั้นลอยสองช่วง + หมีเยลลี่ปลายทางบน
+  x => {
+    const y = GROUND_Y - 160;
+    platforms.push({ x: x + 60, w: 330, y });
+    platforms.push({ x: x + 60 + 330 + 130, w: 300, y: y - 60 });
+    for (let i = 0; i < 5; i++) J(x + 100 + i * 55, y - 34, 'bar');
+    for (let i = 0; i < 4; i++) J(x + 555 + i * 55, y - 94, 'bar');
+    J(x + 60 + 330 + 130 + 300 - 40, y - 60 - 62, 'bear');
+    pits.push({ x: x + 60 + 330 + 10, w: 110 });
+    return 60 + 330 + 130 + 300 + 200;
+  },
 ];
 
+/* ---- BONUS TIME: สายเยลลี่คลื่นเต็มฟ้า ---- */
+const bonusPathY = wx => 250 + Math.sin(wx * 0.004) * 105;
+function spawnBonusPattern() {
+  const x = spawnX;
+  for (let i = 0; i < 12; i++) {
+    const wx = x + i * 50;
+    const y = bonusPathY(wx);
+    J(wx, y, 'bar');
+    J(wx, y - 46, i % 3 === 0 ? 'coin' : 'bar');
+    J(wx, y + 46, i % 4 === 0 ? 'pink' : 'bar');
+  }
+  spawnX = x + 12 * 50;
+}
+
 function spawnPattern() {
+  if (G.bonusT > 0) { spawnBonusPattern(); return; }
   const x = spawnX;
   let w;
   const roll = Math.random();
   if (roll < 0.045)       w = spawnItem(x, 'potion');
   else if (roll < 0.075)  w = spawnItem(x, 'giant');
   else if (roll < 0.105)  w = spawnItem(x, 'magnet');
+  else if (roll < 0.135)  w = spawnItem(x, 'star');
   else {
     // ด่านสูงขึ้น → เจออุปสรรคบ่อยขึ้น
     const hard = Math.min(G.stage, 6);
-    const pool = [0,1,1,2,2,3,4,5,6,7,9]
-      .concat(hard >= 2 ? [3,5,8] : [0])
-      .concat(hard >= 3 ? [7,8] : []);
+    const pool = [0,1,1,2,2,3,4,5,6,7,9,10,10,11]
+      .concat(hard >= 2 ? [3,5,8,10] : [0])
+      .concat(hard >= 3 ? [7,8,11] : []);
     w = PATTERNS[pool[rndi(0, pool.length - 1)]](x);
   }
   spawnX = x + w + rnd(40, 130);
@@ -315,8 +358,12 @@ const keys = {};
 function doJump() {
   if (G.state === 'menu') return startGame();
   if (G.state === 'over') { if (G.overT > 1) resetToMenu(); return; }
-  if (P.dead || P.fallingPit) return;
-  if (P.sliding) P.sliding = false;
+  if (P.dead || P.fallingPit || G.bonusT > 0) return;
+  if (P.sliding) {
+    // ยกตัวกลับก่อนโดด ไม่งั้นเท้าจมพื้น
+    P.sliding = false;
+    P.y -= (P.h - P.h * 0.52) * (P.giantT > 0 ? 1.6 : 1);
+  }
   if (P.onGround) {
     P.vy = JUMP_V * (P.giantT > 0 ? 0.94 : 1);
     P.onGround = false; P.jumps = 1;
@@ -384,14 +431,27 @@ function startGame() {
   G.speed = G.baseSpeed; G.newBest = false;
   P.y = GROUND_Y - P.h; P.vy = 0; P.onGround = true; P.jumps = 0;
   P.sliding = false; P.invT = 0; P.giantT = 0; P.magnetT = 0;
+  P.boostT = 2.4; G.bonusT = 0; G.revives = 1;
   P.dead = false; P.fallingPit = false; slideHeld = false;
-  jellyList = []; obstacles = []; pits = []; particles = []; floaters = [];
+  jellyList = []; obstacles = []; pits = []; particles = []; floaters = []; platforms = [];
+  Pet.x = 60; Pet.y = 280;
   worldX = 0; spawnX = W + 100;
-  banner('READY... GO!!', '#ffdd44');
+  banner('EPISODE 1: หนีจากเตาอบ! GO!!', '#ffdd44');
   AudioSys.startMusic();
 }
+/* คืนค่า true = จบเกมจริง, false = ใช้ชุบชีวิตแล้ววิ่งต่อ */
 function gameOver() {
-  if (G.state === 'over') return;
+  if (G.state === 'over') return true;
+  if (G.revives > 0) {
+    G.revives--;
+    G.hp = G.hpMax * 0.6;
+    P.invT = 3;
+    G.flash = 0;
+    banner('✨ ชุบชีวิต! REVIVE! ✨', '#ffd24a');
+    AudioSys.power();
+    sparkle(P.x + P.w / 2, P.y + P.h / 2, 26, '#ffd24a');
+    return false;
+  }
   G.state = 'over'; G.overT = 0;
   P.dead = true;
   AudioSys.stopMusic();
@@ -400,6 +460,7 @@ function gameOver() {
   if (G.score > G.best) { G.best = G.score; G.newBest = true; localStorage.setItem('cr_best', G.best); }
   G.bestCoins += G.coins;
   localStorage.setItem('cr_coins', G.bestCoins);
+  return true;
 }
 function resetToMenu() { G.state = 'menu'; }
 function banner(text, color) { G.banner = { text, color }; G.bannerT = 0; }
@@ -422,8 +483,11 @@ function floatText(x, y, text, c = '#fff', big = false) {
 /* ============================================================
    UPDATE
    ============================================================ */
+const isInvincible = () => P.invT > 0 || P.giantT > 0 || P.boostT > 0 || G.bonusT > 0;
+const canSmash = () => P.giantT > 0 || P.boostT > 0;
+
 function hurt(amount, isPit) {
-  if (P.invT > 0 || P.giantT > 0 || P.dead) return;
+  if (isInvincible() || P.dead) return;
   G.hp -= amount;
   G.combo = 0;
   P.invT = 2.0;
@@ -463,10 +527,14 @@ function update(dt) {
   }
 
   /* --- HP ลดตามเวลา (หัวใจของ Cookie Run) --- */
-  G.hp -= G.hpDrain * dt;
-  if (G.hp <= 0) { G.hp = 0; gameOver(); return; }
+  if (G.bonusT <= 0) G.hp -= G.hpDrain * dt;    // ช่วง BONUS TIME พลังไม่ลด
+  if (G.hp <= 0) {
+    G.hp = 0;
+    if (gameOver()) return;   // ถ้าชุบชีวิตได้ วิ่งต่อ
+  }
 
-  const move = G.speed * dt * (P.giantT > 0 ? 1.12 : 1);
+  const spdMul = (P.giantT > 0 ? 1.12 : 1) * (P.boostT > 0 ? 2.1 : 1) * (G.bonusT > 0 ? 1.35 : 1);
+  const move = G.speed * dt * spdMul;
   worldX += move;
   G.dist += move / 40;               // หน่วยเมตร
   G.score += move * 0.02;            // คะแนนระยะทาง
@@ -478,58 +546,103 @@ function update(dt) {
   P.invT = Math.max(0, P.invT - dt);
   P.giantT = Math.max(0, P.giantT - dt);
   P.magnetT = Math.max(0, P.magnetT - dt);
+  P.boostT = Math.max(0, P.boostT - dt);
+  if (G.bonusT > 0) {
+    G.bonusT -= dt;
+    if (G.bonusT <= 0) { G.bonusT = 0; P.invT = Math.max(P.invT, 1.5); }  // กันตกหลุมตอนบินจบ
+  }
   G.comboTimer -= dt;
   if (G.comboTimer <= 0) G.combo = 0;
   P.anim += dt * (8 + G.speed / 90);
+
+  /* --- สัตว์เลี้ยงบินตาม + ช่วยเก็บเยลลี่ --- */
+  Pet.wing += dt * 14;
+  const petTX = P.x - 62, petTY = P.y - 34 + Math.sin(G.time * 4) * 10;
+  Pet.x += (petTX - Pet.x) * 6 * dt;
+  Pet.y += (petTY - Pet.y) * 6 * dt;
+  for (const j of jellyList) {
+    if (j.dead) continue;
+    const jx = j.x - worldX;
+    if (jx < -40 || jx > 300) continue;
+    if (['potion','giant','magnet','star','bear'].includes(j.type)) continue;  // ไอเทมให้ผู้เล่นเก็บเอง
+    if (Math.hypot(jx - Pet.x, j.y - Pet.y) < 36) { j.dead = true; collectJelly(j, jx); }
+  }
 
   /* --- ฟิสิกส์ผู้เล่น --- */
   const scale = P.giantT > 0 ? 1.6 : 1;
 
   // สไลด์: เข้า/ออกตามปุ่มที่กดค้าง (กดค้างกลางอากาศ = สไลด์ทันทีที่แตะพื้น)
-  if (P.onGround && !P.fallingPit) {
+  // ปรับ P.y แบบยึดตำแหน่งเท้าไว้ จะยืนอยู่บนพื้นหรือชั้นลอยก็หมอบได้ทันที
+  if (P.onGround && !P.fallingPit && G.bonusT <= 0) {
+    const dh = (P.h - P.h * 0.52) * scale;
     if (slideHeld && !P.sliding) {
       P.sliding = true;
-      P.y = GROUND_Y - P.h * 0.52 * scale;   // หมอบติดพื้นทันที
+      P.y += dh;
       AudioSys.slide();
     } else if (!slideHeld && P.sliding) {
       P.sliding = false;
-      P.y = GROUND_Y - P.h * scale;
+      P.y -= dh;
     }
   }
 
   const pw = P.w * scale;
   const ph = (P.sliding ? P.h * 0.52 : P.h) * scale;
-
-  P.vy += GRAV * dt;
-  // กดค้างลงกลางอากาศ = ดิ่งลงเร็ว (fast fall)
-  if (slideHeld && !P.onGround)
-    P.vy += GRAV * 1.4 * dt;
-  P.y += P.vy * dt;
-
-  /* หลุม */
   const footX = P.x + pw * 0.5;
-  let overPit = false;
-  for (const p of pits) {
-    const px = p.x - worldX;
-    if (footX > px + 14 && footX < px + p.w - 14) overPit = true;
-  }
 
-  if (!P.fallingPit) {
-    if (P.y + ph >= GROUND_Y) {
-      if (overPit && P.giantT <= 0) {
-        // ตกหลุม!
-        P.fallingPit = true;
-        AudioSys.fall();
-      } else {
-        P.y = GROUND_Y - ph;
-        if (!P.onGround) puff(P.x + pw / 2, GROUND_Y, 4);
-        P.vy = 0; P.onGround = true; P.jumps = 0;
-      }
-    } else P.onGround = false;
+  if (G.bonusT > 0) {
+    /* --- BONUS TIME: บินตามสายเยลลี่ อมตะ --- */
+    P.fallingPit = false; P.sliding = false;
+    const targetY = bonusPathY(worldX + footX) - ph / 2;
+    P.y += (targetY - P.y) * Math.min(1, 8 * dt);
+    P.vy = 0; P.onGround = false; P.jumps = 1;
+    if (Math.random() < 0.6) sparkle(P.x - 10, P.y + ph / 2, 1, '#ffd24a');
   } else {
-    // กำลังร่วงลงหลุม
-    if (P.y > H + 60) {
-      hurtFromPit();
+    const prevFoot = P.y + ph;   // ตำแหน่งเท้าก่อนขยับ (สำหรับเช็คเหยียบชั้นลอย)
+    P.vy += GRAV * dt;
+    // กดค้างลงกลางอากาศ = ดิ่งลงเร็ว (fast fall)
+    if (slideHeld && !P.onGround)
+      P.vy += GRAV * 1.4 * dt;
+    P.y += P.vy * dt;
+
+    /* หลุม */
+    let overPit = false;
+    for (const p of pits) {
+      const px = p.x - worldX;
+      if (footX > px + 14 && footX < px + p.w - 14) overPit = true;
+    }
+
+    if (!P.fallingPit) {
+      let landed = false;
+      // เหยียบชั้นลอย (เฉพาะตอนร่วงลงจากด้านบน)
+      if (P.vy >= 0) {
+        for (const pl of platforms) {
+          const px = pl.x - worldX;
+          if (footX > px && footX < px + pl.w &&
+              prevFoot <= pl.y + 10 && P.y + ph >= pl.y) {
+            P.y = pl.y - ph;
+            if (!P.onGround) puff(footX, pl.y, 4);
+            P.vy = 0; P.onGround = true; P.jumps = 0; landed = true;
+            break;
+          }
+        }
+      }
+      if (!landed && P.y + ph >= GROUND_Y) {
+        if (overPit && !canSmash()) {
+          // ตกหลุม!
+          P.fallingPit = true;
+          AudioSys.fall();
+        } else {
+          P.y = GROUND_Y - ph;
+          if (!P.onGround) puff(P.x + pw / 2, GROUND_Y, 4);
+          P.vy = 0; P.onGround = true; P.jumps = 0; landed = true;
+        }
+      }
+      if (!landed) P.onGround = false;
+    } else {
+      // กำลังร่วงลงหลุม
+      if (P.y > H + 60) {
+        hurtFromPit();
+      }
     }
   }
 
@@ -540,8 +653,8 @@ function update(dt) {
     let jx = j.x - worldX;
     if (jx < -80) { j.dead = true; continue; }
     if (jx > W + 80) break;
-    // แม่เหล็ก: ดูดเยลลี่เข้าหาตัว
-    if (P.magnetT > 0 && !['potion','giant','magnet'].includes(j.type)) {
+    // แม่เหล็ก / ช่วงบูสต์ / BONUS TIME: ดูดเยลลี่เข้าหาตัว
+    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0) && !['potion','giant','magnet','star'].includes(j.type)) {
       const dx = cx - jx, dy = cy - j.y;
       const d = Math.hypot(dx, dy);
       if (d < 260) { j.x += dx / d * 620 * dt; j.y += dy / d * 620 * dt; jx = j.x - worldX; }
@@ -560,6 +673,7 @@ function update(dt) {
     const ox = o.x - worldX;
     if (ox < -120) { o.dead = true; continue; }
     if (ox > W + 60) break;
+    if (G.bonusT > 0) continue;   // ช่วงบินไม่ชนอะไร
     let hit = false;
     if (o.type === 'bar') {
       // คานลอย: ต้องสไลด์ลอด (ช่องว่างด้านล่างสูง ~ ครึ่งตัว)
@@ -570,7 +684,7 @@ function update(dt) {
       if (cx + pw / 2 - 12 > ox && cx - pw / 2 + 12 < ox + ow && P.y + ph > GROUND_Y - oh + 6) hit = true;
     }
     if (hit) {
-      if (P.giantT > 0) {
+      if (canSmash()) {
         o.dead = true;
         sparkle(ox + 20, GROUND_Y - 40, 16, '#ffd24a');
         G.score += 100; floatText(ox, GROUND_Y - 90, 'SMASH! +100', '#ffd24a', true);
@@ -582,6 +696,7 @@ function update(dt) {
   }
   obstacles = obstacles.filter(o => !o.dead);
   pits = pits.filter(p => p.x - worldX > -400);
+  platforms = platforms.filter(p => p.x + p.w - worldX > -200);
 
   updateParticles(dt);
 }
@@ -591,7 +706,10 @@ function hurtFromPit() {
   G.hp -= 20 + G.stage * 2;
   G.combo = 0;
   G.shake = 14; G.flash = 0.6;
-  if (G.hp <= 0) { G.hp = 0; gameOver(); return; }
+  if (G.hp <= 0) {
+    G.hp = 0;
+    if (gameOver()) return;   // ชุบชีวิตไม่ได้ = จบเกม / ได้ = วาร์ปกลับมาวิ่งต่อ
+  }
   P.fallingPit = false;
   P.y = GROUND_Y - P.h - 200; P.vy = 100;
   P.invT = 2.5;
@@ -638,6 +756,12 @@ function collectJelly(j, jx) {
       sparkle(jx, j.y, 20, '#7ecbff');
       banner('แม่เหล็กเยลลี่!', '#7ecbff');
       break;
+    case 'star':
+      G.bonusT = 6.5;
+      AudioSys.bear();
+      sparkle(jx, j.y, 28, '#ffe066');
+      banner('⭐ BONUS TIME!! ⭐', '#ffe066');
+      break;
   }
 }
 
@@ -663,13 +787,25 @@ function draw() {
   drawSky();
   drawBackHills();
   drawGroundAndPits();
+  drawPlatforms();
   drawJellies();
   drawObstacles();
   drawPlayer();
+  if (G.state === 'play') drawPet();
   drawParticles();
   drawFloaters();
 
   ctx.restore();
+
+  // แสงทองช่วง BONUS TIME
+  if (G.bonusT > 0) {
+    const a = Math.min(1, G.bonusT / 0.5) * 0.16;
+    const g = ctx.createRadialGradient(W/2, H/2, 150, W/2, H/2, 620);
+    g.addColorStop(0, 'rgba(255,220,90,0)');
+    g.addColorStop(1, `rgba(255,190,40,${a + 0.08})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   if (G.flash > 0) {
     ctx.fillStyle = `rgba(255,60,60,${G.flash * 0.35})`;
@@ -796,6 +932,58 @@ function drawGroundAndPits() {
   }
 }
 
+/* ---------- ชั้นลอย: แผ่นบิสกิตวาฟเฟิล ---------- */
+function drawPlatforms() {
+  for (const pl of platforms) {
+    const x = pl.x - worldX;
+    if (x + pl.w < -40 || x > W + 40) continue;
+    // แผ่นบิสกิต
+    ctx.fillStyle = '#b0793f';
+    roundRect(x, pl.y, pl.w, 30, 10); ctx.fill();
+    ctx.fillStyle = '#8a5a28';
+    roundRect(x, pl.y + 18, pl.w, 12, 6); ctx.fill();
+    // ไอซิ่งด้านบน
+    ctx.fillStyle = '#f2d8a7';
+    roundRect(x + 3, pl.y, pl.w - 6, 8, 4); ctx.fill();
+    // จุดวาฟเฟิล
+    ctx.fillStyle = 'rgba(90,50,20,.4)';
+    for (let dx = 22; dx < pl.w - 12; dx += 44) {
+      ctx.beginPath(); ctx.arc(x + dx, pl.y + 17, 3.5, 0, TAU); ctx.fill();
+    }
+  }
+}
+
+/* ---------- สัตว์เลี้ยง: เจ้าชีสนกน้อย ---------- */
+function drawPet() {
+  ctx.save();
+  ctx.translate(Pet.x, Pet.y);
+  const flap = Math.sin(Pet.wing) * 0.7;
+  // ปีก
+  ctx.fillStyle = '#ffe9b8';
+  ctx.save(); ctx.rotate(-0.5 - flap * 0.5);
+  ctx.beginPath(); ctx.ellipse(-10, -6, 12, 6, 0, 0, TAU); ctx.fill();
+  ctx.restore();
+  // ตัวมาการองชมพู
+  ctx.fillStyle = '#ff9db8';
+  ctx.beginPath(); ctx.arc(0, 0, 14, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(0, 0, 14, 4.5, 0, 0, TAU); ctx.fill();  // ไส้ครีมกลาง
+  ctx.fillStyle = '#ff7ba0';
+  ctx.beginPath(); ctx.arc(0, -5, 12, Math.PI, 0); ctx.fill();
+  // ตา+ปาก
+  ctx.fillStyle = '#4a2410';
+  ctx.beginPath(); ctx.arc(5, -4, 2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(11, -4, 2, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffb84a';
+  ctx.beginPath(); ctx.moveTo(14, -1); ctx.lineTo(20, 1); ctx.lineTo(14, 3); ctx.fill();  // จะงอย
+  // ปีกหน้า
+  ctx.fillStyle = '#ffd9e4';
+  ctx.save(); ctx.rotate(0.3 + flap * 0.5);
+  ctx.beginPath(); ctx.ellipse(-8, 4, 10, 5, 0, 0, TAU); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
 /* ---------- jellies & items ---------- */
 function drawJellies() {
   for (const j of jellyList) {
@@ -867,6 +1055,23 @@ function drawJellies() {
         ctx.beginPath(); ctx.moveTo(-10, 8); ctx.lineTo(-10, 12); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(10, 8); ctx.lineTo(10, 12); ctx.stroke();
         glowRing('#7ecbff');
+        break;
+      }
+      case 'star': {
+        // ดาวโบนัสไทม์
+        ctx.rotate(Math.sin(G.time * 3 + j.t) * 0.25);
+        ctx.fillStyle = '#ffe066';
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const rr = i % 2 === 0 ? 16 : 7;
+          const a = -Math.PI / 2 + i * Math.PI / 5;
+          const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.8)';
+        ctx.beginPath(); ctx.arc(-3, -4, 3, 0, TAU); ctx.fill();
+        glowRing('#ffe066');
         break;
       }
     }
@@ -984,6 +1189,23 @@ function drawPlayer() {
   ctx.scale(scale, scale);
   if (P.giantT > 0 && P.giantT < 1.2 && Math.floor(G.time * 10) % 2 === 0)
     ctx.globalAlpha = 0.6;  // เตือนโหมดยักษ์ใกล้หมด
+
+  // ออร่าทองช่วง Rocket Start / Bonus Time
+  if (P.boostT > 0 || G.bonusT > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.4 + Math.sin(G.time * 12) * 0.15;
+    ctx.fillStyle = '#ffd24a';
+    ctx.beginPath();
+    ctx.ellipse(-6, -P.h / 2, 46, 52, 0, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+    // หางไฟพุ่ง
+    ctx.strokeStyle = 'rgba(255,180,60,.65)'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+      const yy = -14 - i * 16, ln = 30 + ((P.anim * 9 + i * 3) % 4) * 10;
+      ctx.beginPath(); ctx.moveTo(-32, yy); ctx.lineTo(-32 - ln, yy); ctx.stroke();
+    }
+  }
 
   const run = P.anim;
   if (P.sliding) drawCookieSlide(run);
@@ -1163,16 +1385,25 @@ function drawHUD() {
     ctx.fillStyle = 'rgba(255,255,255,.35)';
     roundRect(bx + 3, by + 3, Math.max(8, bw * hpFrac - 6), 8, 5); ctx.fill();
   }
-  // ไอคอนนาฬิกาพลัง
+  // หน้าคุกกี้ที่หัวแถบพลัง (แบบเกมจริง)
+  ctx.save();
+  ctx.translate(bx + 2, by + bh / 2);
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(bx + 2, by + bh/2, 19, 0, TAU); ctx.fill();
-  ctx.fillStyle = '#ffce2e';
-  ctx.beginPath(); ctx.arc(bx + 2, by + bh/2, 15.5, 0, TAU); ctx.fill();
-  ctx.strokeStyle = '#7a4a10'; ctx.lineWidth = 2.5; ctx.lineCap='round';
-  ctx.beginPath();
-  ctx.moveTo(bx + 2, by + bh/2); ctx.lineTo(bx + 2, by + bh/2 - 9);
-  ctx.moveTo(bx + 2, by + bh/2); ctx.lineTo(bx + 8, by + bh/2 + 2);
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, 21, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#c98d4e';
+  ctx.beginPath(); ctx.arc(0, 0, 18, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#fff6ec';   // ไอซิ่งผม
+  ctx.beginPath(); ctx.arc(0, -3, 18, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.quadraticCurveTo(10, -15, 4, -9);
+  ctx.quadraticCurveTo(0, -16, -4, -9);
+  ctx.quadraticCurveTo(-8, -16, -12, -7);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#3a2410';   // ตา
+  ctx.beginPath(); ctx.ellipse(-4, 1, 2.4, 3.2, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(5, 1, 2.4, 3.2, 0, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#8a5a28'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(1, 6, 4.5, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  ctx.restore();
   // เตือนพลังใกล้หมด
   if (hpFrac < 0.25 && Math.floor(G.time * 3) % 2 === 0) {
     ctx.fillStyle = '#ff5f5f';
@@ -1219,7 +1450,15 @@ function drawHUD() {
   }
   if (P.magnetT > 0) {
     ctx.fillStyle = '#7ecbff';
-    ctx.fillText('🧲 แม่เหล็ก: ' + P.magnetT.toFixed(1) + 's', bx, iy);
+    ctx.fillText('🧲 แม่เหล็ก: ' + P.magnetT.toFixed(1) + 's', bx, iy); iy += 22;
+  }
+  if (G.bonusT > 0) {
+    ctx.fillStyle = '#ffe066';
+    ctx.fillText('⭐ BONUS TIME: ' + G.bonusT.toFixed(1) + 's', bx, iy); iy += 22;
+  }
+  if (G.revives > 0) {
+    ctx.fillStyle = '#ffb0c8';
+    ctx.fillText('💖 ชุบชีวิต x' + G.revives, bx, iy);
   }
 }
 
