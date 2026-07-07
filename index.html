@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cookie Run Classic — คุกกี้รัน คลาสสิค</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body {
+    width:100%; height:100%;
+    background:#2a1a0e;
+    overflow:hidden;
+    font-family:'Trebuchet MS','Tahoma',sans-serif;
+    touch-action:none;
+    -webkit-user-select:none; user-select:none;
+  }
+  #wrap {
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at center,#4a2c14 0%,#1d1006 100%);
+  }
+  canvas {
+    display:block;
+    image-rendering:auto;
+    box-shadow:0 0 60px rgba(0,0,0,.6);
+    border-radius:6px;
+  }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="960" height="540"></canvas></div>
+<script>
+'use strict';
+/* ============================================================
+   COOKIE RUN CLASSIC  —  คุกกี้รัน คลาสสิค
+   Endless runner ในตำนาน: วิ่ง กระโดด 2 ชั้น สไลด์
+   เก็บเยลลี่ หลบสิ่งกีดขวาง ก่อนพลังคุกกี้จะหมด!
+   ============================================================ */
+
+const W = 960, H = 540;
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+/* ---------- responsive scale ---------- */
+function fit() {
+  const s = Math.min(innerWidth / W, innerHeight / H);
+  canvas.style.width  = (W * s) + 'px';
+  canvas.style.height = (H * s) + 'px';
+}
+addEventListener('resize', fit); fit();
+
+/* ---------- helpers ---------- */
+const rnd  = (a, b) => a + Math.random() * (b - a);
+const rndi = (a, b) => Math.floor(rnd(a, b + 1));
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const TAU = Math.PI * 2;
+
+/* ============================================================
+   AUDIO — WebAudio chiptune (เอฟเฟกต์ + เพลงประกอบ)
+   ============================================================ */
+const AudioSys = {
+  ctx: null, master: null, musicGain: null, muted: false,
+  init() {
+    if (this.ctx) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.5;
+      this.master.connect(this.ctx.destination);
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = 0.32;
+      this.musicGain.connect(this.master);
+    } catch (e) { /* no audio */ }
+  },
+  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  beep(freq, dur, type = 'square', vol = 0.2, slide = 0) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + dur + 0.02);
+  },
+  noise(dur, vol = 0.25) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime;
+    const len = Math.floor(this.ctx.sampleRate * dur);
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = this.ctx.createBufferSource(); src.buffer = buf;
+    const g = this.ctx.createGain(); g.gain.value = vol;
+    src.connect(g); g.connect(this.master); src.start(t);
+  },
+  jelly(combo) { this.beep(660 + Math.min(combo, 24) * 30, 0.09, 'square', 0.13, 200); },
+  bear()   { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.beep(f,0.14,'square',0.2),i*70)); },
+  potion() { [392,523,659].forEach((f,i)=>setTimeout(()=>this.beep(f,0.12,'triangle',0.25),i*60)); },
+  power()  { [262,330,392,523,659,784].forEach((f,i)=>setTimeout(()=>this.beep(f,0.1,'sawtooth',0.15),i*50)); },
+  jump()   { this.beep(300, 0.15, 'sine', 0.2, 250); },
+  jump2()  { this.beep(400, 0.15, 'sine', 0.2, 300); },
+  slide()  { this.noise(0.12, 0.1); },
+  crash()  { this.noise(0.25, 0.35); this.beep(120, 0.3, 'sawtooth', 0.25, -60); },
+  fall()   { this.beep(500, 0.5, 'sine', 0.2, -420); },
+  speedup(){ [660,660,880].forEach((f,i)=>setTimeout(()=>this.beep(f,0.1,'square',0.2),i*90)); },
+  over()   { [523,494,440,392,330,262].forEach((f,i)=>setTimeout(()=>this.beep(f,0.22,'triangle',0.2),i*160)); },
+
+  /* --- เพลงประกอบ chiptune loop --- */
+  musicTimer: null, step: 0,
+  // เมโลดี้สนุก ๆ สไตล์เกมวิ่งขนมหวาน (16 สเต็ป x 2 ท่อน)
+  melody: [
+    523,0,659,0, 784,0,659,523, 587,0,659,587, 523,0,392,0,
+    523,0,659,0, 784,0,880,784, 659,587,523,587, 659,0,523,0,
+    440,0,523,0, 659,0,523,440, 494,0,587,494, 392,0,330,0,
+    440,0,523,659, 784,0,659,523, 587,659,587,494, 523,0,0,0
+  ],
+  bass: [131,0,196,0, 165,0,196,0, 147,0,196,0, 131,0,196,0,
+         131,0,196,0, 165,0,196,0, 147,0,175,0, 196,0,196,0],
+  startMusic() {
+    if (!this.ctx || this.musicTimer) return;
+    this.step = 0;
+    const tick = () => {
+      if (this.muted) { this.step++; return; }
+      const t = this.ctx.currentTime;
+      const m = this.melody[this.step % this.melody.length];
+      const b = this.bass[this.step % this.bass.length];
+      if (m) {
+        const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+        o.type = 'square'; o.frequency.value = m;
+        g.gain.setValueAtTime(0.05, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+        o.connect(g); g.connect(this.musicGain); o.start(t); o.stop(t + 0.15);
+      }
+      if (b) {
+        const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+        o.type = 'triangle'; o.frequency.value = b;
+        g.gain.setValueAtTime(0.09, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        o.connect(g); g.connect(this.musicGain); o.start(t); o.stop(t + 0.18);
+      }
+      this.step++;
+    };
+    this.musicTimer = setInterval(tick, 130);
+  },
+  stopMusic() { clearInterval(this.musicTimer); this.musicTimer = null; }
+};
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
+const G = {
+  state: 'menu',            // menu | play | over
+  time: 0, dt: 0,
+  speed: 380, baseSpeed: 380, maxSpeed: 860,
+  stage: 1, stageTimer: 0, stageLen: 18,
+  dist: 0, score: 0, coins: 0, jellies: 0,
+  combo: 0, comboTimer: 0,
+  hp: 100, hpMax: 100, hpDrain: 3.2,
+  best: Math.floor(+(localStorage.getItem('cr_best') || 0)),
+  bestCoins: +(localStorage.getItem('cr_coins') || 0),
+  shake: 0, flash: 0, banner: null, bannerT: 0,
+  overT: 0, newBest: false,
+};
+
+/* ---------- player ---------- */
+const P = {
+  x: 170, y: 0, vy: 0,
+  w: 56, h: 74,
+  onGround: true, jumps: 0,
+  sliding: false, slideT: 0,
+  invT: 0,          // อมตะชั่วคราวหลังโดนชน
+  giantT: 0,        // โหมดยักษ์
+  magnetT: 0,       // แม่เหล็กเยลลี่
+  anim: 0, dead: false, fallingPit: false,
+};
+const GROUND_Y = 442;
+const GRAV = 2400, JUMP_V = -880, JUMP2_V = -760;
+
+/* ---------- world objects ---------- */
+let jellyList = [];     // เยลลี่ / ไอเทม
+let obstacles = [];     // สิ่งกีดขวาง
+let pits = [];          // หลุม
+let particles = [];
+let floaters = [];      // ตัวเลขคะแนนลอย
+let clouds = [];
+let spawnX = 0;         // world x ที่ pattern ถัดไปจะเริ่ม
+let worldX = 0;         // ระยะที่โลกเลื่อนไปแล้ว
+
+for (let i = 0; i < 7; i++)
+  clouds.push({ x: rnd(0, W), y: rnd(30, 170), s: rnd(0.5, 1.2), v: rnd(8, 22) });
+
+/* ============================================================
+   PATTERNS — สูตรวางเยลลี่+สิ่งกีดขวางแบบเกมจริง
+   ทุก pattern คืนความยาว (px) ที่ใช้ไป
+   ============================================================ */
+const J = (x, y, type) => jellyList.push({ x, y, type, t: rnd(0, TAU), dead: false });
+const OB = (x, type) => obstacles.push({ x, type, dead: false });
+
+const JSIZE = { bar: 22, pink: 26, coin: 24, bear: 46, potion: 30, giant: 32, magnet: 32 };
+const JSCORE = { bar: 10, pink: 50, coin: 20, bear: 1000 };
+
+function rowJellies(x, n, y = GROUND_Y - 36, type = 'bar') {
+  for (let i = 0; i < n; i++) J(x + i * 46, y, type);
+  return n * 46;
+}
+function arcJellies(x, n, peak = 150) {
+  // โค้งตาม trajectory กระโดด
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    const y = GROUND_Y - 36 - Math.sin(t * Math.PI) * peak;
+    J(x + i * 52, y, 'bar');
+  }
+  return n * 52;
+}
+
+const PATTERNS = [
+  // 0: แถวเยลลี่ธรรมดา
+  x => rowJellies(x, rndi(5, 9)) + 120,
+  // 1: อุปสรรคเตี้ย กระโดดข้าม + เยลลี่โค้ง
+  x => {
+    const w = arcJellies(x, 7, 160);
+    OB(x + w / 2 - 26, Math.random() < 0.5 ? 'spike' : 'rock');
+    return w + 140;
+  },
+  // 2: สไลด์ลอดใต้คาน + เยลลี่แถวต่ำ
+  x => {
+    OB(x + 150, 'bar');
+    rowJellies(x, 8, GROUND_Y - 30);
+    return 8 * 46 + 160;
+  },
+  // 3: หลุม! กระโดดข้าม
+  x => {
+    const pw = rndi(120, 200);
+    pits.push({ x: x + 120, w: pw });
+    arcJellies(x + 40, 6, 170);
+    return 120 + pw + 160;
+  },
+  // 4: บันไดเยลลี่ (กระโดด 2 ชั้น)
+  x => {
+    let cx = x;
+    for (let s = 0; s < 3; s++) {
+      const y = GROUND_Y - 40 - s * 85;
+      for (let i = 0; i < 3; i++) { J(cx, y, 'bar'); cx += 48; }
+    }
+    J(cx + 10, GROUND_Y - 40 - 2 * 85 - 20, 'pink');
+    return cx - x + 160;
+  },
+  // 5: อุปสรรคคู่ jump-slide combo
+  x => {
+    OB(x + 80, 'spike');
+    OB(x + 330, 'bar');
+    rowJellies(x + 380, 5, GROUND_Y - 30);
+    arcJellies(x - 10, 5, 150);
+    return 380 + 5 * 46 + 150;
+  },
+  // 6: ขบวนเหรียญบนฟ้า
+  x => {
+    for (let i = 0; i < 6; i++) J(x + i * 50, GROUND_Y - 175 - Math.sin(i * 0.8) * 22, 'coin');
+    OB(x + 120, 'rock');
+    return 6 * 50 + 150;
+  },
+  // 7: หมีเยลลี่! (ท้ายแถวยาว)
+  x => {
+    const w = rowJellies(x, 8);
+    J(x + w + 30, GROUND_Y - 60, 'bear');
+    return w + 200;
+  },
+  // 8: หลุมคู่โหด
+  x => {
+    const p1 = rndi(110, 150);
+    pits.push({ x: x + 100, w: p1 });
+    pits.push({ x: x + 100 + p1 + 170, w: rndi(110, 160) });
+    arcJellies(x + 20, 5, 165);
+    arcJellies(x + 100 + p1 + 80, 5, 165);
+    return 100 + p1 + 170 + 160 + 200;
+  },
+  // 9: ซิกแซกเยลลี่สูงต่ำ
+  x => {
+    for (let i = 0; i < 10; i++)
+      J(x + i * 48, GROUND_Y - 36 - (i % 4 < 2 ? 0 : 120), 'bar');
+    return 10 * 48 + 120;
+  },
+];
+
+function spawnPattern() {
+  const x = spawnX;
+  let w;
+  const roll = Math.random();
+  if (roll < 0.045)       w = spawnItem(x, 'potion');
+  else if (roll < 0.075)  w = spawnItem(x, 'giant');
+  else if (roll < 0.105)  w = spawnItem(x, 'magnet');
+  else {
+    // ด่านสูงขึ้น → เจออุปสรรคบ่อยขึ้น
+    const hard = Math.min(G.stage, 6);
+    const pool = [0,1,1,2,2,3,4,5,6,7,9]
+      .concat(hard >= 2 ? [3,5,8] : [0])
+      .concat(hard >= 3 ? [7,8] : []);
+    w = PATTERNS[pool[rndi(0, pool.length - 1)]](x);
+  }
+  spawnX = x + w + rnd(40, 130);
+}
+function spawnItem(x, type) {
+  rowJellies(x, 4);
+  J(x + 4 * 46 + 20, GROUND_Y - 46, type);
+  return 4 * 46 + 180;
+}
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+const keys = {};
+function doJump() {
+  if (G.state === 'menu') return startGame();
+  if (G.state === 'over') { if (G.overT > 1) resetToMenu(); return; }
+  if (P.dead || P.fallingPit) return;
+  if (P.sliding) P.sliding = false;
+  if (P.onGround) {
+    P.vy = JUMP_V * (P.giantT > 0 ? 0.94 : 1);
+    P.onGround = false; P.jumps = 1;
+    AudioSys.jump();
+    puff(P.x, GROUND_Y, 6);
+  } else if (P.jumps === 1) {
+    P.vy = JUMP2_V;
+    P.jumps = 2;
+    AudioSys.jump2();
+    puff(P.x, P.y + P.h, 8, '#fff');
+  }
+}
+let slideHeld = false;   // กดสไลด์ค้างอยู่ไหม (คีย์/นิ้ว/เมาส์)
+function doSlide(on) { slideHeld = on; }
+
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  AudioSys.init(); AudioSys.resume();
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); doJump(); }
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); doSlide(true); }
+  if (e.code === 'KeyM') { AudioSys.muted = !AudioSys.muted; }
+  keys[e.code] = true;
+});
+addEventListener('keyup', e => {
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') doSlide(false);
+  keys[e.code] = false;
+});
+
+/* touch: ซ้าย = กระโดด, ขวา = สไลด์ (แบบเกมจริง) */
+const touches = {};
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  AudioSys.init(); AudioSys.resume();
+  for (const t of e.changedTouches) {
+    const r = canvas.getBoundingClientRect();
+    const x = (t.clientX - r.left) / r.width * W;
+    if (G.state !== 'play') { doJump(); return; }
+    if (x < W / 2) { touches[t.identifier] = 'L'; doJump(); }
+    else { touches[t.identifier] = 'R'; doSlide(true); }
+  }
+}, { passive: false });
+canvas.addEventListener('touchend', e => {
+  for (const t of e.changedTouches) {
+    if (touches[t.identifier] === 'R') doSlide(false);
+    delete touches[t.identifier];
+  }
+});
+canvas.addEventListener('mousedown', e => {
+  AudioSys.init(); AudioSys.resume();
+  if (G.state !== 'play') { doJump(); return; }
+  const r = canvas.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * W;
+  x < W / 2 ? doJump() : doSlide(true);
+});
+canvas.addEventListener('mouseup', () => doSlide(false));
+
+/* ============================================================
+   GAME FLOW
+   ============================================================ */
+function startGame() {
+  G.state = 'play';
+  G.time = 0; G.dist = 0; G.score = 0; G.coins = 0; G.jellies = 0;
+  G.combo = 0; G.comboTimer = 0;
+  G.hp = G.hpMax; G.stage = 1; G.stageTimer = 0;
+  G.speed = G.baseSpeed; G.newBest = false;
+  P.y = GROUND_Y - P.h; P.vy = 0; P.onGround = true; P.jumps = 0;
+  P.sliding = false; P.invT = 0; P.giantT = 0; P.magnetT = 0;
+  P.dead = false; P.fallingPit = false; slideHeld = false;
+  jellyList = []; obstacles = []; pits = []; particles = []; floaters = [];
+  worldX = 0; spawnX = W + 100;
+  banner('READY... GO!!', '#ffdd44');
+  AudioSys.startMusic();
+}
+function gameOver() {
+  if (G.state === 'over') return;
+  G.state = 'over'; G.overT = 0;
+  P.dead = true;
+  AudioSys.stopMusic();
+  AudioSys.over();
+  G.score = Math.floor(G.score);
+  if (G.score > G.best) { G.best = G.score; G.newBest = true; localStorage.setItem('cr_best', G.best); }
+  G.bestCoins += G.coins;
+  localStorage.setItem('cr_coins', G.bestCoins);
+}
+function resetToMenu() { G.state = 'menu'; }
+function banner(text, color) { G.banner = { text, color }; G.bannerT = 0; }
+
+/* ---------- particles ---------- */
+function puff(x, y, n, c = '#e8d5b5') {
+  for (let i = 0; i < n; i++)
+    particles.push({ x, y, vx: rnd(-80, 80), vy: rnd(-140, -20), life: rnd(0.3, 0.6), t: 0, c, r: rnd(3, 7) });
+}
+function sparkle(x, y, n, c) {
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, TAU), sp = rnd(60, 240);
+    particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60, life: rnd(0.35, 0.7), t: 0, c, r: rnd(2, 5), star: true });
+  }
+}
+function floatText(x, y, text, c = '#fff', big = false) {
+  floaters.push({ x, y, text, c, t: 0, big });
+}
+
+/* ============================================================
+   UPDATE
+   ============================================================ */
+function hurt(amount, isPit) {
+  if (P.invT > 0 || P.giantT > 0 || P.dead) return;
+  G.hp -= amount;
+  G.combo = 0;
+  P.invT = 2.0;
+  G.shake = 12; G.flash = 0.5;
+  AudioSys.crash();
+  sparkle(P.x + P.w / 2, P.y + P.h / 2, 14, '#ff6b6b');
+  if (G.hp <= 0) { G.hp = 0; gameOver(); }
+}
+
+function update(dt) {
+  G.time += dt;
+  if (G.bannerT < 99) G.bannerT += dt;
+  G.shake = Math.max(0, G.shake - dt * 40);
+  G.flash = Math.max(0, G.flash - dt * 1.5);
+
+  // clouds ลอยตลอด
+  for (const c of clouds) {
+    c.x -= (c.v + (G.state === 'play' ? G.speed * 0.04 : 4)) * dt;
+    if (c.x < -160) { c.x = W + rnd(20, 120); c.y = rnd(30, 170); }
+  }
+
+  if (G.state !== 'play') {
+    if (G.state === 'over') G.overT += dt;
+    updateParticles(dt);
+    P.anim += dt * 8;
+    return;
+  }
+
+  /* --- ความเร็ว & ด่าน --- */
+  G.stageTimer += dt;
+  if (G.stageTimer >= G.stageLen && G.speed < G.maxSpeed) {
+    G.stageTimer = 0; G.stage++;
+    G.speed = Math.min(G.maxSpeed, G.speed + 62);
+    G.hpDrain += 0.35;
+    banner('SPEED UP!  ⚡ ด่าน ' + G.stage, '#7ee0ff');
+    AudioSys.speedup();
+  }
+
+  /* --- HP ลดตามเวลา (หัวใจของ Cookie Run) --- */
+  G.hp -= G.hpDrain * dt;
+  if (G.hp <= 0) { G.hp = 0; gameOver(); return; }
+
+  const move = G.speed * dt * (P.giantT > 0 ? 1.12 : 1);
+  worldX += move;
+  G.dist += move / 40;               // หน่วยเมตร
+  G.score += move * 0.02;            // คะแนนระยะทาง
+
+  /* --- ผลิต pattern ล่วงหน้า --- */
+  while (spawnX < worldX + W + 700) spawnPattern();
+
+  /* --- timers --- */
+  P.invT = Math.max(0, P.invT - dt);
+  P.giantT = Math.max(0, P.giantT - dt);
+  P.magnetT = Math.max(0, P.magnetT - dt);
+  G.comboTimer -= dt;
+  if (G.comboTimer <= 0) G.combo = 0;
+  P.anim += dt * (8 + G.speed / 90);
+
+  /* --- ฟิสิกส์ผู้เล่น --- */
+  const scale = P.giantT > 0 ? 1.6 : 1;
+
+  // สไลด์: เข้า/ออกตามปุ่มที่กดค้าง (กดค้างกลางอากาศ = สไลด์ทันทีที่แตะพื้น)
+  if (P.onGround && !P.fallingPit) {
+    if (slideHeld && !P.sliding) {
+      P.sliding = true;
+      P.y = GROUND_Y - P.h * 0.52 * scale;   // หมอบติดพื้นทันที
+      AudioSys.slide();
+    } else if (!slideHeld && P.sliding) {
+      P.sliding = false;
+      P.y = GROUND_Y - P.h * scale;
+    }
+  }
+
+  const pw = P.w * scale;
+  const ph = (P.sliding ? P.h * 0.52 : P.h) * scale;
+
+  P.vy += GRAV * dt;
+  // กดค้างลงกลางอากาศ = ดิ่งลงเร็ว (fast fall)
+  if (slideHeld && !P.onGround)
+    P.vy += GRAV * 1.4 * dt;
+  P.y += P.vy * dt;
+
+  /* หลุม */
+  const footX = P.x + pw * 0.5;
+  let overPit = false;
+  for (const p of pits) {
+    const px = p.x - worldX;
+    if (footX > px + 14 && footX < px + p.w - 14) overPit = true;
+  }
+
+  if (!P.fallingPit) {
+    if (P.y + ph >= GROUND_Y) {
+      if (overPit && P.giantT <= 0) {
+        // ตกหลุม!
+        P.fallingPit = true;
+        AudioSys.fall();
+      } else {
+        P.y = GROUND_Y - ph;
+        if (!P.onGround) puff(P.x + pw / 2, GROUND_Y, 4);
+        P.vy = 0; P.onGround = true; P.jumps = 0;
+      }
+    } else P.onGround = false;
+  } else {
+    // กำลังร่วงลงหลุม
+    if (P.y > H + 60) {
+      hurtFromPit();
+    }
+  }
+
+  /* --- เก็บเยลลี่ --- */
+  const cx = P.x + pw / 2, cy = P.y + ph / 2;
+  for (const j of jellyList) {
+    if (j.dead) continue;
+    let jx = j.x - worldX;
+    if (jx < -80) { j.dead = true; continue; }
+    if (jx > W + 80) break;
+    // แม่เหล็ก: ดูดเยลลี่เข้าหาตัว
+    if (P.magnetT > 0 && !['potion','giant','magnet'].includes(j.type)) {
+      const dx = cx - jx, dy = cy - j.y;
+      const d = Math.hypot(dx, dy);
+      if (d < 260) { j.x += dx / d * 620 * dt; j.y += dy / d * 620 * dt; jx = j.x - worldX; }
+    }
+    const r = JSIZE[j.type] / 2 + (P.giantT > 0 ? 30 : 14);
+    if (Math.abs(jx - cx) < r + pw / 2 - 8 && Math.abs(j.y - cy) < r + ph / 2 - 4) {
+      j.dead = true;
+      collectJelly(j, jx);
+    }
+  }
+  jellyList = jellyList.filter(j => !j.dead);
+
+  /* --- ชนสิ่งกีดขวาง --- */
+  for (const o of obstacles) {
+    if (o.dead) continue;
+    const ox = o.x - worldX;
+    if (ox < -120) { o.dead = true; continue; }
+    if (ox > W + 60) break;
+    let hit = false;
+    if (o.type === 'bar') {
+      // คานลอย: ต้องสไลด์ลอด (ช่องว่างด้านล่างสูง ~ ครึ่งตัว)
+      const barBottom = GROUND_Y - 62;
+      if (cx + pw / 2 - 12 > ox && cx - pw / 2 + 12 < ox + 110 && P.y < barBottom) hit = true;
+    } else {
+      const ow = o.type === 'spike' ? 46 : 56, oh = o.type === 'spike' ? 46 : 52;
+      if (cx + pw / 2 - 12 > ox && cx - pw / 2 + 12 < ox + ow && P.y + ph > GROUND_Y - oh + 6) hit = true;
+    }
+    if (hit) {
+      if (P.giantT > 0) {
+        o.dead = true;
+        sparkle(ox + 20, GROUND_Y - 40, 16, '#ffd24a');
+        G.score += 100; floatText(ox, GROUND_Y - 90, 'SMASH! +100', '#ffd24a', true);
+        AudioSys.noise(0.15, 0.3);
+      } else {
+        hurt(14 + G.stage, false);
+      }
+    }
+  }
+  obstacles = obstacles.filter(o => !o.dead);
+  pits = pits.filter(p => p.x - worldX > -400);
+
+  updateParticles(dt);
+}
+
+function hurtFromPit() {
+  // ตกหลุม: เสียพลังก้อนใหญ่ แล้ววาร์ปกลับมาวิ่งต่อ
+  G.hp -= 20 + G.stage * 2;
+  G.combo = 0;
+  G.shake = 14; G.flash = 0.6;
+  if (G.hp <= 0) { G.hp = 0; gameOver(); return; }
+  P.fallingPit = false;
+  P.y = GROUND_Y - P.h - 200; P.vy = 100;
+  P.invT = 2.5;
+  floatText(P.x, 220, 'อุ๊ปส์! ตกหลุม!', '#ff8888', true);
+}
+
+function collectJelly(j, jx) {
+  const mult = P.giantT > 0 ? 2 : 1;
+  switch (j.type) {
+    case 'bar': case 'coin': case 'pink': case 'bear': {
+      G.combo++; G.comboTimer = 1.2;
+      const comboBonus = Math.min(G.combo, 50);
+      const pts = (JSCORE[j.type] + comboBonus) * mult;
+      G.score += pts; G.jellies++;
+      if (j.type === 'coin') G.coins++;
+      if (j.type === 'bear') {
+        AudioSys.bear();
+        sparkle(jx, j.y, 24, '#ffb347');
+        floatText(jx, j.y - 30, '+' + pts + ' BEAR JELLY!', '#ffb347', true);
+        G.hp = Math.min(G.hpMax, G.hp + 10);
+      } else {
+        AudioSys.jelly(G.combo);
+        sparkle(jx, j.y, 5, j.type === 'coin' ? '#ffd700' : j.type === 'pink' ? '#ff7bac' : '#ffe066');
+        if (j.type !== 'bar' || G.combo % 10 === 0)
+          floatText(jx, j.y - 24, '+' + pts, '#fff');
+      }
+      break;
+    }
+    case 'potion':
+      G.hp = Math.min(G.hpMax, G.hp + 30);
+      AudioSys.potion();
+      sparkle(jx, j.y, 16, '#7bff9b');
+      floatText(jx, j.y - 30, '+HP พลังคืนมา!', '#7bff9b', true);
+      break;
+    case 'giant':
+      P.giantT = 6;
+      AudioSys.power();
+      sparkle(jx, j.y, 20, '#ffd24a');
+      banner('ยักษ์โหมด! GIANT MODE!', '#ffd24a');
+      break;
+    case 'magnet':
+      P.magnetT = 8;
+      AudioSys.power();
+      sparkle(jx, j.y, 20, '#7ecbff');
+      banner('แม่เหล็กเยลลี่!', '#7ecbff');
+      break;
+  }
+}
+
+function updateParticles(dt) {
+  for (const p of particles) {
+    p.t += dt;
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vy += 500 * dt;
+    p.x -= (G.state === 'play' ? G.speed * 0.5 : 0) * dt;
+  }
+  particles = particles.filter(p => p.t < p.life);
+  for (const f of floaters) { f.t += dt; f.y -= 45 * dt; f.x -= (G.state==='play'?G.speed*0.3:0)*dt; }
+  floaters = floaters.filter(f => f.t < 1.1);
+}
+
+/* ============================================================
+   DRAW — โลกขนมหวาน
+   ============================================================ */
+function draw() {
+  ctx.save();
+  if (G.shake > 0) ctx.translate(rnd(-G.shake, G.shake) * 0.5, rnd(-G.shake, G.shake) * 0.5);
+
+  drawSky();
+  drawBackHills();
+  drawGroundAndPits();
+  drawJellies();
+  drawObstacles();
+  drawPlayer();
+  drawParticles();
+  drawFloaters();
+
+  ctx.restore();
+
+  if (G.flash > 0) {
+    ctx.fillStyle = `rgba(255,60,60,${G.flash * 0.35})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  if (G.state === 'play') drawHUD();
+  if (G.state === 'menu') drawMenu();
+  if (G.state === 'over') drawGameOver();
+  drawBanner();
+}
+
+/* ---------- background ---------- */
+function drawSky() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#ffd9a0');
+  g.addColorStop(0.45, '#ffb677');
+  g.addColorStop(1, '#ff9d6b');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // พระอาทิตย์คุกกี้
+  ctx.save();
+  ctx.translate(790, 95);
+  ctx.fillStyle = '#ffe9b8';
+  ctx.beginPath(); ctx.arc(0, 0, 46, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#f7d089';
+  ctx.beginPath(); ctx.arc(0, 0, 38, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#e0b060';
+  for (const [dx, dy] of [[-12,-8],[10,-14],[14,8],[-6,12],[2,-2]])
+    { ctx.beginPath(); ctx.arc(dx, dy, 3.4, 0, TAU); ctx.fill(); }
+  ctx.restore();
+
+  // เมฆวิปครีม
+  for (const c of clouds) {
+    ctx.save();
+    ctx.translate(c.x, c.y); ctx.scale(c.s, c.s);
+    ctx.fillStyle = 'rgba(255,250,240,.92)';
+    for (const [dx, dy, r] of [[0,0,26],[24,-8,20],[48,0,24],[24,8,22],[70,4,16]])
+      { ctx.beginPath(); ctx.arc(dx, dy, r, 0, TAU); ctx.fill(); }
+    ctx.restore();
+  }
+}
+
+function drawBackHills() {
+  // เนินขนมไกล (parallax)
+  const off1 = -(worldX * 0.18) % 500;
+  ctx.fillStyle = '#e88a5d';
+  for (let x = off1 - 500; x < W + 500; x += 500) {
+    ctx.beginPath();
+    ctx.moveTo(x, 400);
+    ctx.quadraticCurveTo(x + 125, 250, x + 250, 400);
+    ctx.quadraticCurveTo(x + 375, 290, x + 500, 400);
+    ctx.lineTo(x + 500, 460); ctx.lineTo(x, 460);
+    ctx.fill();
+  }
+  // ต้นอมยิ้ม / แคนดี้เคน (parallax ใกล้กว่า)
+  const off2 = -(worldX * 0.45) % 640;
+  for (let x = off2 - 640; x < W + 640; x += 320) {
+    drawLollipop(x + 60, 442, 1, ((x / 320 | 0) % 2) === 0);
+  }
+}
+function drawLollipop(x, groundY, s, alt) {
+  ctx.save();
+  ctx.translate(x, groundY); ctx.scale(s, s);
+  ctx.fillStyle = '#f7e6c9';
+  ctx.fillRect(-5, -120, 10, 120);
+  const r = 34;
+  ctx.beginPath(); ctx.arc(0, -140, r, 0, TAU);
+  ctx.fillStyle = alt ? '#ff6b8d' : '#7ecbff'; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 6;
+  ctx.beginPath();
+  for (let a = 0; a < TAU * 2.4; a += 0.15) {
+    const rr = a / (TAU * 2.4) * (r - 6);
+    const px = Math.cos(a) * rr, py = Math.sin(a) * rr - 140;
+    a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawGroundAndPits() {
+  // พื้นคุกกี้/บิสกิต
+  const g = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  g.addColorStop(0, '#c98d4e');
+  g.addColorStop(0.15, '#a96f37');
+  g.addColorStop(1, '#7a4a20');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+  // ขอบไอซิ่งด้านบน
+  ctx.fillStyle = '#f2d8a7';
+  const off = -(worldX % 64);
+  for (let x = off - 64; x < W + 64; x += 64) {
+    ctx.beginPath();
+    ctx.arc(x + 32, GROUND_Y + 3, 10, Math.PI, 0);
+    ctx.fill();
+  }
+  ctx.fillRect(0, GROUND_Y, W, 6);
+
+  // จุดช็อกโกแลตชิป
+  ctx.fillStyle = 'rgba(90,50,20,.55)';
+  const off2 = -(worldX % 160);
+  for (let x = off2 - 160; x < W + 160; x += 160) {
+    ctx.beginPath(); ctx.arc(x + 40, GROUND_Y + 42, 7, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + 110, GROUND_Y + 70, 9, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + 75, GROUND_Y + 95, 6, 0, TAU); ctx.fill();
+  }
+
+  // หลุม
+  for (const p of pits) {
+    const px = p.x - worldX;
+    if (px > W || px + p.w < 0) continue;
+    ctx.fillStyle = '#1d1006';
+    ctx.fillRect(px, GROUND_Y, p.w, H - GROUND_Y);
+    const gg = ctx.createLinearGradient(0, GROUND_Y, 0, GROUND_Y + 60);
+    gg.addColorStop(0, 'rgba(0,0,0,.65)'); gg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gg;
+    ctx.fillRect(px, GROUND_Y, p.w, 60);
+    // ขอบหลุม
+    ctx.fillStyle = '#8a5a28';
+    ctx.fillRect(px - 4, GROUND_Y, 6, 18);
+    ctx.fillRect(px + p.w - 2, GROUND_Y, 6, 18);
+  }
+}
+
+/* ---------- jellies & items ---------- */
+function drawJellies() {
+  for (const j of jellyList) {
+    const x = j.x - worldX;
+    if (x < -60 || x > W + 60) continue;
+    const bob = Math.sin(G.time * 4 + j.t) * 4;
+    const y = j.y + bob;
+    ctx.save();
+    ctx.translate(x, y);
+    switch (j.type) {
+      case 'bar': {   // เยลลี่แท่งเหลือง — ไอคอนิกของเกม
+        ctx.rotate(0.5);
+        const w = 26, h = 13;
+        ctx.fillStyle = '#ffce2e';
+        roundRect(-w/2, -h/2, w, h, 6); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.75)';
+        roundRect(-w/2+3, -h/2+2, w-14, 4, 2); ctx.fill();
+        break;
+      }
+      case 'pink': {
+        ctx.fillStyle = '#ff7bac';
+        heart(0, 0, 15); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.7)';
+        ctx.beginPath(); ctx.arc(-5, -5, 3.5, 0, TAU); ctx.fill();
+        break;
+      }
+      case 'coin': {
+        ctx.fillStyle = '#e8a90c';
+        ctx.beginPath(); ctx.arc(0, 0, 12, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#ffd84a';
+        ctx.beginPath(); ctx.arc(0, 0, 9.5, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#e8a90c';
+        ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('C', 0, 1);
+        break;
+      }
+      case 'bear': drawBearJelly(); break;
+      case 'potion': {
+        ctx.fillStyle = '#e94f4f';
+        ctx.beginPath(); ctx.arc(0, 3, 13, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#f9f4ea';
+        ctx.fillRect(-5, -16, 10, 8);
+        ctx.fillStyle = '#c9c2b4';
+        ctx.fillRect(-6, -18, 12, 4);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-6, 0, 12, 5); ctx.fillRect(-2.5, -3.5, 5, 12);
+        glowRing('#7bff9b');
+        break;
+      }
+      case 'giant': {
+        // ลูกอมยักษ์
+        ctx.fillStyle = '#ffd24a';
+        ctx.beginPath(); ctx.arc(0, 0, 14, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#ff9d2e';
+        ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('G', 0, 1);
+        glowRing('#ffd24a');
+        break;
+      }
+      case 'magnet': {
+        ctx.strokeStyle = '#e0453a'; ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.arc(0, -2, 10, Math.PI, 0, false); ctx.stroke();
+        ctx.strokeStyle = '#e0453a';
+        ctx.beginPath(); ctx.moveTo(-10, -2); ctx.lineTo(-10, 8); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(10, -2); ctx.lineTo(10, 8); ctx.stroke();
+        ctx.strokeStyle = '#f4f4f4'; ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.moveTo(-10, 8); ctx.lineTo(-10, 12); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(10, 8); ctx.lineTo(10, 12); ctx.stroke();
+        glowRing('#7ecbff');
+        break;
+      }
+    }
+    ctx.restore();
+  }
+}
+function glowRing(c) {
+  ctx.strokeStyle = c; ctx.globalAlpha = 0.5 + Math.sin(G.time * 6) * 0.3;
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(0, 0, 24 + Math.sin(G.time * 6) * 3, 0, TAU); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+function drawBearJelly() {
+  // หมีเยลลี่ส้มตัวโต
+  const c = '#ffab2e', hl = 'rgba(255,255,255,.55)';
+  ctx.fillStyle = c;
+  ctx.beginPath(); ctx.arc(-13, -18, 8, 0, TAU); ctx.fill();  // หูซ้าย
+  ctx.beginPath(); ctx.arc(13, -18, 8, 0, TAU); ctx.fill();   // หูขวา
+  ctx.beginPath(); ctx.arc(0, -8, 17, 0, TAU); ctx.fill();    // หัว
+  roundRect(-14, 2, 28, 22, 10); ctx.fill();                  // ตัว
+  ctx.beginPath(); ctx.arc(-11, 24, 6, 0, TAU); ctx.fill();   // ขา
+  ctx.beginPath(); ctx.arc(11, 24, 6, 0, TAU); ctx.fill();
+  ctx.fillStyle = hl;
+  ctx.beginPath(); ctx.arc(-6, -13, 4, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#7a4a10';
+  ctx.beginPath(); ctx.arc(-6, -8, 2.2, 0, TAU); ctx.fill();  // ตา
+  ctx.beginPath(); ctx.arc(6, -8, 2.2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -3, 3, 0, Math.PI); ctx.stroke && 0;
+  ctx.strokeStyle = '#7a4a10'; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.arc(0, -4, 3.4, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  glowRing('#ffab2e');
+}
+
+/* ---------- obstacles ---------- */
+function drawObstacles() {
+  for (const o of obstacles) {
+    const x = o.x - worldX;
+    if (x < -140 || x > W + 60) continue;
+    ctx.save();
+    ctx.translate(x, GROUND_Y);
+    if (o.type === 'spike') {
+      // เข็มลูกกวาดแหลม
+      for (let i = 0; i < 3; i++) {
+        const bx = i * 16 - 2;
+        ctx.fillStyle = i % 2 ? '#ff5f7e' : '#ff8fa8';
+        ctx.beginPath();
+        ctx.moveTo(bx, 0); ctx.lineTo(bx + 8, -46 - (i===1?8:0)); ctx.lineTo(bx + 16, 0);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.5)';
+        ctx.beginPath();
+        ctx.moveTo(bx + 3, -6); ctx.lineTo(bx + 7, -32); ctx.lineTo(bx + 9, -6);
+        ctx.fill();
+      }
+    } else if (o.type === 'rock') {
+      // หินช็อกโกแลต
+      ctx.fillStyle = '#6b4226';
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(6, -34); ctx.lineTo(22, -50) ; ctx.lineTo(42, -42);
+      ctx.lineTo(56, -18); ctx.lineTo(54, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8a5a35';
+      ctx.beginPath();
+      ctx.moveTo(8, -30); ctx.lineTo(22, -44); ctx.lineTo(36, -38); ctx.lineTo(30, -20);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.25)';
+      ctx.beginPath(); ctx.arc(24, -40, 4, 0, TAU); ctx.fill();
+    } else if (o.type === 'bar') {
+      // คานแคนดี้เคนลอย — ต้องสไลด์ลอด
+      const y = -62;   // ขอบล่างของคาน
+      ctx.fillStyle = '#f6e7d0';
+      roundRect(0, -H, 14, H + y, 6); ctx.fill();
+      roundRect(96, -H, 14, H + y, 6); ctx.fill();
+      // ลายแดงเฉียง
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, -H, 14, H + y); ctx.rect(96, -H, 14, H + y); ctx.clip();
+      ctx.strokeStyle = '#e0453a'; ctx.lineWidth = 7;
+      for (let yy = -H; yy < y + 20; yy += 20) {
+        ctx.beginPath(); ctx.moveTo(-8, yy); ctx.lineTo(24, yy + 20); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(88, yy); ctx.lineTo(120, yy + 20); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle = '#b0793f';
+      roundRect(-8, y - 26, 126, 26, 8); ctx.fill();
+      ctx.fillStyle = '#8a5a28';
+      roundRect(-8, y - 26, 126, 10, 5); ctx.fill();
+      // ป้ายลูกศรลง
+      ctx.fillStyle = '#ffd24a';
+      ctx.font = 'bold 15px Trebuchet MS'; ctx.textAlign = 'center';
+      ctx.fillText('▼ SLIDE ▼', 55, y - 34);
+    }
+    ctx.restore();
+  }
+}
+
+/* ---------- player: คุกกี้กล้าหาญ ---------- */
+function drawPlayer() {
+  if (P.fallingPit && P.y > H) return;
+  const scale = P.giantT > 0 ? 1.6 : 1;
+  const blink = P.invT > 0 && Math.floor(G.time * 14) % 2 === 0;
+  if (blink) return;
+
+  ctx.save();
+  const ph = (P.sliding ? P.h * 0.52 : P.h) * scale;
+  ctx.translate(P.x + P.w * scale / 2, P.y + ph);
+
+  // เงา
+  if (!P.fallingPit) {
+    ctx.fillStyle = 'rgba(0,0,0,.22)';
+    const shY = GROUND_Y - (P.y + ph);
+    ctx.beginPath();
+    ctx.ellipse(0, shY + 6, 30 * scale * (1 - clamp(shY/300,0,0.5)), 8 * scale, 0, 0, TAU);
+    ctx.fill();
+  }
+
+  ctx.scale(scale, scale);
+  if (P.giantT > 0 && P.giantT < 1.2 && Math.floor(G.time * 10) % 2 === 0)
+    ctx.globalAlpha = 0.6;  // เตือนโหมดยักษ์ใกล้หมด
+
+  const run = P.anim;
+  if (P.sliding) drawCookieSlide(run);
+  else if (!P.onGround) drawCookieJump(P.jumps === 2);
+  else drawCookieRun(run);
+
+  // ออร่าแม่เหล็ก
+  if (P.magnetT > 0) {
+    ctx.strokeStyle = 'rgba(126,203,255,.7)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 8]);
+    ctx.lineDashOffset = -G.time * 60;
+    ctx.beginPath(); ctx.arc(0, -P.h/2, 66, 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+
+/* วาดตัวคุกกี้ (จุดกำเนิด = กึ่งกลางเท้า) */
+function cookieBody(bodyTilt, legA, legB, armA, armB, headBob) {
+  const B = '#c98d4e', ICING = '#fff6ec', DARK = '#8a5a28';
+  ctx.save();
+  ctx.rotate(bodyTilt);
+
+  // ขา (แคปซูลน้ำตาล)
+  const leg = (ang, len) => {
+    ctx.save();
+    ctx.translate(0, -26);
+    ctx.rotate(ang);
+    ctx.strokeStyle = B; ctx.lineWidth = 13; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, len); ctx.stroke();
+    // รองเท้าไอซิ่ง
+    ctx.fillStyle = ICING;
+    ctx.beginPath(); ctx.ellipse(2, len + 2, 9, 6, 0, 0, TAU); ctx.fill();
+    ctx.restore();
+  };
+  leg(legA, 26); leg(legB, 26);
+
+  // ตัว
+  ctx.fillStyle = B;
+  roundRect(-17, -58, 34, 38, 14); ctx.fill();
+  // ไอซิ่งซิกแซกที่ตัว
+  ctx.strokeStyle = ICING; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-13, -34);
+  ctx.lineTo(-7, -40); ctx.lineTo(-1, -34); ctx.lineTo(5, -40); ctx.lineTo(11, -34);
+  ctx.stroke();
+  // กระดุมเยลลี่แดง
+  ctx.fillStyle = '#e0453a';
+  ctx.beginPath(); ctx.arc(0, -48, 4.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.6)';
+  ctx.beginPath(); ctx.arc(-1.5, -49.5, 1.6, 0, TAU); ctx.fill();
+
+  // แขน
+  const arm = (ang) => {
+    ctx.save();
+    ctx.translate(0, -52);
+    ctx.rotate(ang);
+    ctx.strokeStyle = B; ctx.lineWidth = 11; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.stroke();
+    ctx.fillStyle = ICING;
+    ctx.beginPath(); ctx.arc(0, 24, 6, 0, TAU); ctx.fill();
+    ctx.restore();
+  };
+  arm(armA); arm(armB);
+
+  // หัว
+  ctx.save();
+  ctx.translate(0, -76 + headBob);
+  ctx.fillStyle = B;
+  ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.fill();
+  // ไอซิ่งผม
+  ctx.fillStyle = ICING;
+  ctx.beginPath();
+  ctx.arc(0, -4, 24, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.quadraticCurveTo(14, -20, 6, -12);
+  ctx.quadraticCurveTo(2, -22, -4, -12);
+  ctx.quadraticCurveTo(-10, -22, -16, -10);
+  ctx.closePath(); ctx.fill();
+  // ตา
+  ctx.fillStyle = '#3a2410';
+  ctx.beginPath(); ctx.ellipse(4, -1, 3.4, 4.4, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(16, -1, 3.4, 4.4, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(5, -2.5, 1.2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(17, -2.5, 1.2, 0, TAU); ctx.fill();
+  // ปากยิ้ม
+  ctx.strokeStyle = DARK; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(10, 5, 6, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  // แก้มชมพู
+  ctx.fillStyle = 'rgba(255,120,140,.5)';
+  ctx.beginPath(); ctx.arc(-3, 6, 3.6, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(20, 6, 3.2, 0, TAU); ctx.fill();
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function drawCookieRun(t) {
+  const c = Math.sin(t), s = Math.sin(t + Math.PI);
+  cookieBody(0.10, c * 0.9, s * 0.9, 2.6 + s * 0.7, 2.6 + c * 0.7, Math.abs(Math.cos(t)) * -2);
+  // เส้นสปีด
+  ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 3; ctx.lineCap='round';
+  for (let i = 0; i < 3; i++) {
+    const yy = -30 - i * 18, ln = 14 + ((t * 7 + i * 2) % 3) * 5;
+    ctx.beginPath(); ctx.moveTo(-30, yy); ctx.lineTo(-30 - ln, yy); ctx.stroke();
+  }
+}
+function drawCookieJump(second) {
+  if (second) {
+    // ตีลังกา! (กระโดดครั้งที่ 2 เหมือนเกมจริง)
+    ctx.save();
+    ctx.translate(0, -40);
+    ctx.rotate(P.anim * 1.8 % TAU);
+    ctx.translate(0, 40);
+    cookieBody(0, 0.9, -0.9, 2.2, 3.4, 0);
+    ctx.restore();
+  } else {
+    cookieBody(0.14, P.vy < 0 ? 1.1 : 0.4, P.vy < 0 ? -0.6 : -1.1, 2.0, 3.6, 0);
+  }
+}
+function drawCookieSlide(t) {
+  ctx.save();
+  ctx.rotate(-Math.PI / 2 + 0.28);
+  ctx.translate(16, 6);
+  cookieBody(0, 0.5 + Math.sin(t*2)*0.1, -0.3, 2.8, 3.2, 0);
+  ctx.restore();
+  // ฝุ่นสไลด์
+  if (Math.random() < 0.5) puff(P.x + 10, GROUND_Y, 1);
+}
+
+/* ---------- particles & floaters ---------- */
+function drawParticles() {
+  for (const p of particles) {
+    const a = 1 - p.t / p.life;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.c;
+    if (p.star) {
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.t * 6);
+      ctx.fillRect(-p.r, -p.r/3, p.r*2, p.r/1.5);
+      ctx.fillRect(-p.r/3, -p.r, p.r/1.5, p.r*2);
+      ctx.restore();
+    } else {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * a, 0, TAU); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+function drawFloaters() {
+  for (const f of floaters) {
+    const a = 1 - f.t / 1.1;
+    ctx.globalAlpha = a;
+    ctx.font = `bold ${f.big ? 24 : 17}px Trebuchet MS`;
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(60,30,0,.8)';
+    ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillStyle = f.c;
+    ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* ---------- HUD ---------- */
+function drawHUD() {
+  // แถบพลัง (หัวใจของเกม!)
+  const bx = 24, by = 20, bw = 330, bh = 26;
+  ctx.fillStyle = 'rgba(60,30,0,.55)';
+  roundRect(bx - 4, by - 4, bw + 8, bh + 8, 14); ctx.fill();
+  const hpFrac = G.hp / G.hpMax;
+  const hpC = hpFrac > 0.5 ? '#7bd94a' : hpFrac > 0.25 ? '#ffce2e' : '#ff5f5f';
+  ctx.fillStyle = '#3d2410';
+  roundRect(bx, by, bw, bh, 11); ctx.fill();
+  if (hpFrac > 0.01) {
+    ctx.fillStyle = hpC;
+    roundRect(bx, by, Math.max(14, bw * hpFrac), bh, 11); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    roundRect(bx + 3, by + 3, Math.max(8, bw * hpFrac - 6), 8, 5); ctx.fill();
+  }
+  // ไอคอนนาฬิกาพลัง
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(bx + 2, by + bh/2, 19, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffce2e';
+  ctx.beginPath(); ctx.arc(bx + 2, by + bh/2, 15.5, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#7a4a10'; ctx.lineWidth = 2.5; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(bx + 2, by + bh/2); ctx.lineTo(bx + 2, by + bh/2 - 9);
+  ctx.moveTo(bx + 2, by + bh/2); ctx.lineTo(bx + 8, by + bh/2 + 2);
+  ctx.stroke();
+  // เตือนพลังใกล้หมด
+  if (hpFrac < 0.25 && Math.floor(G.time * 3) % 2 === 0) {
+    ctx.fillStyle = '#ff5f5f';
+    ctx.font = 'bold 16px Trebuchet MS'; ctx.textAlign = 'left';
+    ctx.fillText('⚠ พลังใกล้หมด! เก็บยาเพิ่มพลัง!', bx + 10, by + bh + 22);
+  }
+
+  // คะแนน
+  ctx.textAlign = 'right';
+  ctx.font = 'bold 30px Trebuchet MS';
+  ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(60,30,0,.8)';
+  const sc = Math.floor(G.score).toLocaleString();
+  ctx.strokeText(sc, W - 26, 46);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(sc, W - 26, 46);
+  ctx.font = 'bold 15px Trebuchet MS';
+  ctx.fillStyle = '#ffe9b8';
+  ctx.strokeStyle = 'rgba(60,30,0,.7)'; ctx.lineWidth = 3;
+  const meta = `🏃 ${Math.floor(G.dist)} m    🍬 ${G.jellies}    🪙 ${G.coins}`;
+  ctx.strokeText(meta, W - 26, 72);
+  ctx.fillText(meta, W - 26, 72);
+
+  // คอมโบ
+  if (G.combo >= 5) {
+    ctx.textAlign = 'center';
+    const pop = 1 + Math.max(0, 0.4 - G.comboTimer) * 0.6;
+    ctx.save();
+    ctx.translate(W / 2, 96);
+    ctx.scale(pop, pop);
+    ctx.font = 'bold 30px Trebuchet MS';
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(60,30,0,.85)';
+    ctx.strokeText(G.combo + ' COMBO!', 0, 0);
+    ctx.fillStyle = `hsl(${(G.combo * 14) % 360},90%,65%)`;
+    ctx.fillText(G.combo + ' COMBO!', 0, 0);
+    ctx.restore();
+  }
+
+  // สถานะไอเทม
+  let iy = by + bh + (G.hp / G.hpMax < 0.25 ? 38 : 14);
+  ctx.textAlign = 'left'; ctx.font = 'bold 15px Trebuchet MS';
+  if (P.giantT > 0) {
+    ctx.fillStyle = '#ffd24a';
+    ctx.fillText('🍭 ยักษ์: ' + P.giantT.toFixed(1) + 's', bx, iy); iy += 22;
+  }
+  if (P.magnetT > 0) {
+    ctx.fillStyle = '#7ecbff';
+    ctx.fillText('🧲 แม่เหล็ก: ' + P.magnetT.toFixed(1) + 's', bx, iy);
+  }
+}
+
+function drawBanner() {
+  if (!G.banner || G.bannerT > 1.6) return;
+  const a = G.bannerT < 0.25 ? G.bannerT / 0.25 : G.bannerT > 1.25 ? (1.6 - G.bannerT) / 0.35 : 1;
+  ctx.globalAlpha = clamp(a, 0, 1);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 44px Trebuchet MS';
+  ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(60,30,0,.85)';
+  ctx.strokeText(G.banner.text, W / 2, 200);
+  ctx.fillStyle = G.banner.color;
+  ctx.fillText(G.banner.text, W / 2, 200);
+  ctx.globalAlpha = 1;
+}
+
+/* ---------- menu ---------- */
+function drawMenu() {
+  ctx.fillStyle = 'rgba(40,20,5,.45)';
+  ctx.fillRect(0, 0, W, H);
+
+  // โลโก้
+  ctx.save();
+  ctx.translate(W / 2, 150);
+  ctx.rotate(Math.sin(G.time * 1.2) * 0.02);
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 74px Trebuchet MS';
+  ctx.lineWidth = 14; ctx.strokeStyle = '#5a2e10';
+  ctx.strokeText('COOKIE RUN', 0, 0);
+  const grad = ctx.createLinearGradient(0, -55, 0, 10);
+  grad.addColorStop(0, '#ffe9a0'); grad.addColorStop(0.5, '#ffb84a'); grad.addColorStop(1, '#ff8b2e');
+  ctx.fillStyle = grad;
+  ctx.fillText('COOKIE RUN', 0, 0);
+  ctx.font = 'bold 30px Trebuchet MS';
+  ctx.lineWidth = 7; ctx.strokeStyle = '#5a2e10';
+  ctx.strokeText('~ คลาสสิค ~', 0, 46);
+  ctx.fillStyle = '#ffe9b8';
+  ctx.fillText('~ คลาสสิค ~', 0, 46);
+  ctx.restore();
+
+  // คุกกี้เด้งดึ๋ง
+  ctx.save();
+  ctx.translate(W / 2, 400 + Math.abs(Math.sin(G.time * 3)) * -26);
+  ctx.scale(1.25, 1.25);
+  cookieBody(0, Math.sin(G.time*6)*0.5, -Math.sin(G.time*6)*0.5, 2.6, 3.6, 0);
+  ctx.restore();
+
+  ctx.textAlign = 'center';
+  if (Math.floor(G.time * 2) % 2 === 0) {
+    ctx.font = 'bold 30px Trebuchet MS';
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(60,30,0,.9)';
+    ctx.strokeText('แตะหน้าจอ / กด SPACE เพื่อเริ่ม!', W / 2, 480);
+    ctx.fillStyle = '#fff';
+    ctx.fillText('แตะหน้าจอ / กด SPACE เพื่อเริ่ม!', W / 2, 480);
+  }
+
+  ctx.font = 'bold 17px Trebuchet MS';
+  ctx.fillStyle = '#ffe9b8';
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(60,30,0,.8)';
+  const help = '⬆/SPACE = กระโดด (กด 2 ครั้ง = ตีลังกา)   ⬇/S = สไลด์   |   มือถือ: แตะซ้าย = โดด, กดขวาค้าง = สไลด์   |   M = ปิด/เปิดเสียง';
+  ctx.strokeText(help, W / 2, 522);
+  ctx.fillText(help, W / 2, 522);
+
+  if (G.best > 0) {
+    ctx.font = 'bold 22px Trebuchet MS';
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(60,30,0,.85)';
+    ctx.strokeText('🏆 สถิติสูงสุด: ' + G.best.toLocaleString(), W / 2, 250);
+    ctx.fillStyle = '#ffd24a';
+    ctx.fillText('🏆 สถิติสูงสุด: ' + G.best.toLocaleString(), W / 2, 250);
+  }
+}
+
+/* ---------- game over ---------- */
+function drawGameOver() {
+  const a = clamp(G.overT / 0.6, 0, 1);
+  ctx.fillStyle = `rgba(30,12,2,${a * 0.72})`;
+  ctx.fillRect(0, 0, W, H);
+  if (a < 1) return;
+
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 62px Trebuchet MS';
+  ctx.lineWidth = 12; ctx.strokeStyle = '#5a2e10';
+  ctx.strokeText('พลังคุกกี้หมดแล้ว!', W / 2, 150);
+  ctx.fillStyle = '#ff9d6b';
+  ctx.fillText('พลังคุกกี้หมดแล้ว!', W / 2, 150);
+
+  const rows = [
+    ['คะแนนรวม', Math.floor(G.score).toLocaleString()],
+    ['ระยะทาง', Math.floor(G.dist).toLocaleString() + ' m'],
+    ['เยลลี่ที่เก็บ', G.jellies.toLocaleString()],
+    ['เหรียญ', G.coins.toLocaleString()],
+    ['ด่านที่ไปถึง', 'ด่าน ' + G.stage],
+  ];
+  ctx.font = 'bold 24px Trebuchet MS';
+  rows.forEach(([k, v], i) => {
+    const y = 215 + i * 40;
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffe9b8'; ctx.fillText(k, W / 2 - 20, y);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#fff'; ctx.fillText(v, W / 2 + 20, y);
+  });
+
+  if (G.newBest && Math.floor(G.time * 3) % 2 === 0) {
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 34px Trebuchet MS';
+    ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(60,30,0,.9)';
+    ctx.strokeText('🎉 สถิติใหม่! 🎉', W / 2, 430);
+    ctx.fillStyle = '#ffd24a';
+    ctx.fillText('🎉 สถิติใหม่! 🎉', W / 2, 430);
+  } else {
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 22px Trebuchet MS';
+    ctx.fillStyle = '#ffe9b8';
+    ctx.fillText('🏆 สถิติสูงสุด: ' + G.best.toLocaleString(), W / 2, 430);
+  }
+
+  if (G.overT > 1 && Math.floor(G.time * 2) % 2 === 0) {
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 26px Trebuchet MS';
+    ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(60,30,0,.9)';
+    ctx.strokeText('แตะหน้าจอเพื่อเล่นอีกครั้ง', W / 2, 490);
+    ctx.fillStyle = '#fff';
+    ctx.fillText('แตะหน้าจอเพื่อเล่นอีกครั้ง', W / 2, 490);
+  }
+}
+
+/* ---------- shape helpers ---------- */
+function roundRect(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function heart(x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + s * 0.35);
+  ctx.bezierCurveTo(x - s, y - s * 0.5, x - s * 0.5, y - s * 1.1, x, y - s * 0.35);
+  ctx.bezierCurveTo(x + s * 0.5, y - s * 1.1, x + s, y - s * 0.5, x, y + s * 0.35);
+  ctx.closePath();
+}
+
+/* ============================================================
+   MAIN LOOP
+   ============================================================ */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
