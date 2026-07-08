@@ -49,9 +49,11 @@ let ctx = canvas.getContext('2d');
    (วาดรวมเป็นก้อนเดียว → ไล่แสงทั้งตัวพาสเดียว → ภาพเนียนไร้รอยต่อ) */
 const charCanvas = document.createElement('canvas');
 const CSS = 2;                       // ซูเปอร์แซมเปิล 2x ให้ขอบคม
-const C_OX = 100, C_OY = 145;        // จุดกำเนิด (กึ่งกลางเท้า) ในพิกัด offscreen
+const C_OX = 100, C_OY = 160;        // จุดกำเนิด (กึ่งกลางเท้า) ในพิกัด offscreen
+const HS = 1.12;                     // สเกลหัว (ผลวัดสไปรต์จริง: หัว ≈58% ของความสูง)
+const SQ = 0.9;                      // บีบแนวตั้งรวม → สัดส่วนป้อมแบบสไปรต์จริง
 charCanvas.width = 200 * CSS;
-charCanvas.height = 190 * CSS;
+charCanvas.height = 205 * CSS;
 const charCtx = charCanvas.getContext('2d');
 // แคนวาสประกอบร่างขั้นสุดท้าย: ตีเส้นขอบรอบทุกชิ้น + เงาเซลเชด
 const olTmp = document.createElement('canvas');
@@ -60,13 +62,13 @@ const olTmpCtx = olTmp.getContext('2d');
 const olOut = document.createElement('canvas');
 olOut.width = charCanvas.width; olOut.height = charCanvas.height;
 const olOutCtx = olOut.getContext('2d');
-function finishSprite() {
-  // 1) เงาดำรูปเดียวกับตัวละคร
+function finishSprite(olc) {
+  // 1) เงาดำรูปเดียวกับตัวละคร — สีขอบดึงจากสีตัวคุกกี้ (hue เดียวกัน เข้มกว่า)
   olTmpCtx.setTransform(1, 0, 0, 1, 0, 0);
   olTmpCtx.clearRect(0, 0, olTmp.width, olTmp.height);
   olTmpCtx.drawImage(charCanvas, 0, 0);
   olTmpCtx.globalCompositeOperation = 'source-in';
-  olTmpCtx.fillStyle = '#4a2c12';
+  olTmpCtx.fillStyle = olc || '#4a2c12';
   olTmpCtx.fillRect(0, 0, olTmp.width, olTmp.height);
   olTmpCtx.globalCompositeOperation = 'source-over';
   // 2) ปั๊มเส้นขอบ 8 ทิศรอบตัว แล้ววางตัวจริงทับ
@@ -132,6 +134,37 @@ function shade(col, amt) {
   r = clamp(r + amt, 0, 255); g = clamp(g + amt, 0, 255); b = clamp(b + amt, 0, 255);
   return `rgb(${r},${g},${b})`;
 }
+/* ผลศึกษาสไปรต์ทางการ 92 ภาพ: เส้นขอบแต่ละชิ้นเป็น "สี hue เดียวกับพื้นแต่เข้มกว่า"
+   (ความสว่างขอบ ≈ 0.73 เท่าของสีพื้น) → dk คูณช่องสีตรง ๆ เพื่อคงเฉดสีเดิม */
+function dk(col, f) {
+  let r, g, b;
+  if (col[0] === '#') {
+    const p = parseInt(col.slice(1), 16);
+    r = p >> 16; g = (p >> 8) & 255; b = p & 255;
+  } else {
+    const m = col.match(/\d+/g);
+    if (!m) return col;
+    r = +m[0]; g = +m[1]; b = +m[2];
+  }
+  return `rgb(${(r * f) | 0},${(g * f) | 0},${(b * f) | 0})`;
+}
+/* โหมดตีเส้นอัตโนมัติ: ระหว่างวาดเครื่องแต่งกาย ทุก fill() ตีขอบสีเดียวกันที่เข้มขึ้นให้เอง
+   (ยกเว้นรายละเอียดจิ๋วบนหน้า ที่เกมจริงไม่ตีขอบ) */
+let AUTOL = false;
+const NO_OL = new Set(['freckles', 'stubble', 'blushdot', 'tear', 'fangs', 'facepaint', 'patch']);
+const _protoFill = CanvasRenderingContext2D.prototype.fill;
+CanvasRenderingContext2D.prototype.fill = function (...a) {
+  _protoFill.apply(this, a);
+  if (!AUTOL) return;
+  const fs = this.fillStyle;
+  if (typeof fs !== 'string' || fs.startsWith('rgba')) return;  // ข้ามไล่เฉด/สีโปร่งแสง
+  this.save();
+  this.strokeStyle = dk(fs, 0.68);
+  this.lineWidth = 2.2;
+  this.lineJoin = 'round'; this.lineCap = 'round';
+  if (a[0] instanceof Path2D) this.stroke(a[0]); else this.stroke();
+  this.restore();
+};
 
 /* ---------- persistent save ---------- */
 /* ---------- โปรไฟล์ผู้เล่น: ล็อกอินก่อนเข้าเกม แยกเซฟต่อโปรไฟล์ ----------
@@ -4134,6 +4167,7 @@ function runDecos(ch, phase, RIM) {
   const line = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; };
   for (const d of ds) {
     const c = d.c, p = d.p;
+    AUTOL = !NO_OL.has(p);
     if (phase === 'back') {
       if (p === 'cape') {
         const w1 = Math.sin(P.anim * 2.2) * 4;
@@ -4330,6 +4364,7 @@ function runDecos(ch, phase, RIM) {
       }
     }
   }
+  AUTOL = false;
   return drewHair;
 }
 /* ผม + หมวก + หน้า วาดในพิกัดหัว (เรียกภายใน head block) */
@@ -4340,6 +4375,7 @@ function runHeadDecos(ch, RIM, EYE) {
   const line = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; };
   for (const d of ds) {
     const c = d.c, p = d.p;
+    AUTOL = !NO_OL.has(p);
     /* ----- ผม ----- */
     if (p === 'swirl') {
       drewHair = true; line(6.5, c);
@@ -4404,6 +4440,7 @@ function runHeadDecos(ch, RIM, EYE) {
   /* ----- หมวก/เครื่องหัว + หน้า (วาดทับผม) ----- */
   for (const d of ds) {
     const c = d.c, p = d.p;
+    AUTOL = !NO_OL.has(p);
     if (p === 'bow') {
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.moveTo(14, -26); ctx.lineTo(3, -32); ctx.lineTo(3, -20); ctx.closePath(); ctx.fill();
@@ -4438,6 +4475,9 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.fillStyle = '#f2e060';
       ctx.beginPath(); ctx.arc(7, -56, 3.4, 0, TAU); ctx.fill();
     } else if (p === 'hood') {
+      // ขอบใต้ฮู้ดสี hue เดียวกันเข้มกว่า (สไตล์สไปรต์จริง)
+      line(13.4, dk(c, 0.68));
+      ctx.beginPath(); ctx.arc(0.5, 2, 30, Math.PI * 0.86, Math.PI * 2.14); ctx.stroke();
       line(11, c);
       ctx.beginPath(); ctx.arc(0.5, 2, 30, Math.PI * 0.86, Math.PI * 2.14); ctx.stroke();
       ctx.fillStyle = c;
@@ -4684,6 +4724,7 @@ function runHeadDecos(ch, RIM, EYE) {
       roundRect(25, 2, 8, 3.4, 1.7); ctx.fill();
     }
   }
+  AUTOL = false;
   return drewHair;
 }
 /* ของถือ (พิกัดลำตัว, มือหน้า ~ (24,-40)) */
@@ -4693,6 +4734,7 @@ function runHeldDecos(ch, RIM) {
   const line = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; };
   for (const d of ds) {
     const c = d.c, p = d.p;
+    AUTOL = !NO_OL.has(p);
     if (p === 'sword') {
       ctx.save(); ctx.translate(26, -36); ctx.rotate(-0.5);
       line(7, RIM); ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(0, -26); ctx.stroke();
@@ -4843,6 +4885,7 @@ function runHeldDecos(ch, RIM) {
       }
     }
   }
+  AUTOL = false;
 }
 
 function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
@@ -4933,10 +4976,10 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       ctx.restore();
     };
     armP(armA, eA); armP(armB, eB);
-    // หัวโตวงรีกว้าง
+    // หัวโตวงรีกว้าง (สเกลตามสัดส่วนจริง)
     ctx.save();
     ctx.translate(0, -84 + headBob);
-    ctx.beginPath(); ctx.ellipse(0.5, 0, 32 + pad, 28.5 + pad, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0.5, 0, 32 * HS + pad, 28.5 * HS + pad, 0, 0, TAU); ctx.fill();
     ctx.restore();
   };
   drawParts('rim');
@@ -4986,6 +5029,7 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   /* --- หัว --- */
   ctx.save();
   ctx.translate(0, -84 + headBob);
+  ctx.scale(HS, HS);
 
   if (ch.id === 'berry') {
     ctx.fillStyle = '#e8506e';
@@ -5074,7 +5118,7 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       ctx.fillStyle = EYE;
       ctx.beginPath(); ctx.ellipse(ex, -3, r, r + 1.2, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = '#241a10';
-      ctx.beginPath(); ctx.ellipse(ex + 0.8, -1.6, r * 0.5, r * 0.62, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ex + 0.8, -1.6, r * 0.66, r * 0.78, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,.95)';
       ctx.beginPath(); ctx.arc(ex - r * 0.36, -6.4, r * 0.32, 0, TAU); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,.7)';
@@ -5210,9 +5254,10 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
 
   runHeldDecos(ch, RIM);
 
-  finishSprite();
+  finishSprite(dk(B, 0.42));
   ctx = main;
-  ctx.drawImage(olOut, -C_OX, -C_OY, 200, 190);
+  // บีบแนวตั้งเล็กน้อยตอนแปะ (ยึดตำแหน่งเท้าเดิม) — สไปรต์จริงป้อมกว้าง W:H ≈ 0.8
+  ctx.drawImage(olOut, -C_OX, -C_OY * SQ, 200, 205 * SQ);
 }
 
 
