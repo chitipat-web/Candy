@@ -120,6 +120,42 @@ const GRADES = { C:'#9aa7b0', B:'#5cb85c', A:'#4a9fe0', S:'#b06ae0', SS:'#e8b03a
 /* ============================================================
    EPISODE — 5 แผนที่ ปลดล็อกด้วยสถิติระยะทาง แต่ละตอนมีธีม/คอร์ส/ความยากต่างกัน
    ============================================================ */
+/* ลีกจัดอันดับตามสถิติคะแนนสูงสุด + เหรียญตราความสำเร็จสะสม */
+const LEAGUES = [
+  { name: 'บรอนซ์',   icon: '🥉', min: 0 },
+  { name: 'ซิลเวอร์',  icon: '🥈', min: 20000 },
+  { name: 'โกลด์',    icon: '🥇', min: 60000 },
+  { name: 'ไดมอนด์',  icon: '💠', min: 120000 },
+  { name: 'มาสเตอร์', icon: '🏵', min: 250000 },
+  { name: 'แชมเปียน', icon: '👑', min: 500000 },
+];
+const leagueTier = () => { let t = 0; LEAGUES.forEach((l, i) => { if (G.best >= l.min) t = i; }); return t; };
+const MEDALS = [
+  { icon: '🎽', name: 'ก้าวแรกนักวิ่ง',   need: 'วิ่งครบ 1 รอบ',            chk: st => st.runs >= 1 },
+  { icon: '👟', name: 'ขาประจำ',          need: 'วิ่งครบ 10 รอบ',           chk: st => st.runs >= 10 },
+  { icon: '🏃', name: 'มาราธอนเนอร์',     need: 'วิ่งครบ 50 รอบ',           chk: st => st.runs >= 50 },
+  { icon: '🗺', name: 'นักเดินทาง',       need: 'ระยะสะสม 10,000 m',        chk: st => st.dist >= 10000 },
+  { icon: '🌏', name: 'รอบโลกขนมหวาน',    need: 'ระยะสะสม 50,000 m',        chk: st => st.dist >= 50000 },
+  { icon: '🚀', name: 'สปรินเตอร์',       need: 'สถิติเดียว 2,000 m',       chk: () => G.distBest >= 2000 },
+  { icon: '🐻', name: 'เพื่อนของหมี',     need: 'หมีเยลลี่สะสม 30 ตัว',      chk: st => st.bears >= 30 },
+  { icon: '🍬', name: 'จอมเก็บเยลลี่',    need: 'เยลลี่สะสม 5,000 ชิ้น',     chk: st => st.jellies >= 5000 },
+  { icon: '🔥', name: 'ราชาคอมโบ',       need: 'คอมโบสูงสุด 100',          chk: st => st.maxCombo >= 100 },
+  { icon: '⭐', name: 'นักบินโบนัส',      need: 'BONUS TIME 20 ครั้ง',       chk: st => st.bt >= 20 },
+  { icon: '🍪', name: 'นักสะสมคุกกี้',    need: 'มีคุกกี้ 10 ตัว',           chk: () => G.owned.length >= 10 },
+  { icon: '🐥', name: 'นักสะสมเพื่อนซี้', need: 'มีสัตว์เลี้ยง 10 ตัว',      chk: () => G.petsOwned.length >= 10 },
+];
+function checkMedals() {
+  MEDALS.forEach((m, i) => {
+    if (!G.medals.includes(i) && m.chk(G.stats)) {
+      G.medals.push(i);
+      G.crystals += 2;
+      SAVE.set('medals', G.medals); SAVE.set('crystals', G.crystals);
+      floatText(W / 2, 130 + G.medals.length * 8, m.icon + ' เหรียญตรา: ' + m.name + '! +2💎', '#ffd24a', true);
+      AudioSys.buy();
+    }
+  });
+}
+
 const EPISODES = [
   { id: 'oven',    name: 'หนีจากเตาอบ!',   icon: '🔥', seed: 424242, unlock: 0,
     tint: null,                    ground: ['#c98d4e', '#a96f37', '#7a4a20'], spd: 0,  drain: 0 },
@@ -345,6 +381,13 @@ const CHARS = [
     ['leafhood:#3f8a4a', 'bowweapon:#6b4423'], { ptMul: 1.2, comboT: 2.6, skillFast: 1.3, eyeS: 'sharp', sk: 'dash', mate: 'windy' }),
   CK('dancheong', 'คุกกี้ดันชอง', 'L', 50000, ['#e8c8a0', '#e0563a', '#3a90c0', '#2e78a8'],
     ['dancheongcrown:#e0563a', 'fanitem:#3a90c0', 'longhair:#3a2a1a'], { ptMul: 1.18, btPlus: 2, coinMul: 1.2, sk: 'bless', mate: 'kingdrop' }),
+  /* ----- เฉพาะภูมิภาคอินเดีย ----- */
+  CK('cricketer', 'คุกกี้นักคริกเก็ต', 'S', 11000, ['#d9a05a', '#3f6fd0', '#2e4fa0', '#24408a'],
+    ['helmet:#3f6fd0', 'sword:#f2e0c8'], { sk: 'strike', mate: 'laddu' }),
+  CK('jalebi', 'คุกกี้จาเลบี', 'S', 10500, ['#e8912e', '#f2b23c', '#c8741e', '#a85f16'],
+    ['curlhair:#f2b23c', 'drip:#ffd24a', 'blushdot'], { sk: 'gold', mate: 'diya' }),
+  CK('survivor', 'คุกกี้ผู้รอดชีวิต', 'S', 12000, ['#b89a6a', '#4a5a3a', '#37472c', '#2c3a22'],
+    ['helmet:#5a6a4a', 'facepaint:#37472c', 'vest:#4a5a3a'], { hpBonus: 25, sk: 'strike', mate: 'airdrop' }),
 ];
 
 /* ============================================================
@@ -462,6 +505,12 @@ const PETS = [
   PE('sugarswan', 'หงส์น้ำตาล', 'S', 10000, 'bird', ['#ffffff', '#f2e060'], { k: 'bt', v: 1.6 }, 2),
   PE('megaphone', 'โทรโข่งเชียร์', 'S', 8500, 'megaphone', ['#ff8ab0', '#ffd24a'], { k: 'combo', v: 0.9 }),
   /* L / E */
+  /* เฉพาะภูมิภาคอินเดีย */
+  PE('desidrop', 'เดซีดีไลต์ดรอป', 'S', 8500, 'drop', ['#e8912e', '#8fbf4a'], { k: 'jelly', v: 7 }),
+  PE('laddu', 'ลัดดูผู้รักษาประตู', 'S', 9000, 'critter', ['#f2b23c', '#e8912e', '#c8741e'], { k: 'destroy', v: 9 }, 5),
+  PE('chocopie', 'ช็อกโกพายจิ๋ว', 'S', 8500, 'disc', ['#6a3f28', '#f2e0c8'], { k: 'regen', v: 1.3 }),
+  PE('diya', 'ตะเกียงจาเลบีไฟ', 'S', 9000, 'candle', ['#e8912e', '#ffd24a'], { k: 'coinrain', v: 9 }),
+  PE('airdrop', 'กล่องเสบียงลอยฟ้า', 'S', 9500, 'bag', ['#5a6a4a', '#c9d2dc'], { k: 'give', v: 15, it: 'rand' }),
   PE('kingdrop', 'คิงช็อกโกดรอป', 'L', 30000, 'drop', ['#4a2e1a', '#ffd24a'], { k: 'score', v: 1.12 }, 10),
   PE('beanduo', 'ถั่วแฝดดูโอ', 'E', 20000, 'drop', ['#a05a4a', '#8fbf6a'], { k: 'jelly', v: 4 }, 11),
 ];
@@ -552,6 +601,9 @@ const REAL = {
   seafairy: { desc: ['เรียกคลื่นยักษ์ถล่ม', 'สิ่งกีดขวาง+คริสตัลทะเล'], mate: 'wavedrop', cfx: { k: 'destroyIv', iv: 7, jelly: 1, tag: '🌊 คลื่นยักษ์' } },
   windarcher: { desc: ['ง้างธนูยิงวิญญาณร้าย', 'ครบแล้วพุ่งลมกรด'], mate: 'windy', cfx: { k: 'transform', iv: 18, dur: 4, tag: '🏹 WIND DASH' } },
   dancheong: { desc: ['ระบำพัดดันชอง', 'เสกเยลลี่ห้าสี'], mate: 'kingdrop', cfx: { k: 'spawnSp', iv: 8, n: 4, tag: '🎏 ระบำพัด' } },
+  cricketer: { desc: ['หวดลูกคริกเก็ต', 'ทำลายสิ่งกีดขวาง'], mate: 'laddu', cfx: { k: 'destroyIv', iv: 8, tag: '🏏 หวด!' } },
+  jalebi: { desc: ['ทอดขนมจาเลบีวน ๆ', 'เกิดเยลลี่+เหรียญ'], mate: 'diya', cfx: { k: 'coinIv', iv: 9, n: 4, tag: '🍥 จาเลบี' } },
+  survivor: { desc: ['เก็บกล่องเสบียงกลางทาง', 'ทนทานเป็นพิเศษ'], mate: 'airdrop', cfx: { k: 'hitGuard', v: 0.5 } },
 };
 CHARS.forEach(c => { if (REAL[c.id]) Object.assign(c, REAL[c.id]); });
 
@@ -675,13 +727,28 @@ const BOOSTS = [
    สมบัติ — สวมได้ 2 ชิ้น เพิ่มพลังถาวร (แบบเกมจริง)
    ============================================================ */
 const TREASURES = [
-  { icon: '🐻', name: 'จี้หมีทองคำ',     cost: 1500, desc: ['หมีเยลลี่ให้แต้ม x2'] },
-  { icon: '💖', name: 'เข็มกลัดหัวใจ',   cost: 2200, desc: ['ชุบชีวิตเพิ่ม +1 ครั้ง'] },
-  { icon: '⏳', name: 'นาฬิกาน้ำตาล',    cost: 1800, desc: ['พลังชีวิตลดช้าลง 15%'] },
-  { icon: '💍', name: 'แหวนแม่เหล็ก',    cost: 2400, desc: ['ดูดเยลลี่ใกล้ตัวตลอดเวลา'] },
-  { icon: '👛', name: 'กระเป๋าทองคำ',    cost: 1600, desc: ['เหรียญที่ได้ +50%'] },
-  { icon: '🌠', name: 'ดาวตกน้ำตาล',     cost: 2600, desc: ['เกจสกิลชาร์จเร็วขึ้น 30%'] },
+  /* 6 ชิ้นแรกคงตำแหน่ง/ผลเดิม เพื่อเซฟเก่า */
+  { icon: '🐻', name: 'จี้หมีทองคำ',      cost: 1500, fx: { k: 'bear', v: 1.0 },  desc: 'หมีเยลลี่ให้แต้ม x2' },
+  { icon: '💖', name: 'เข็มกลัดหัวใจ',    cost: 2200, fx: { k: 'revive', v: 1 },  desc: 'ชุบชีวิตเพิ่ม +1 ครั้ง' },
+  { icon: '⏳', name: 'นาฬิกาน้ำตาล',     cost: 1800, fx: { k: 'drain', v: 0.15 }, desc: 'พลังชีวิตลดช้าลง 15%' },
+  { icon: '💍', name: 'แหวนแม่เหล็ก',     cost: 2400, fx: { k: 'magnet', v: 1 },  desc: 'ดูดเยลลี่ใกล้ตัวตลอดเวลา' },
+  { icon: '👛', name: 'กระเป๋าทองคำ',     cost: 1600, fx: { k: 'coin', v: 0.5 },  desc: 'เหรียญที่ได้ +50%' },
+  { icon: '🌠', name: 'ดาวตกน้ำตาล',      cost: 2600, fx: { k: 'skill', v: 0.3 }, desc: 'เกจสกิลชาร์จเร็วขึ้น 30%' },
+  { icon: '🪽', name: 'ขนนกเทวดา',        cost: 3000, fx: { k: 'bt', v: 1.5 },   desc: 'BONUS TIME นานขึ้น 1.5 วิ' },
+  { icon: '🍭', name: 'อมยิ้มนิรันดร์',    cost: 2800, fx: { k: 'item', v: 0.3 }, desc: 'ไอเทมอยู่นานขึ้น 30%' },
+  { icon: '🛡', name: 'เกราะบิสกิต',       cost: 3200, fx: { k: 'hp', v: 25 },    desc: 'พลังชีวิตสูงสุด +25' },
+  { icon: '👢', name: 'รองเท้าบูตแดง',    cost: 2600, fx: { k: 'boost', v: 1 },  desc: 'Rocket Start +1 วิ' },
+  { icon: '🎀', name: 'ริบบิ้นคอมโบ',     cost: 2400, fx: { k: 'combo', v: 0.6 }, desc: 'คอมโบค้างนานขึ้น 0.6 วิ' },
+  { icon: '🪂', name: 'ร่มชูชีพวาฟเฟิล',  cost: 3000, fx: { k: 'pit', v: 0.5 },  desc: 'ตกหลุมเจ็บลดครึ่ง' },
+  { icon: '🗝', name: 'กุญแจนักล่าสมบัติ', cost: 3400, fx: { k: 'box', v: 0.5 },  desc: 'กล่องปริศนาให้เหรียญ +50%' },
+  { icon: '💎', name: 'เศษคริสตัลจันทรา', cost: 4000, fx: { k: 'gem', v: 0.25 }, desc: 'โอกาสได้คริสตัลจากกล่อง +25%' },
+  { icon: '🍬', name: 'สร้อยเยลลี่เจ็ดสี', cost: 3600, fx: { k: 'jelly', v: 0.1 }, desc: 'แต้มเยลลี่ +10%' },
+  { icon: '👑', name: 'มงกุฎราชาคุกกี้',  cost: 5000, fx: { k: 'pt', v: 0.08 },  desc: 'แต้มทุกชนิด +8%' },
+  { icon: '🕊', name: 'กรงนกน้ำตาลกรวด',  cost: 4200, fx: { k: 'lift', v: 1 },   desc: 'ดึงขึ้นจากหลุม +1 ครั้ง/รอบ' },
+  { icon: '🔔', name: 'กระดิ่งเรียกโชค',   cost: 4600, fx: { k: 'letter', v: 1 }, desc: 'อักษร BONUSTIME โผล่บ่อยขึ้น' },
 ];
+/* รวมค่าผลของสมบัติที่สวมอยู่ */
+const trV = k => G.trEquip.reduce((sum, i) => sum + (TREASURES[i] && TREASURES[i].fx.k === k ? TREASURES[i].fx.v : 0), 0);
 
 /* ============================================================
    ร้านค้าอัปเกรด (จ่ายด้วยเหรียญสะสม)
@@ -804,6 +871,8 @@ const G = {
   charIdx: SAVE.get('char', 0),
   relayIdx: SAVE.get('relay', -1), relayUsed: false, mainCharIdx: -1,
   episode: SAVE.get('ep', 0), distBest: SAVE.get('distBest', 0),
+  stats: SAVE.get('stats', { runs: 0, dist: 0, bears: 0, jellies: 0, coins: 0, bt: 0, maxCombo: 0 }),
+  medals: SAVE.get('medals', []), leagueClaim: SAVE.get('leagueClaim', 0),
   owned: SAVE.get('owned', [0]),
   petIdx: SAVE.get('pet', 0),
   petsOwned: SAVE.get('petsOwned', [0]),
@@ -1145,7 +1214,7 @@ function spawnPattern() {
       .concat(hard >= 3 ? [7,8,11] : []);
     w = PATTERNS[pool[rndi(0, pool.length - 1)]](x);
     // ตัวอักษร BONUSTIME ตัวถัดไปโปรยไว้กลางทาง (แบบเกมจริง)
-    if (G.btProgress < 9 && rnd(0, 1) < 0.24) {
+    if (G.btProgress < 9 && rnd(0, 1) < 0.24 * (1 + trV('letter') * 0.6)) {
       const lj = { x: x + rnd(60, Math.max(80, w - 60)), y: GROUND_Y - rnd(120, 205),
                    type: 'letter', ch: BT_WORD[G.btProgress], t: rnd(0, TAU), dead: false };
       jellyList.push(lj);
@@ -1282,7 +1351,7 @@ function startGame(mode, boosts) {
   G.time = G.time; G.dist = 0; G.score = 0; G.coins = 0; G.jellies = 0;
   G.combo = 0; G.comboTimer = 0;
   G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12 + (G.runBoost.energy ? 40 : 0)
-          + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0);
+          + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0) + trV('hp');
   G.combi = PT().id === CH().mate;   // คู่ซี้คุกกี้-สัตว์เลี้ยง = แต้ม +15%
   G.formT = 0; G.cfxT = 0;
   G.obSmashLeft = CFX().k === 'obSmash' ? CFX().v : 0;
@@ -1294,9 +1363,9 @@ function startGame(mode, boosts) {
   G.speed = G.baseSpeed + (G.mode === 'normal' ? EP().spd : 0); G.newBest = false; G.rankPos = -1;
   P.y = GROUND_Y - P.h; P.vy = 0; P.onGround = true; P.jumps = 0;
   P.sliding = false; P.invT = 0; P.giantT = 0; P.magnetT = 0;
-  P.boostT = (2.4 + CH().boostBonus + (PFX().k === 'boost' ? PFX().v : 0) + G.upg.boost * 0.6) * (G.runBoost.fast ? 2 : 1);
-  G.bonusT = 0; G.revives = CH().revives + (hasTr(1) ? 1 : 0) + (PFX().k === 'revive' ? 1 : 0);
-  G.liftLeft = PFX().k === 'lift' ? Math.round(PFX().v * petFxMul()) : 0;
+  P.boostT = (2.4 + CH().boostBonus + (PFX().k === 'boost' ? PFX().v : 0) + trV('boost') + G.upg.boost * 0.6) * (G.runBoost.fast ? 2 : 1);
+  G.bonusT = 0; G.revives = CH().revives + trV('revive') + (PFX().k === 'revive' ? 1 : 0);
+  G.liftLeft = (PFX().k === 'lift' ? Math.round(PFX().v * petFxMul()) : 0) + trV('lift');
   G.skill = 0; G.scoreMulT = 0;
   P.dead = false; P.fallingPit = false; slideHeld = false; G.paused = false;
   G.runBears = 0; G.runStars = 0; G.maxCombo = 0; G.missionDone = false;
@@ -1377,6 +1446,21 @@ function doContinue() {
 function settleGameOver() {
   if (G.mainCharIdx >= 0) { G.charIdx = G.mainCharIdx; G.mainCharIdx = -1; }   // คืนตัวหลักหลังจบรอบ
   if (G.dist > G.distBest) { G.distBest = Math.floor(G.dist); SAVE.set('distBest', G.distBest); }
+  const st = G.stats;
+  st.runs++; st.dist += Math.floor(G.dist); st.bears += G.runBears;
+  st.jellies += G.jellies; st.coins += G.earned || 0; st.bt += G.runStars;
+  st.maxCombo = Math.max(st.maxCombo, G.maxCombo);
+  SAVE.set('stats', st);
+  // เลื่อนลีก: รับรางวัลคริสตัลครั้งเดียวต่อขั้น (นับคะแนนรอบนี้ด้วย)
+  const bestNow = Math.max(G.best, G.score);
+  let lt = 0; LEAGUES.forEach((l, i) => { if (bestNow >= l.min) lt = i; });
+  if (lt > G.leagueClaim) {
+    const gain = (lt - G.leagueClaim) * 3;
+    G.crystals += gain; G.leagueClaim = lt;
+    SAVE.set('crystals', G.crystals); SAVE.set('leagueClaim', lt);
+    banner(LEAGUES[lt].icon + ' เลื่อนขั้นลีก ' + LEAGUES[lt].name + '! +' + gain + '💎', '#ffd24a');
+  }
+  checkMedals();
   setState('over'); G.overT = 0;
   P.dead = true;
   puff(P.x + 28, P.y + P.h - 6, 16, '#a97b45');
@@ -1388,11 +1472,11 @@ function settleGameOver() {
   // เปิดกล่องปริศนา: เหรียญ + โอกาสได้คริสตัล 20%
   G.boxCoins = 0; G.boxGems = 0;
   for (let i = 0; i < G.runBoxes; i++) {
-    G.boxCoins += Math.round(rndi(60, 250) * (CFX().k === 'boxLuck' ? CFX().v : 1));
-    if (Math.random() < 0.2) G.boxGems++;
+    G.boxCoins += Math.round(rndi(60, 250) * (CFX().k === 'boxLuck' ? CFX().v : 1) * (1 + trV('box')));
+    if (Math.random() < 0.2 * (1 + trV('gem'))) G.boxGems++;
   }
   if (G.boxGems > 0) { G.crystals += G.boxGems; SAVE.set('crystals', G.crystals); }
-  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (hasTr(4) ? 1.5 : 1) * (G.runBoost.coin ? 2 : 1) * (CH().coinMul || 1));
+  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (1 + trV('coin')) * (G.runBoost.coin ? 2 : 1) * (CH().coinMul || 1));
   G.bank += G.earned;
   SAVE.set('coins', G.bank);
   const entry = { s: G.score, d: Math.floor(G.dist), c: G.charIdx, t: Date.now() };
@@ -1832,7 +1916,7 @@ function update(dt) {
       }
     }
   }
-  if (G.bonusT <= 0) G.hp -= G.hpDrain * (hasTr(2) ? 0.85 : 1) * (CH().drainMul || 1) * (PFX().k === 'drain' ? 1 - (1 - PFX().v) * petFxMul() : 1) * dt;
+  if (G.bonusT <= 0) G.hp -= G.hpDrain * (1 - trV('drain')) * (CH().drainMul || 1) * (PFX().k === 'drain' ? 1 - (1 - PFX().v) * petFxMul() : 1) * dt;
   if (G.hp <= 0) {
     G.hp = 0;
     if (gameOver()) return;
@@ -1999,7 +2083,7 @@ function update(dt) {
     let jx = j.x - worldX;
     if (jx < -80) { j.dead = true; continue; }
     if (jx > W + 80) break;
-    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0 || hasTr(3) || CH().magnet) && !['potion','giant','magnet','star','blast','box','letter'].includes(j.type)) {
+    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0 || trV('magnet') > 0 || CH().magnet) && !['potion','giant','magnet','star','blast','box','letter'].includes(j.type)) {
       const dx = cx - jx, dy = cy - j.y;
       const d = Math.hypot(dx, dy);
       // ช่วงโบนัสดูดรัศมีสั้นลง จะได้เห็นตัวอักษร BONUS ชัด ๆ ก่อนบินทะลุ
@@ -2057,7 +2141,7 @@ function hurtFromPit() {
     AudioSys.potion();
     return;
   }
-  G.hp -= (20 + G.stage * 2) * CH().pitGuard;
+  G.hp -= (20 + G.stage * 2) * CH().pitGuard * (1 - trV('pit'));
   G.combo = 0;
   G.shake = 14; G.flash = 0.6;
   if (G.hp <= 0) {
@@ -2074,22 +2158,22 @@ function collectJelly(j, jx) {
   const mult = P.giantT > 0 ? 2 : 1;
   switch (j.type) {
     case 'bar': case 'coin': case 'pink': case 'bear': {
-      G.combo++; G.comboTimer = CH().comboT + (PFX().k === 'combo' ? PFX().v * petFxMul() : 0);
+      G.combo++; G.comboTimer = CH().comboT + (PFX().k === 'combo' ? PFX().v * petFxMul() : 0) + trV('combo');
       const comboBonus = Math.min(G.combo, 50);
       let base = JSCORE[j.type];
       if (j.type === 'bear') base = j.v === 'b' ? 5000 : j.v === 'p' ? 2500 : 1000;   // หมี 3 ระดับ
       let pts = (base + comboBonus) * mult;
       pts *= 1 + G.upg.jelly * 0.06;                         // เยลลี่พลัส
       pts *= lvMul();                                        // เลเวลคุกกี้
-      pts *= (CH().ptMul || 1) * (G.combi ? 1.15 : 1);       // ความสามารถคุกกี้ + คู่ซี้ Combi
-      if (j.type !== 'coin' && j.type !== 'bear') pts *= CH().jellyMul || 1;
+      pts *= (CH().ptMul || 1) * (1 + trV('pt')) * (G.combi ? 1.15 : 1);   // ความสามารถคุกกี้ + สมบัติ + Combi
+      if (j.type !== 'coin' && j.type !== 'bear') pts *= (CH().jellyMul || 1) * (1 + trV('jelly'));
       if (PFX().k === 'score') pts *= 1 + (PFX().v - 1) * petFxMul();
       if (j.type === 'bear' && PFX().k === 'bear') pts *= 1 + (PFX().v - 1) * petFxMul();
-      if (j.type === 'bear' && hasTr(0)) pts *= 2;          // จี้หมีทองคำ
+      if (j.type === 'bear') pts *= 1 + trV('bear');        // จี้หมีทองคำ
       if (G.scoreMulT > 0) pts *= 2;                         // สกิลนินจา
       pts = Math.round(pts);
       G.score += pts; G.jellies++;
-      G.skill = Math.min(100, G.skill + 1.7 * (hasTr(5) ? 1.3 : 1) * (CH().skillFast || 1));   // ชาร์จเกจสกิล
+      G.skill = Math.min(100, G.skill + 1.7 * (1 + trV('skill')) * (CH().skillFast || 1));   // ชาร์จเกจสกิล
       G.maxCombo = Math.max(G.maxCombo, G.combo);
       if (j.type === 'coin')
         G.coins += PFX().k === 'coin' ? 1 + Math.round(PFX().v * petFxMul()) : 1;
@@ -2121,13 +2205,13 @@ function collectJelly(j, jx) {
       floatText(jx, j.y - 30, '+HP พลังคืนมา!', '#7bff9b', true);
       break;
     case 'giant':
-      P.giantT = 6 * itemMul() * (CH().itemMul || 1);
+      P.giantT = 6 * itemMul() * (CH().itemMul || 1) * (1 + trV('item'));
       AudioSys.power();
       sparkle(jx, j.y, 20, '#ffd24a');
       banner('ยักษ์โหมด! GIANT MODE!', '#ffd24a');
       break;
     case 'magnet':
-      P.magnetT = 8 * itemMul() * (CH().itemMul || 1);
+      P.magnetT = 8 * itemMul() * (CH().itemMul || 1) * (1 + trV('item'));
       AudioSys.power();
       sparkle(jx, j.y, 20, '#7ecbff');
       banner('แม่เหล็กเยลลี่!', '#7ecbff');
@@ -2174,7 +2258,7 @@ function startBonusTime() {
   G.runStars++;
   bonusLetterQueue = ['B','O','N','U','S'];
   bonusBearSpawned = false;
-  G.bonusT = 6.5 + G.upg.bonus * 0.7 + (CH().btPlus || 0) + (PFX().k === 'bt' ? PFX().v * petFxMul() : 0);
+  G.bonusT = 6.5 + G.upg.bonus * 0.7 + (CH().btPlus || 0) + trV('bt') + (PFX().k === 'bt' ? PFX().v * petFxMul() : 0);
   P.vy = -120;
   AudioSys.bear();
   banner('🎉 BONUSTIME ครบ! ค้างปุ่มบิน ขึ้น/ลง 🎉', '#ffe066');
@@ -5279,45 +5363,47 @@ function drawGrid(LIST, kind) {
 function drawTreasure() {
   ctx.fillStyle = 'rgba(40,20,5,.62)';
   ctx.fillRect(0, 0, W, H);
-  drawTitleText('สมบัติ', W / 2, 58, 38);
+  drawTitleText('สมบัติ', W / 2, 50, 34);
   drawCoinChip(W - 20, 22, G.bank.toLocaleString());
-  ctx.font = 'bold 15px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.font = 'bold 14px Trebuchet MS'; ctx.textAlign = 'center';
   ctx.fillStyle = '#ffe9b8';
-  ctx.fillText('สวมได้สูงสุด 3 ชิ้น (แบบเกมจริง) — กำลังสวม ' + G.trEquip.length + '/3', W / 2, 84);
+  ctx.fillText('สวมได้สูงสุด 3 ชิ้น — กำลังสวม ' + G.trEquip.length + '/3 · แตะเพื่อซื้อ/สวม/ถอด', W / 2, 76);
 
-  const cw = 262, chh = 172, gap = 14;
-  const x0 = (W - (cw * 3 + gap * 2)) / 2;
+  const cw = 150, chh = 122, gap = 6;
+  const x0 = (W - (cw * 6 + gap * 5)) / 2;
   TREASURES.forEach((t, i) => {
-    const x = x0 + (i % 3) * (cw + gap), y = 98 + Math.floor(i / 3) * (chh + 14);
+    const x = x0 + (i % 6) * (cw + gap), y = 90 + Math.floor(i / 6) * (chh + 8);
     const owned = G.trOwned.includes(i);
     const equipped = G.trEquip.includes(i);
-    drawPanel(x, y, cw, chh, 16);
+    drawPanel(x, y, cw, chh, 12);
     if (equipped) {
-      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 4;
-      roundRect(x + 2, y + 2, cw - 4, chh - 4, 14); ctx.stroke();
+      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3.5;
+      roundRect(x + 2, y + 2, cw - 4, chh - 4, 10); ctx.stroke();
     }
-    ctx.font = '38px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(t.icon, x + 44, y + 52);
+    ctx.font = '28px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.globalAlpha = owned ? 1 : 0.55;
+    ctx.fillText(t.icon, x + cw / 2, y + 30);
+    ctx.globalAlpha = 1;
     ctx.textBaseline = 'alphabetic';
-    ctx.textAlign = 'left';
-    ctx.font = 'bold 17px Trebuchet MS';
+    ctx.font = 'bold 11.5px Trebuchet MS';
     ctx.fillStyle = equipped ? '#ffd24a' : '#fff';
-    ctx.fillText(t.name, x + 84, y + 42);
-    ctx.font = '13px Trebuchet MS';
-    ctx.fillStyle = '#ffe9b8';
-    ctx.fillText(t.desc[0], x + 84, y + 66);
-    if (!owned) {
-      const afford = G.bank >= t.cost;
-      drawBtn(x + 30, y + chh - 62, cw - 60, 44, '🪙 ' + t.cost.toLocaleString(), () => tryTreasure(i),
-        afford ? { color: '#ffb02e', dark: '#e07b12', font: 18 } : { color: '#8a8178', dark: '#6e675f', font: 18 });
-    } else if (equipped) {
-      drawBtn(x + 30, y + chh - 62, cw - 60, 44, '✓ สวมอยู่ (แตะเพื่อถอด)', () => tryTreasure(i), { color: '#7bd94a', dark: '#57a832', font: 15 });
-    } else {
-      drawBtn(x + 30, y + chh - 62, cw - 60, 44, 'สวมใส่', () => tryTreasure(i), { color: '#5cb8e8', dark: '#3d92c4', font: 17 });
-    }
+    ctx.fillText(t.name, x + cw / 2, y + 62);
+    ctx.font = '10px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+    // ตัดคำอธิบายเป็น 2 บรรทัด
+    const dwords = t.desc;
+    if (dwords.length > 16) {
+      const mid = Math.floor(dwords.length / 2);
+      let cut = dwords.indexOf(' ', mid); if (cut < 0) cut = mid;
+      ctx.fillText(dwords.slice(0, cut), x + cw / 2, y + 78);
+      ctx.fillText(dwords.slice(cut + (dwords[cut] === ' ' ? 1 : 0)), x + cw / 2, y + 91);
+    } else ctx.fillText(dwords, x + cw / 2, y + 82);
+    ctx.font = 'bold 11px Trebuchet MS';
+    ctx.fillStyle = equipped ? '#7bd94a' : owned ? '#aee4ff' : '#ffd24a';
+    ctx.fillText(equipped ? '✓ สวมอยู่' : owned ? 'แตะเพื่อสวม' : '🪙 ' + t.cost.toLocaleString(), x + cw / 2, y + chh - 8);
+    drawBtn(x, y, cw, chh, '', () => tryTreasure(i), { invisible: true });
   });
 
-  drawBtn(W / 2 - 90, 478, 180, 44, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
+  drawBtn(W / 2 - 90, 488, 180, 42, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
 }
 
 /* ---------- ร้านค้า ---------- */
@@ -5366,11 +5452,20 @@ function drawShop() {
 function drawRank() {
   ctx.fillStyle = 'rgba(40,20,5,.62)';
   ctx.fillRect(0, 0, W, H);
-  drawTitleText('ตารางอันดับ', W / 2, 56, 36);
+  drawTitleText('ตารางอันดับ', W / 2, 46, 30);
   drawCoinChip(W - 20, 20, G.bank.toLocaleString());
+  checkMedals();
+
+  // ---- ป้ายลีก + ความคืบหน้าไปขั้นถัดไป ----
+  const lt = leagueTier();
+  ctx.font = 'bold 16px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffd24a';
+  const nxt = LEAGUES[lt + 1];
+  ctx.fillText('ลีก: ' + LEAGUES[lt].icon + ' ' + LEAGUES[lt].name +
+    (nxt ? '  —  อีก ' + Math.max(0, nxt.min - G.best).toLocaleString() + ' แต้มถึงขั้น ' + nxt.icon : '  (สูงสุดแล้ว!)'), W / 2, 72);
 
   // ซ้าย: เครื่องนี้
-  drawPanel(40, 76, 430, 384, 18);
+  drawPanel(40, 82, 430, 330, 18);
   ctx.font = 'bold 18px Trebuchet MS'; ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd24a';
   ctx.fillText('📱 เครื่องนี้', 255, 104);
@@ -5379,8 +5474,8 @@ function drawRank() {
     ctx.fillText('ยังไม่มีสถิติ', 255, 250);
   } else {
     G.board.forEach((e, i) => {
-      const y = 134 + i * 32;
-      ctx.font = i < 3 ? 'bold 15px Trebuchet MS' : '14px Trebuchet MS';
+      const y = 132 + i * 28;
+      ctx.font = i < 3 ? 'bold 14px Trebuchet MS' : '13px Trebuchet MS';
       ctx.fillStyle = i === 0 ? '#ffd24a' : i === 1 ? '#d8dee9' : i === 2 ? '#e8956a' : '#ffe9b8';
       ctx.textAlign = 'left';
       ctx.fillText((i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) + '.'), 62, y);
@@ -5392,7 +5487,7 @@ function drawRank() {
   }
 
   // ขวา: ออนไลน์
-  drawPanel(490, 76, 430, 384, 18);
+  drawPanel(490, 82, 430, 330, 18);
   ctx.font = 'bold 18px Trebuchet MS'; ctx.textAlign = 'center';
   ctx.fillStyle = '#7ee0ff';
   ctx.fillText('🌐 ทั่วโลก — ชื่อ: ' + (G.name || 'ยังไม่ตั้ง'), 705, 104);
@@ -5410,8 +5505,8 @@ function drawRank() {
     }
   } else {
     G.online.slice(0, 10).forEach((e, i) => {
-      const y = 134 + i * 32;
-      ctx.font = i < 3 ? 'bold 15px Trebuchet MS' : '14px Trebuchet MS';
+      const y = 132 + i * 28;
+      ctx.font = i < 3 ? 'bold 14px Trebuchet MS' : '13px Trebuchet MS';
       ctx.fillStyle = e.n === G.name ? '#7bd94a' : i === 0 ? '#ffd24a' : i === 1 ? '#d8dee9' : i === 2 ? '#e8956a' : '#ffe9b8';
       ctx.textAlign = 'left';
       ctx.fillText((i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) + '.'), 512, y);
@@ -5420,6 +5515,25 @@ function drawRank() {
       ctx.fillText(e.s.toLocaleString(), 898, y);
     });
   }
+
+  // ---- เหรียญตราความสำเร็จ (สะสมถาวร +2💎 ต่อเหรียญ) ----
+  ctx.font = 'bold 12.5px Trebuchet MS'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffe9b8';
+  ctx.fillText('🏅 เหรียญตรา ' + G.medals.length + '/' + MEDALS.length + ':', 44, 434);
+  MEDALS.forEach((m, i) => {
+    const got = G.medals.includes(i);
+    const mx = 190 + i * 62, my = 418;
+    ctx.font = '22px Trebuchet MS'; ctx.textAlign = 'center';
+    ctx.globalAlpha = got ? 1 : 0.28;
+    ctx.fillText(m.icon, mx, my + 20);
+    ctx.globalAlpha = 1;
+    ctx.font = '8.5px Trebuchet MS';
+    ctx.fillStyle = got ? '#ffd24a' : 'rgba(255,233,184,.55)';
+    let lbl = got ? m.name : m.need;
+    if (lbl.length > 10) lbl = lbl.slice(0, 9) + '…';
+    ctx.fillText(lbl, mx, my + 36);
+    ctx.fillStyle = '#ffe9b8';
+  });
 
   drawBtn(W / 2 - 230, 476, 200, 44, '✏ ตั้งชื่อผู้เล่น', () => {
     const nm = prompt('ตั้งชื่อผู้เล่น (ไม่เกิน 12 ตัวอักษร)', G.name || '');
