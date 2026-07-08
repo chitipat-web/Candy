@@ -1467,7 +1467,9 @@ addEventListener('keyup', e => {
 /* ---------- UI buttons ---------- */
 let uiButtons = [];
 function uiClick(x, y) {
-  for (const b of uiButtons) {
+  // ไล่จากปุ่มที่วาดหลังสุดก่อน (ป๊อปอัป/เลเยอร์บนต้องชนะปุ่มข้างใต้)
+  for (let i = uiButtons.length - 1; i >= 0; i--) {
+    const b = uiButtons[i];
     if (!b.disabled && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
       AudioSys.click();
       b.cb();
@@ -5357,6 +5359,7 @@ function drawMenu() {
   if (G.dailyShow) {
     ctx.fillStyle = 'rgba(20,10,2,.72)';
     ctx.fillRect(0, 0, W, H);
+    drawBtn(0, 0, W, H, '', () => {}, { invisible: true });   // กันคลิกทะลุไปโดนปุ่มเมนูข้างใต้
     drawPanel(180, 120, 600, 300, 20);
     drawTitleText('🎁 เช็กอินรายวัน', W / 2, 168, 28);
     const claimed = G.dailyLast === todayStr();
