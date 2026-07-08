@@ -1591,7 +1591,7 @@ function gameOver() {
     G.obSmashLeft = CFX().k === 'obSmash' ? CFX().v : 0;
     G.combi = PT().id === CH().mate;
     G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12 + (G.runBoost.energy ? 40 : 0)
-            + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0);
+            + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0) + trV('hp');
     G.hp = G.hpMax;
     P.invT = 3; P.dead = false; P.fallingPit = false;
     P.y = Math.min(P.y, GROUND_Y - P.h - 120); P.vy = 0;
