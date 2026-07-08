@@ -195,6 +195,31 @@ function cloudLogin() {
   }).catch(() => alert('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้'));
 }
 
+/* ---------- แอดมิน: อีเมลนี้ล็อกอินแล้วปลดล็อกทุกอย่าง ---------- */
+const ADMIN_EMAILS = ['chitipat.kao@gmail.com'];
+PROFILES.forEach(pf => { if (pf.email && ADMIN_EMAILS.includes(pf.email)) pf.admin = true; });
+function isAdminProfile() {
+  const pf = PROFILES.find(q => q.id === ACTIVE);
+  return !!(pf && (pf.admin || ADMIN_EMAILS.includes(pf.email || '')));
+}
+function adminGrant() {
+  if (!isAdminProfile() || SAVE.get('adminGrant', false)) return;
+  G.owned = CHARS.map((_, i) => i);
+  G.petsOwned = PETS.map((_, i) => i);
+  G.trOwned = TREASURES.map((_, i) => i);
+  G.charLv = CHARS.map(() => 8);
+  G.petLv = PETS.map(() => 8);
+  G.bank = Math.max(G.bank, 9999999);
+  G.crystals = Math.max(G.crystals, 999);
+  G.distBest = Math.max(G.distBest, 9999);
+  SAVE.set('owned', G.owned); SAVE.set('petsOwned', G.petsOwned);
+  SAVE.set('trOwned', G.trOwned); SAVE.set('charLv', G.charLv); SAVE.set('petLv', G.petLv);
+  SAVE.set('coins', G.bank); SAVE.set('crystals', G.crystals); SAVE.set('distBest', G.distBest);
+  SAVE.set('adminGrant', true);
+  banner('👑 ADMIN MODE: ปลดล็อกทุกอย่างแล้ว!', '#ffd24a');
+  AudioSys.power && AudioSys.power();
+}
+
 function createProfile() {
   if (PROFILES.length >= 4) { floatText(W / 2, 120, 'สร้างได้สูงสุด 4 โปรไฟล์', '#ff8888', true); return; }
   const nm = prompt('ตั้งชื่อโปรไฟล์ใหม่ (ไม่เกิน 12 ตัวอักษร)', '');
@@ -1031,6 +1056,7 @@ const CFX = () => CH().cfx || { k: '' };
 
 function setState(s) {
   G.state = s; G.fade = 1;
+  if (s === 'menu') adminGrant();   // ปลดล็อกทุกอย่างให้บัญชีแอดมิน (ครั้งเดียว)
   if (s === 'menu' && !G.name && ACTIVE !== null) {
     const pf = PROFILES.find(q => q.id === ACTIVE);
     if (pf) { G.name = pf.name; SAVE.set('name', G.name); }
@@ -5169,7 +5195,7 @@ function drawLogin() {
     const best = rawGet(pfx + 'best', 0), coins = rawGet(pfx + 'coins', 0);
     ctx.font = 'bold 17px Trebuchet MS'; ctx.textAlign = 'left';
     ctx.fillStyle = cur ? '#ffd24a' : '#fff';
-    ctx.fillText((pf.email ? '☁️ ' : '🍪 ') + pf.name, x + 20, y + 26);
+    ctx.fillText((pf.admin || ADMIN_EMAILS.includes(pf.email || '') ? '👑 ' : pf.email ? '☁️ ' : '🍪 ') + pf.name, x + 20, y + 26);
     ctx.font = '12px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
     ctx.fillText('สถิติ ' + (best | 0).toLocaleString() + ' · 🪙 ' + (coins | 0).toLocaleString() +
       (cur ? ' · ล่าสุด' : ''), x + 20, y + 46);
@@ -5196,7 +5222,7 @@ function drawMenu() {
   if (G.dailyLast !== todayStr() && !G.dailyShow) G.dailyShow = true;
   {
     const pf = PROFILES.find(q => q.id === ACTIVE);
-    drawBtn(14, 14, 148, 34, '👤 ' + ((pf && pf.name) || 'โปรไฟล์').slice(0, 9) + ' ▸ออก', () => {
+    drawBtn(14, 14, 148, 34, (isAdminProfile() ? '👑 ' : '👤 ') + ((pf && pf.name) || 'โปรไฟล์').slice(0, 9) + ' ▸ออก', () => {
       G.dailyShow = false;
       setState('login');
       AudioSys.click();
