@@ -152,6 +152,10 @@ function dk(col, f) {
    (ยกเว้นรายละเอียดจิ๋วบนหน้า ที่เกมจริงไม่ตีขอบ) */
 let AUTOL = false;
 const NO_OL = new Set(['freckles', 'stubble', 'blushdot', 'tear', 'fangs', 'facepaint', 'patch']);
+/* โหมดยืนหันหน้าตรงแบบภาพทางการ: แขน-ขาสมมาตร + หน้าอยู่กึ่งกลางหัว
+   (ท่าวิ่งในเกมยังเป็นมุมข้างเหมือนเดิม) */
+let FRONT = false;
+const FACE_P = new Set(['glasses', 'patch', 'freckles', 'blushdot', 'fangs', 'tear', 'stubble', 'facepaint', 'beard']);
 const _protoFill = CanvasRenderingContext2D.prototype.fill;
 CanvasRenderingContext2D.prototype.fill = function (...a) {
   _protoFill.apply(this, a);
@@ -4441,6 +4445,8 @@ function runHeadDecos(ch, RIM, EYE) {
   for (const d of ds) {
     const c = d.c, p = d.p;
     AUTOL = !NO_OL.has(p);
+    const _ff = FRONT && FACE_P.has(p);   // ชิ้นเกาะหน้า → เลื่อนตามหน้าตอนหันตรง
+    if (_ff) { ctx.save(); ctx.translate(-11.5, 0); }
     if (p === 'bow') {
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.moveTo(14, -26); ctx.lineTo(3, -32); ctx.lineTo(3, -20); ctx.closePath(); ctx.fill();
@@ -4723,6 +4729,7 @@ function runHeadDecos(ch, RIM, EYE) {
       roundRect(-11, 2, 8, 3.4, 1.7); ctx.fill();
       roundRect(25, 2, 8, 3.4, 1.7); ctx.fill();
     }
+    if (_ff) ctx.restore();
   }
   AUTOL = false;
   return drewHair;
@@ -4948,25 +4955,26 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, len); ctx.stroke();
     };
     // ขา: ตอสั้นป้อม
-    const legP = (hip, knee) => {
+    const legP = (hip, knee, ox) => {
       ctx.save();
-      ctx.translate(0, -26);
+      ctx.translate(ox || 0, -26);
       ctx.rotate(hip);
       segP(9, 13.5);
       ctx.translate(0, 9);
       ctx.rotate(knee * 0.75);
       segP(9, 12.5);
-      ctx.beginPath(); ctx.ellipse(2, 10.5, 8.5 + pad, 6 + pad, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(FRONT ? 0 : 2, 10.5, 8.5 + pad, 6 + pad, 0, 0, TAU); ctx.fill();
       ctx.restore();
     };
-    legP(legA, kA); legP(legB, kB);
+    if (FRONT) { legP(0.1, 0, -7.5); legP(-0.1, 0, 7.5); }
+    else { legP(legA, kA); legP(legB, kB); }
     // ลำตัวทรงลูกแพร์ (คอดบน บานสะโพก)
     roundRect(-14.5 - pad, -58 - pad, 29 + pad * 2, 30 + pad * 2, 12 + pad); ctx.fill();
     ctx.beginPath(); ctx.ellipse(0, -30, 18 + pad, 12.5 + pad, 0, 0, TAU); ctx.fill();
     // แขน: ปีกเรียวสั้นปลายมน (สามท่อนลดหลั่นให้ tapered)
-    const armP = (sh, el) => {
+    const armP = (sh, el, ox) => {
       ctx.save();
-      ctx.translate(0, -52);
+      ctx.translate(ox || 0, -52);
       ctx.rotate(sh - Math.PI);        // แปลงพิกัด: แขนกางออกหน้า-ข้างแบบสไปรต์
       segP(9, 16);
       ctx.translate(0, 9);
@@ -4975,7 +4983,8 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       ctx.beginPath(); ctx.arc(0, 11, 7.2 + pad, 0, TAU); ctx.fill();
       ctx.restore();
     };
-    armP(armA, eA); armP(armB, eB);
+    if (FRONT) { armP(Math.PI + 0.62, 0.3, -11); armP(Math.PI - 0.62, -0.3, 11); }
+    else { armP(armA, eA); armP(armB, eB); }
     // หัวโตวงรีกว้าง (สเกลตามสัดส่วนจริง)
     ctx.save();
     ctx.translate(0, -84 + headBob);
@@ -5087,6 +5096,7 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     ctx.beginPath(); ctx.ellipse(0, -40, 18, 5.8, 0, 0, TAU); ctx.stroke();
   }
 
+  if (FRONT) ctx.translate(-11.5, 0);   // หันหน้าตรง: เลื่อนตา-ปากมากึ่งกลางหัว
   const eyeStyle = ch.deco ? (ch.eyeS || 'round') : (ch.eyeS === 'round' ? 'round' : 'fierce');
   if (eyeStyle === 'fierce') {
   /* --- คิ้วขาวหนาเฉียง + ตาครึ่งวงฟ้า "มุ่งมั่น" (แบบสไปรต์เป๊ะ) --- */
@@ -6042,10 +6052,12 @@ function cookiePortrait(i) {
     const pc = cv.getContext('2d');
     const old = ctx; ctx = pc;
     pc.save(); pc.translate(65, 130); pc.scale(0.6, 0.6);
+    FRONT = true;   // ภาพยืน = หันหน้าตรงแบบภาพทางการ
     try {
-      cookieBody(0, 0.12, -0.12, 1.6, 4.2, 0, CHARS[i],
+      cookieBody(0, 0, 0, 0, 0, 0, CHARS[i],
         CHARS[i].id === 'brave' ? { cane: { x: -27, y: -54, rot: -0.06, flip: true, len: 56 } } : undefined);
     } catch (e) {}
+    FRONT = false;
     pc.restore(); ctx = old;
     portCache['c' + i] = cv;
   }
