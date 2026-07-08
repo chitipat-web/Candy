@@ -61,6 +61,19 @@ function hexLerp(a, b, t) {
   const bl = Math.round(lerp(pa & 255, pb & 255, t));
   return `rgb(${r},${g},${bl})`;
 }
+/* ปรับสีสว่างขึ้น/มืดลง (รับได้ทั้ง #hex และ rgb(...)) */
+function shade(col, amt) {
+  let r, g, b;
+  if (col[0] === '#') {
+    const p = parseInt(col.slice(1), 16);
+    r = p >> 16; g = (p >> 8) & 255; b = p & 255;
+  } else {
+    const m = col.match(/\d+/g);
+    r = +m[0]; g = +m[1]; b = +m[2];
+  }
+  r = clamp(r + amt, 0, 255); g = clamp(g + amt, 0, 255); b = clamp(b + amt, 0, 255);
+  return `rgb(${r},${g},${b})`;
+}
 
 /* ---------- persistent save ---------- */
 const SAVE = {
@@ -267,6 +280,7 @@ const P = {
   sliding: false,
   invT: 0, giantT: 0, magnetT: 0, boostT: 0,
   anim: 0, dead: false, fallingPit: false,
+  squash: 0,      // squash & stretch (บวก = ย่อ, ลบ = ยืด)
 };
 const Pet = { x: 90, y: 300, wing: 0 };
 const GROUND_Y = 442;
@@ -290,6 +304,16 @@ for (let i = 0; i < 7; i++)
 const stars = [];
 for (let i = 0; i < 46; i++)
   stars.push({ x: rnd(0, W), y: rnd(10, 300), r: rnd(0.8, 2.2), tw: rnd(0, TAU) });
+
+/* โบเก้ลูกกวาดลอยละล่องทั้งฉาก */
+const bokeh = [];
+const BOKEH_HUES = [350, 40, 200, 280, 140];
+for (let i = 0; i < 16; i++)
+  bokeh.push({ x: rnd(0, W), y: rnd(30, 430), r: rnd(8, 26), v: rnd(6, 18),
+               hue: BOKEH_HUES[i % BOKEH_HUES.length], tw: rnd(0, TAU) });
+
+/* สายรุ้งตามหลังตอนบูสต์/โบนัส/ยักษ์ */
+let trail = [];
 
 /* ============================================================
    ท้องฟ้า 4 ช่วงเวลา — เปลี่ยนตามด่าน
@@ -463,6 +487,7 @@ function doJump() {
   if (P.onGround) {
     P.vy = JUMP_V * (P.giantT > 0 ? 0.94 : 1);
     P.onGround = false; P.jumps = 1;
+    P.squash = -0.28;
     AudioSys.jump();
     puff(P.x, P.y + P.h, 6);
   } else if (P.jumps >= 1 && P.jumps < CH().jumps) {
@@ -706,6 +731,17 @@ function update(dt) {
     c.x -= (c.v + (G.state === 'play' ? G.speed * 0.04 : 4)) * dt;
     if (c.x < -160) { c.x = W + rnd(20, 120); c.y = rnd(30, 170); }
   }
+  for (const b of bokeh) {
+    b.x -= (b.v + (G.state === 'play' ? G.speed * 0.06 : 3)) * dt;
+    b.y += Math.sin(G.time * 0.7 + b.tw) * 6 * dt;
+    if (b.x < -40) { b.x = W + rnd(10, 60); b.y = rnd(30, 430); }
+  }
+  P.squash += (0 - P.squash) * Math.min(1, 10 * dt);
+  for (const t of trail) {
+    t.t += dt;
+    t.x -= (G.state === 'play' ? G.speed * 1.1 : 60) * dt;
+  }
+  trail = trail.filter(t => t.t < 0.45);
 
   if (G.state !== 'play') {
     if (G.state === 'over') G.overT += dt;
@@ -754,6 +790,13 @@ function update(dt) {
   G.comboTimer -= dt;
   if (G.comboTimer <= 0) G.combo = 0;
   P.anim += dt * (8 + G.speed / 90);
+
+  // สายรุ้งตามหลังช่วงพลังพิเศษ
+  if (P.boostT > 0 || G.bonusT > 0 || P.giantT > 0) {
+    const scale0 = P.giantT > 0 ? 1.6 : 1;
+    const ph0 = (P.sliding ? P.h * 0.52 : P.h) * scale0;
+    trail.push({ x: P.x + 6, y: P.y + ph0 * 0.5, hue: (G.time * 240) % 360, t: 0 });
+  }
 
   /* --- สัตว์เลี้ยง --- */
   Pet.wing += dt * 14;
@@ -814,7 +857,7 @@ function update(dt) {
           if (footX > px && footX < px + pl.w &&
               prevFoot <= pl.y + 10 && P.y + ph >= pl.y) {
             P.y = pl.y - ph;
-            if (!P.onGround) puff(footX, pl.y, 4);
+            if (!P.onGround) { puff(footX, pl.y, 4); P.squash = 0.32; }
             P.vy = 0; P.onGround = true; P.jumps = 0; landed = true;
             break;
           }
@@ -826,7 +869,7 @@ function update(dt) {
           AudioSys.fall();
         } else {
           P.y = GROUND_Y - ph;
-          if (!P.onGround) puff(P.x + pw / 2, GROUND_Y, 4);
+          if (!P.onGround) { puff(P.x + pw / 2, GROUND_Y, 4); P.squash = 0.32; }
           P.vy = 0; P.onGround = true; P.jumps = 0; landed = true;
         }
       }
@@ -979,8 +1022,10 @@ function draw() {
 
   drawSky();
   drawBackHills();
+  drawBokeh();
   drawGroundAndPits();
   drawPlatforms();
+  drawTrail();
   drawJellies();
   drawObstacles();
   if (G.state === 'play' || G.state === 'over') drawPlayer();
@@ -1026,6 +1071,24 @@ function draw() {
   }
 }
 
+/* ---------- ambient effects ---------- */
+function drawBokeh() {
+  for (const b of bokeh) {
+    const a = 0.08 + Math.abs(Math.sin(G.time * 0.8 + b.tw)) * 0.08;
+    ctx.fillStyle = `hsla(${b.hue},85%,80%,${a})`;
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill();
+    ctx.fillStyle = `hsla(${b.hue},85%,92%,${a * 0.8})`;
+    ctx.beginPath(); ctx.arc(b.x - b.r * 0.25, b.y - b.r * 0.25, b.r * 0.45, 0, TAU); ctx.fill();
+  }
+}
+function drawTrail() {
+  for (const t of trail) {
+    const k = 1 - t.t / 0.45;
+    ctx.fillStyle = `hsla(${t.hue},95%,65%,${k * 0.4})`;
+    ctx.beginPath(); ctx.arc(t.x, t.y, 4 + 13 * k, 0, TAU); ctx.fill();
+  }
+}
+
 /* ---------- background ---------- */
 function drawSky() {
   const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -1052,6 +1115,20 @@ function drawSky() {
   ctx.translate(790, 95);
   if (night < 0.5) {
     ctx.globalAlpha = 1 - night;
+    // แฉกแสงหมุนช้า ๆ
+    ctx.save();
+    ctx.rotate(G.time * 0.06);
+    ctx.fillStyle = 'rgba(255,240,190,.10)';
+    for (let i = 0; i < 8; i++) {
+      ctx.rotate(TAU / 8);
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(-26, -150); ctx.lineTo(26, -150);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    // แสงฟุ้งรอบดวง
+    ctx.fillStyle = 'rgba(255,235,180,.25)';
+    ctx.beginPath(); ctx.arc(0, 0, 62, 0, TAU); ctx.fill();
     ctx.fillStyle = skyBlend('sun');
     ctx.beginPath(); ctx.arc(0, 0, 46, 0, TAU); ctx.fill();
     ctx.fillStyle = 'rgba(210,160,90,.55)';
@@ -1059,6 +1136,8 @@ function drawSky() {
       { ctx.beginPath(); ctx.arc(dx, dy, 3.4, 0, TAU); ctx.fill(); }
   } else {
     ctx.globalAlpha = night;
+    ctx.fillStyle = 'rgba(244,240,224,.18)';
+    ctx.beginPath(); ctx.arc(0, 0, 56, 0, TAU); ctx.fill();
     ctx.fillStyle = '#f4f0e0';
     ctx.beginPath(); ctx.arc(0, 0, 40, 0, TAU); ctx.fill();
     ctx.fillStyle = skyBlend('top');
@@ -1067,11 +1146,16 @@ function drawSky() {
   ctx.globalAlpha = 1;
   ctx.restore();
 
+  // เมฆวิปครีมสองชั้น (เงาล่าง + เนื้อบน)
   for (const c of clouds) {
     ctx.save();
     ctx.translate(c.x, c.y); ctx.scale(c.s, c.s);
-    ctx.fillStyle = night > 0.5 ? 'rgba(180,180,220,.5)' : 'rgba(255,250,240,.92)';
-    for (const [dx, dy, r] of [[0,0,26],[24,-8,20],[48,0,24],[24,8,22],[70,4,16]])
+    const puffs = [[0,0,26],[24,-8,20],[48,0,24],[24,8,22],[70,4,16]];
+    ctx.fillStyle = night > 0.5 ? 'rgba(120,120,170,.45)' : 'rgba(255,190,150,.5)';
+    for (const [dx, dy, r] of puffs)
+      { ctx.beginPath(); ctx.arc(dx, dy + 6, r, 0, TAU); ctx.fill(); }
+    ctx.fillStyle = night > 0.5 ? 'rgba(185,185,225,.6)' : 'rgba(255,250,240,.95)';
+    for (const [dx, dy, r] of puffs)
       { ctx.beginPath(); ctx.arc(dx, dy, r, 0, TAU); ctx.fill(); }
     ctx.restore();
   }
@@ -1085,9 +1169,13 @@ function drawBackHills() {
     drawCastle(x + 180, 402);
     drawCastle(x + 560, 402);
   }
-  // เนินขนม
+  // เนินขนม (ไล่เฉดจากยอดสว่างลงมา)
   const off1 = -(worldX * 0.18) % 500;
-  ctx.fillStyle = skyBlend('hill');
+  const hillCol = skyBlend('hill');
+  const hg = ctx.createLinearGradient(0, 250, 0, 460);
+  hg.addColorStop(0, shade(hillCol, 26));
+  hg.addColorStop(1, shade(hillCol, -8));
+  ctx.fillStyle = hg;
   for (let x = off1 - 500; x < W + 500; x += 500) {
     ctx.beginPath();
     ctx.moveTo(x, 400);
@@ -1140,6 +1228,7 @@ function drawGroundAndPits() {
   ctx.fillStyle = g;
   ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
 
+  // ขอบไอซิ่ง + ครีมหยด
   ctx.fillStyle = '#f2d8a7';
   const off = -(worldX % 64);
   for (let x = off - 64; x < W + 64; x += 64) {
@@ -1148,6 +1237,31 @@ function drawGroundAndPits() {
     ctx.fill();
   }
   ctx.fillRect(0, GROUND_Y, W, 6);
+  const offD = -(worldX % 192);
+  for (let x = offD - 192; x < W + 192; x += 192) {
+    ctx.beginPath();
+    ctx.moveTo(x + 20, GROUND_Y + 5);
+    ctx.quadraticCurveTo(x + 26, GROUND_Y + 22, x + 20, GROUND_Y + 24);
+    ctx.quadraticCurveTo(x + 14, GROUND_Y + 22, x + 20, GROUND_Y + 5);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x + 120, GROUND_Y + 5);
+    ctx.quadraticCurveTo(x + 127, GROUND_Y + 17, x + 120, GROUND_Y + 19);
+    ctx.quadraticCurveTo(x + 113, GROUND_Y + 17, x + 120, GROUND_Y + 5);
+    ctx.fill();
+  }
+  // เม็ดน้ำตาลหลากสีโรยบนไอซิ่ง
+  const offS = -(worldX % 96);
+  const sprCols = ['#ff6b8d', '#7ecbff', '#7bd94a', '#ffd24a', '#c592ff'];
+  for (let x = offS - 96, i = 0; x < W + 96; x += 32, i++) {
+    const wx = Math.round((x + worldX) / 32);
+    ctx.save();
+    ctx.translate(x + 16, GROUND_Y + 1 + (wx % 3));
+    ctx.rotate((wx * 1.7) % TAU);
+    ctx.fillStyle = sprCols[((wx % 5) + 5) % 5];
+    roundRect(-4, -1.6, 8, 3.2, 1.6); ctx.fill();
+    ctx.restore();
+  }
 
   ctx.fillStyle = 'rgba(90,50,20,.55)';
   const off2 = -(worldX % 160);
@@ -1271,26 +1385,45 @@ function drawJellies() {
     ctx.translate(x, y);
     switch (j.type) {
       case 'bar': {
+        // แสงเรืองนุ่ม ๆ ด้านหลัง
+        ctx.fillStyle = 'rgba(255,220,90,.16)';
+        ctx.beginPath(); ctx.arc(0, 0, 17, 0, TAU); ctx.fill();
         ctx.rotate(0.5);
         const w = 26, h = 13;
-        ctx.fillStyle = '#ffce2e';
+        ctx.fillStyle = '#e8a90c';
         roundRect(-w/2, -h/2, w, h, 6); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,.75)';
-        roundRect(-w/2+3, -h/2+2, w-14, 4, 2); ctx.fill();
+        ctx.fillStyle = '#ffce2e';
+        roundRect(-w/2, -h/2, w, h - 3.5, 6); ctx.fill();
+        ctx.fillStyle = '#ffe883';
+        roundRect(-w/2 + 1.5, -h/2 + 1.5, w - 3, 4.5, 3); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.9)';
+        roundRect(-w/2+3, -h/2+2, w-16, 3.4, 2); ctx.fill();
         break;
       }
       case 'pink': {
+        ctx.fillStyle = 'rgba(255,123,172,.2)';
+        ctx.beginPath(); ctx.arc(0, 0, 20, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#e0568c';
+        heart(0, 1.8, 15); ctx.fill();
         ctx.fillStyle = '#ff7bac';
         heart(0, 0, 15); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,.7)';
-        ctx.beginPath(); ctx.arc(-5, -5, 3.5, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#ffa8ca';
+        heart(-1, -2, 10); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.85)';
+        ctx.beginPath(); ctx.arc(-5, -6, 3.2, 0, TAU); ctx.fill();
         break;
       }
       case 'coin': {
+        ctx.fillStyle = 'rgba(255,216,74,.2)';
+        ctx.beginPath(); ctx.arc(0, 0, 18, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#b8830a';
+        ctx.beginPath(); ctx.arc(0, 1.6, 12, 0, TAU); ctx.fill();
         ctx.fillStyle = '#e8a90c';
         ctx.beginPath(); ctx.arc(0, 0, 12, 0, TAU); ctx.fill();
         ctx.fillStyle = '#ffd84a';
         ctx.beginPath(); ctx.arc(0, 0, 9.5, 0, TAU); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.75)';
+        ctx.beginPath(); ctx.ellipse(-3.4, -4.2, 4.2, 2.4, -0.6, 0, TAU); ctx.fill();
         ctx.fillStyle = '#e8a90c';
         ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('C', 0, 1);
@@ -1401,6 +1534,7 @@ function drawObstacles() {
       ctx.moveTo(0, 0); ctx.lineTo(6, -34); ctx.lineTo(22, -50) ; ctx.lineTo(42, -42);
       ctx.lineTo(56, -18); ctx.lineTo(54, 0);
       ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#40230f'; ctx.lineWidth = 2.5; ctx.stroke();
       ctx.fillStyle = '#8a5a35';
       ctx.beginPath();
       ctx.moveTo(8, -30); ctx.lineTo(22, -44); ctx.lineTo(36, -38); ctx.lineTo(30, -20);
@@ -1452,6 +1586,9 @@ function drawPlayer() {
   }
 
   ctx.scale(scale, scale);
+  // squash & stretch (จุดหมุนอยู่ที่เท้า)
+  if (Math.abs(P.squash) > 0.01 && !P.sliding)
+    ctx.scale(1 + P.squash * 0.45, 1 - P.squash * 0.4);
   if (P.giantT > 0 && P.giantT < 1.2 && Math.floor(G.time * 10) % 2 === 0)
     ctx.globalAlpha = 0.6;
 
@@ -1490,6 +1627,7 @@ function drawPlayer() {
 function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
   ch = ch || CH();
   const B = ch.body, ICING = ch.icing, DARK = '#8a5a28';
+  const OUTL = shade(B, -52);   // เส้นขอบการ์ตูน
   ctx.save();
   ctx.rotate(bodyTilt);
 
@@ -1507,16 +1645,26 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
     ctx.save();
     ctx.translate(0, -26);
     ctx.rotate(ang);
-    ctx.strokeStyle = B; ctx.lineWidth = 13; ctx.lineCap = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = OUTL; ctx.lineWidth = 16.5;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, len); ctx.stroke();
+    ctx.strokeStyle = B; ctx.lineWidth = 13;
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, len); ctx.stroke();
     ctx.fillStyle = ICING;
     ctx.beginPath(); ctx.ellipse(2, len + 2, 9, 6, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = OUTL; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.ellipse(2, len + 2, 9, 6, 0, 0, TAU); ctx.stroke();
     ctx.restore();
   };
   leg(legA, 26); leg(legB, 26);
 
   ctx.fillStyle = B;
   roundRect(-17, -58, 34, 38, 14); ctx.fill();
+  ctx.strokeStyle = OUTL; ctx.lineWidth = 2.6;
+  roundRect(-17, -58, 34, 38, 14); ctx.stroke();
+  // ไฮไลต์นุ่มบนตัว
+  ctx.fillStyle = 'rgba(255,255,255,.14)';
+  roundRect(-13, -56, 26, 12, 8); ctx.fill();
   ctx.strokeStyle = ICING; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(-13, -34);
@@ -1538,10 +1686,15 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
     ctx.save();
     ctx.translate(0, -52);
     ctx.rotate(ang);
-    ctx.strokeStyle = B; ctx.lineWidth = 11; ctx.lineCap = 'round';
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = OUTL; ctx.lineWidth = 14.5;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.stroke();
+    ctx.strokeStyle = B; ctx.lineWidth = 11;
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.stroke();
     ctx.fillStyle = ICING;
     ctx.beginPath(); ctx.arc(0, 24, 6, 0, TAU); ctx.fill();
+    ctx.strokeStyle = OUTL; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(0, 24, 6, 0, TAU); ctx.stroke();
     ctx.restore();
   };
   arm(armA); arm(armB);
@@ -1551,6 +1704,11 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
   ctx.translate(0, -76 + headBob);
   ctx.fillStyle = B;
   ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.fill();
+  ctx.strokeStyle = OUTL; ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.stroke();
+  // ไฮไลต์แก้มขวาบน
+  ctx.fillStyle = 'rgba(255,255,255,.15)';
+  ctx.beginPath(); ctx.arc(9, -9, 9, 0, TAU); ctx.fill();
   ctx.fillStyle = ICING;
   ctx.beginPath();
   ctx.arc(0, -4, 24, Math.PI * 1.05, Math.PI * 1.95);
@@ -1837,12 +1995,56 @@ function drawMenu() {
   ctx.fillStyle = 'rgba(40,20,5,.45)';
   ctx.fillRect(0, 0, W, H);
 
-  // โลโก้
+  // ขนมลอยตกแต่งฉากหลังเมนู
+  const decor = [
+    [70, 150, 0, 2.2], [880, 210, 1, 1.8], [905, 120, 2, 1.5],
+    [60, 260, 2, 1.6], [850, 330, 0, 1.7],
+  ];
+  decor.forEach(([dx, dy, kind, sc], i) => {
+    ctx.save();
+    ctx.translate(dx, dy + Math.sin(G.time * 1.4 + i * 1.7) * 8);
+    ctx.rotate(Math.sin(G.time * 0.9 + i) * 0.25);
+    ctx.scale(sc, sc);
+    ctx.globalAlpha = 0.5;
+    if (kind === 0) {           // เยลลี่แท่ง
+      ctx.rotate(0.5);
+      ctx.fillStyle = '#ffce2e'; roundRect(-13, -6.5, 26, 13, 6); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.7)'; roundRect(-10, -4.5, 10, 4, 2); ctx.fill();
+    } else if (kind === 1) {    // หัวใจ
+      ctx.fillStyle = '#ff7bac'; heart(0, 0, 13); ctx.fill();
+    } else {                    // ดาว
+      ctx.fillStyle = '#ffe066';
+      ctx.beginPath();
+      for (let k = 0; k < 10; k++) {
+        const rr = k % 2 === 0 ? 13 : 5.5;
+        const a = -Math.PI / 2 + k * Math.PI / 5;
+        k === 0 ? ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr) : ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  });
+
+  // โลโก้ + แสงวิ่งผ่าน
   ctx.save();
   ctx.translate(W / 2, 118);
   ctx.rotate(Math.sin(G.time * 1.2) * 0.02);
   ctx.scale(1 + Math.sin(G.time * 2.4) * 0.012, 1 + Math.sin(G.time * 2.4) * 0.012);
   drawTitleText('COOKIE RUN', 0, 0, 72);
+  const sw = ((G.time * 0.45) % 2) - 0.5;      // -0.5..1.5 รอบละ ~4.4 วิ
+  if (sw >= -0.2 && sw <= 1.2) {
+    ctx.save();
+    ctx.beginPath();
+    const bandX = -330 + sw * 660;
+    ctx.moveTo(bandX - 30, -70); ctx.lineTo(bandX + 30, -70);
+    ctx.lineTo(bandX - 10, 20);  ctx.lineTo(bandX - 70, 20);
+    ctx.closePath(); ctx.clip();
+    ctx.font = 'bold 72px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.fillText('COOKIE RUN', 0, 0);
+    ctx.restore();
+  }
   ctx.font = 'bold 28px Trebuchet MS';
   ctx.lineWidth = 7; ctx.strokeStyle = '#5a2e10';
   ctx.strokeText('~ คลาสสิค ~', 0, 42);
