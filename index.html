@@ -90,7 +90,7 @@ const SAVE = {
 const CHARS = [
   { id: 'brave', name: 'คุกกี้กล้าหาญ', cost: 0,
     desc: ['สมดุลทุกด้าน', 'เพื่อนคู่ใจนักวิ่ง'],
-    body: '#c98d4e', icing: '#fff6ec', button: '#e0453a', cheek: 'rgba(255,120,140,.5)',
+    body: '#d59a5f', icing: '#fff8f0', button: '#e0453a', cheek: 'rgba(242,120,145,.6)',
     jumps: 2, hpBonus: 0, revives: 1, boostBonus: 0, comboT: 1.2, pitGuard: 1 },
   { id: 'berry', name: 'คุกกี้สตรอว์เบอร์รี', cost: 1500,
     desc: ['พลังชีวิต +25', 'ตกหลุมเจ็บลดครึ่ง'],
@@ -1076,6 +1076,7 @@ function updateParticles(dt) {
    ============================================================ */
 function draw() {
   uiButtons = [];
+  if (window.__poseTest) { drawPoseSheet(); return; }
   ctx.save();
   if (G.shake > 0) ctx.translate(rnd(-G.shake, G.shake) * 0.5, rnd(-G.shake, G.shake) * 0.5);
 
@@ -1203,6 +1204,29 @@ function drawTrail() {
     ctx.fillStyle = `hsla(${t.hue},95%,65%,${k * 0.4})`;
     ctx.beginPath(); ctx.arc(t.x, t.y, 4 + 13 * k, 0, TAU); ctx.fill();
   }
+}
+
+/* ---------- โหมดส่องตัวละครระยะใกล้ (ใช้ปรับดีไซน์) ---------- */
+function drawPoseSheet() {
+  ctx.fillStyle = '#efe0c8';
+  ctx.fillRect(0, 0, W, H);
+  const poses = [
+    ['วิ่ง A', () => cookieBody(0.16, 0.95, -0.95, 2.6 + 0.7, 2.6 - 0.7, -1.5)],
+    ['วิ่ง B', () => cookieBody(0.16, -0.95, 0.95, 2.6 - 0.7, 2.6 + 0.7, 0)],
+    ['กระโดด', () => cookieBody(0.14, 1.1, -0.6, 2.0, 3.6, 0)],
+    ['ยืน', () => cookieBody(0, 0.4, -0.4, 2.7, 3.5, 0)],
+  ];
+  poses.forEach(([label, fn], i) => {
+    ctx.save();
+    ctx.translate(130 + i * 240, 470);
+    ctx.scale(3.1, 3.1);
+    fn();
+    ctx.restore();
+    ctx.fillStyle = '#5a3413';
+    ctx.font = 'bold 20px Trebuchet MS';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, 130 + i * 240, 512);
+  });
 }
 
 /* ---------- background ---------- */
@@ -1885,17 +1909,17 @@ function ballGrad(x, y, r, c) {
 function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
   ch = ch || CH();
   const B = ch.body, ICING = ch.icing;
-  const OUTL = shade(B, -58);
+  const OUTL = shade(B, -72);      // เส้นขอบช็อกโกแลตหนาแบบการ์ตูนต้นฉบับ
+  const OLW = 3.4;
   ctx.save();
   ctx.rotate(bodyTilt);
   ctx.lineJoin = 'round';
 
   /* --- ของประดับด้านหลังตัว --- */
   if (ch.id === 'angel') {
-    // ปีกขนนกฟู 3 ชั้น กระพือเบา ๆ
     const f = Math.sin(P.anim * 2.2) * 0.16;
     ctx.save();
-    ctx.translate(-14, -56);
+    ctx.translate(-13, -60);
     ctx.rotate(-0.35 + f);
     for (let i = 0; i < 3; i++) {
       ctx.fillStyle = i === 0 ? '#ffffff' : i === 1 ? '#f2ecff' : '#e4dcf8';
@@ -1903,280 +1927,275 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
       ctx.ellipse(-12 - i * 7, 2 + i * 5.5, 17 - i * 3, 7.5 - i * 1.2, -0.55 - i * 0.16, 0, TAU);
       ctx.fill();
     }
-    ctx.strokeStyle = 'rgba(190,180,220,.5)'; ctx.lineWidth = 1.4;
-    ctx.beginPath(); ctx.ellipse(-12, 2, 17, 7.5, -0.55, 0, TAU); ctx.stroke();
     ctx.restore();
   }
   if (ch.id === 'ninja') {
-    // ผ้าพันคอแดงปลายสะบัดตามลม
     const w1 = Math.sin(P.anim * 2.4) * 5, w2 = Math.sin(P.anim * 2.4 + 1.2) * 7;
     ctx.fillStyle = '#c4372e';
     ctx.beginPath();
-    ctx.moveTo(-10, -62);
-    ctx.quadraticCurveTo(-30, -60 + w1, -48, -52 + w2);
-    ctx.quadraticCurveTo(-50, -46 + w2, -44, -44 + w2);
-    ctx.quadraticCurveTo(-28, -50 + w1, -8, -54);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#e0453a';
-    ctx.beginPath();
-    ctx.moveTo(-10, -60);
-    ctx.quadraticCurveTo(-26, -66 - w1, -42, -64 - w2);
-    ctx.quadraticCurveTo(-46, -60 - w2, -40, -56 - w2);
-    ctx.quadraticCurveTo(-26, -58 - w1, -8, -54);
+    ctx.moveTo(-9, -66);
+    ctx.quadraticCurveTo(-29, -64 + w1, -46, -56 + w2);
+    ctx.quadraticCurveTo(-48, -50 + w2, -42, -48 + w2);
+    ctx.quadraticCurveTo(-27, -54 + w1, -7, -58);
     ctx.closePath(); ctx.fill();
   }
 
-  /* --- ขา + รองเท้าบูทไอซิ่ง --- */
+  /* --- ขา: เรียวเล็ก เท้าน้ำตาลกลม (แบบต้นฉบับ ไม่มีรองเท้า) --- */
   const leg = (ang) => {
     ctx.save();
-    ctx.translate(0, -26);
+    ctx.translate(0, -30);
     ctx.rotate(ang);
     ctx.lineCap = 'round';
-    ctx.strokeStyle = OUTL; ctx.lineWidth = 17;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 24); ctx.stroke();
-    ctx.strokeStyle = B; ctx.lineWidth = 13.5;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 24); ctx.stroke();
-    ctx.strokeStyle = shade(B, 24); ctx.lineWidth = 4.5;
-    ctx.beginPath(); ctx.moveTo(-2.5, 3); ctx.lineTo(-2.5, 14); ctx.stroke();
-    // บูท
-    ctx.fillStyle = ballGrad(2, 28, 10, ICING);
-    ctx.beginPath(); ctx.ellipse(2, 28, 10.5, 7.2, 0, 0, TAU); ctx.fill();
-    ctx.strokeStyle = OUTL; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(2, 28, 10.5, 7.2, 0, 0, TAU); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,.85)';
-    ctx.beginPath(); ctx.ellipse(-0.5, 25.4, 4.6, 2.4, -0.2, 0, TAU); ctx.fill();
-    // ขอบไอซิ่งข้อเท้า
-    ctx.strokeStyle = ICING; ctx.lineWidth = 4.5;
-    ctx.beginPath(); ctx.moveTo(-6.5, 18.5); ctx.quadraticCurveTo(0, 23, 6.5, 18.5); ctx.stroke();
+    ctx.strokeStyle = OUTL; ctx.lineWidth = 11 + OLW * 2;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.stroke();
+    ctx.strokeStyle = B; ctx.lineWidth = 11;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 22); ctx.stroke();
+    // เท้ากลมป้อม
+    ctx.fillStyle = B;
+    ctx.beginPath(); ctx.ellipse(2.5, 26, 8.6, 6.2, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = OUTL; ctx.lineWidth = OLW;
+    ctx.beginPath(); ctx.ellipse(2.5, 26, 8.6, 6.2, 0, 0, TAU); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.28)';
+    ctx.beginPath(); ctx.ellipse(0.5, 23.6, 3.6, 2, -0.2, 0, TAU); ctx.fill();
+    // ไอซิ่งหยักข้อเท้า
+    ctx.strokeStyle = ICING; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-5.8, 13);
+    ctx.quadraticCurveTo(-2.9, 17.5, 0, 13.5);
+    ctx.quadraticCurveTo(2.9, 17.5, 5.8, 13);
+    ctx.stroke();
     ctx.restore();
   };
   leg(legA); leg(legB);
 
-  /* --- ลำตัว --- */
-  const bg = ctx.createLinearGradient(-17, -58, 12, -18);
-  bg.addColorStop(0, shade(B, 26));
+  /* --- ลำตัว: เล็กกว่าหัว สีทองอบ --- */
+  const bg = ctx.createLinearGradient(-15, -64, 11, -24);
+  bg.addColorStop(0, shade(B, 22));
   bg.addColorStop(0.5, B);
-  bg.addColorStop(1, shade(B, -16));
+  bg.addColorStop(1, shade(B, -12));
   ctx.fillStyle = bg;
-  roundRect(-17, -58, 34, 38, 14); ctx.fill();
-  ctx.strokeStyle = OUTL; ctx.lineWidth = 3;
-  roundRect(-17, -58, 34, 38, 14); ctx.stroke();
-  // เกล็ดพื้นผิวคุกกี้
-  ctx.fillStyle = 'rgba(70,40,15,.22)';
-  for (const [dx, dy, r] of [[-9, -27, 1.7], [7, -25, 1.4], [-2, -50, 1.5], [11, -44, 1.3]])
+  roundRect(-15, -64, 30, 36, 13); ctx.fill();
+  ctx.strokeStyle = OUTL; ctx.lineWidth = OLW;
+  roundRect(-15, -64, 30, 36, 13); ctx.stroke();
+  // เกล็ดพื้นผิว
+  ctx.fillStyle = 'rgba(70,40,15,.18)';
+  for (const [dx, dy, r] of [[-8, -34, 1.5], [6, -31, 1.3], [9, -50, 1.3]])
     { ctx.beginPath(); ctx.arc(dx, dy, r, 0, TAU); ctx.fill(); }
-  // ไอซิ่งซิกแซกชายตัว
-  ctx.strokeStyle = shade(ICING, -22); ctx.lineWidth = 5.5; ctx.lineCap = 'round';
+  // ไอซิ่งซิกแซกชายตัว (ขอบกางเกงแบบต้นฉบับ)
+  ctx.strokeStyle = shade(ICING, -20); ctx.lineWidth = 5.6; ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(-13, -33);
-  ctx.lineTo(-7, -39); ctx.lineTo(-1, -33); ctx.lineTo(5, -39); ctx.lineTo(11, -33);
+  ctx.moveTo(-11.5, -37);
+  ctx.lineTo(-5.8, -43); ctx.lineTo(0, -37); ctx.lineTo(5.8, -43); ctx.lineTo(11.5, -37);
   ctx.stroke();
-  ctx.strokeStyle = ICING; ctx.lineWidth = 4;
+  ctx.strokeStyle = ICING; ctx.lineWidth = 4.2;
   ctx.beginPath();
-  ctx.moveTo(-13, -34);
-  ctx.lineTo(-7, -40); ctx.lineTo(-1, -34); ctx.lineTo(5, -40); ctx.lineTo(11, -34);
+  ctx.moveTo(-11.5, -38);
+  ctx.lineTo(-5.8, -44); ctx.lineTo(0, -38); ctx.lineTo(5.8, -44); ctx.lineTo(11.5, -38);
   ctx.stroke();
-  // กระดุมเยลลี่วาว
-  ctx.fillStyle = ballGrad(0, -48, 5, ch.button);
-  ctx.beginPath(); ctx.arc(0, -48, 5, 0, TAU); ctx.fill();
-  ctx.strokeStyle = shade(ch.button, -55); ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.arc(0, -48, 5, 0, TAU); ctx.stroke();
-  ctx.fillStyle = 'rgba(255,255,255,.75)';
-  ctx.beginPath(); ctx.arc(-1.6, -49.8, 1.7, 0, TAU); ctx.fill();
-  // เมล็ดสตรอว์เบอร์รีบนตัว
+  // กระดุมเยลลี่
+  ctx.fillStyle = ballGrad(0, -53, 4.6, ch.button);
+  ctx.beginPath(); ctx.arc(0, -53, 4.6, 0, TAU); ctx.fill();
+  ctx.strokeStyle = shade(ch.button, -60); ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(0, -53, 4.6, 0, TAU); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.8)';
+  ctx.beginPath(); ctx.arc(-1.5, -54.6, 1.5, 0, TAU); ctx.fill();
   if (ch.id === 'berry') {
     ctx.fillStyle = 'rgba(255,240,200,.9)';
-    for (const [dx, dy] of [[-9, -30], [8, -28], [-4, -24], [10, -38], [-11, -42]])
-      { ctx.beginPath(); ctx.ellipse(dx, dy, 1.6, 2.4, 0.4, 0, TAU); ctx.fill(); }
+    for (const [dx, dy] of [[-8, -33], [7, -31], [-4, -28], [9, -42], [-10, -46]])
+      { ctx.beginPath(); ctx.ellipse(dx, dy, 1.5, 2.3, 0.4, 0, TAU); ctx.fill(); }
   }
-  // ช็อกโกแลตชิปของคุกกี้กล้าหาญ
   if (ch.id === 'brave') {
-    ctx.fillStyle = 'rgba(90,50,20,.5)';
-    for (const [dx, dy] of [[-10, -36], [9, -31]])
-      { ctx.beginPath(); ctx.arc(dx, dy, 2.1, 0, TAU); ctx.fill(); }
+    ctx.fillStyle = 'rgba(95,55,22,.45)';
+    for (const [dx, dy] of [[-9, -40], [8, -34]])
+      { ctx.beginPath(); ctx.arc(dx, dy, 1.9, 0, TAU); ctx.fill(); }
   }
 
-  /* --- แขน + มือนวม --- */
+  /* --- แขน: เรียว มือกลมเปล่า --- */
   const arm = (ang) => {
     ctx.save();
-    ctx.translate(0, -52);
+    ctx.translate(0, -57);
     ctx.rotate(ang);
     ctx.lineCap = 'round';
-    ctx.strokeStyle = OUTL; ctx.lineWidth = 15;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 21); ctx.stroke();
-    ctx.strokeStyle = B; ctx.lineWidth = 11.5;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 21); ctx.stroke();
-    ctx.strokeStyle = shade(B, 24); ctx.lineWidth = 3.6;
-    ctx.beginPath(); ctx.moveTo(-2.2, 3); ctx.lineTo(-2.2, 12); ctx.stroke();
-    // มือนวมไอซิ่ง (มีนิ้วโป้ง)
-    ctx.fillStyle = ballGrad(0, 24, 7, ICING);
-    ctx.beginPath(); ctx.arc(0, 24, 7, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(5.4, 20.5, 3, 0, TAU); ctx.fill();
-    ctx.strokeStyle = OUTL; ctx.lineWidth = 1.8;
-    ctx.beginPath(); ctx.arc(0, 24, 7, 0, TAU); ctx.stroke();
-    // ขอบไอซิ่งข้อมือ
-    ctx.strokeStyle = ICING; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(-5.5, 15); ctx.quadraticCurveTo(0, 18.5, 5.5, 15); ctx.stroke();
+    ctx.strokeStyle = OUTL; ctx.lineWidth = 9.5 + OLW * 2;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 19); ctx.stroke();
+    ctx.strokeStyle = B; ctx.lineWidth = 9.5;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 19); ctx.stroke();
+    // มือกลม
+    ctx.fillStyle = B;
+    ctx.beginPath(); ctx.arc(0, 22.5, 6.6, 0, TAU); ctx.fill();
+    ctx.strokeStyle = OUTL; ctx.lineWidth = OLW * 0.7;
+    ctx.beginPath(); ctx.arc(0, 22.5, 6.6, 0, TAU); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.25)';
+    ctx.beginPath(); ctx.arc(-1.8, 20.6, 2.4, 0, TAU); ctx.fill();
+    // ไอซิ่งหยักข้อมือ
+    ctx.strokeStyle = ICING; ctx.lineWidth = 3.1;
+    ctx.beginPath();
+    ctx.moveTo(-5, 11.5);
+    ctx.quadraticCurveTo(-2.5, 15.5, 0, 12);
+    ctx.quadraticCurveTo(2.5, 15.5, 5, 11.5);
+    ctx.stroke();
     ctx.restore();
   };
   arm(armA); arm(armB);
 
-  /* --- หัว --- */
+  /* --- หัวโตเกือบครึ่งตัว (หัวใจของดีไซน์ต้นฉบับ) --- */
   ctx.save();
-  ctx.translate(0, -80 + headBob);
-  ctx.fillStyle = ballGrad(0, 0, 27, B);
-  ctx.beginPath(); ctx.arc(0, 0, 27, 0, TAU); ctx.fill();
-  ctx.strokeStyle = OUTL; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.arc(0, 0, 27, 0, TAU); ctx.stroke();
-  // เกล็ดคุกกี้บนหน้า
-  ctx.fillStyle = 'rgba(70,40,15,.16)';
-  ctx.beginPath(); ctx.arc(-16, 10, 1.6, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(24, -4, 1.4, 0, TAU); ctx.fill();
+  ctx.translate(0, -87 + headBob);
+  const R = 30;
+  ctx.fillStyle = ballGrad(0, 0, R, B);
+  ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+  ctx.strokeStyle = OUTL; ctx.lineWidth = OLW;
+  ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.stroke();
+  ctx.fillStyle = 'rgba(70,40,15,.14)';
+  ctx.beginPath(); ctx.arc(-18, 12, 1.5, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(26, -3, 1.3, 0, TAU); ctx.fill();
 
   if (ch.id === 'berry') {
-    // หมวกสตรอว์เบอร์รีเต็มใบ
-    ctx.fillStyle = ballGrad(0, -10, 27, '#e8506e');
+    // หมวกสตรอว์เบอร์รี
+    ctx.fillStyle = ballGrad(0, -11, R, '#e8506e');
     ctx.beginPath();
-    ctx.arc(0, -4, 27.6, Math.PI * 1.02, Math.PI * 1.98);
-    ctx.quadraticCurveTo(19, -1, 10, -8);
-    ctx.quadraticCurveTo(5, 0, -1, -8);
-    ctx.quadraticCurveTo(-7, 0, -14, -8);
-    ctx.quadraticCurveTo(-21, -1, -27.2, -8.2);
+    ctx.arc(0, -4, R + 0.6, Math.PI * 1.02, Math.PI * 1.98);
+    ctx.quadraticCurveTo(21, -1, 11, -9);
+    ctx.quadraticCurveTo(5.5, 0, -1, -9);
+    ctx.quadraticCurveTo(-8, 0, -15.5, -9);
+    ctx.quadraticCurveTo(-23, -1, -30, -9);
     ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = shade('#e8506e', -55); ctx.lineWidth = 2.4;
+    ctx.strokeStyle = shade('#e8506e', -55); ctx.lineWidth = 2.6;
     ctx.stroke();
     ctx.fillStyle = 'rgba(255,244,220,.95)';
-    for (const [sx, sy, a] of [[-15, -17, 0.5], [-2, -23, 0], [12, -16, -0.4], [-8, -12, 0.3], [6, -11, -0.2]])
+    for (const [sx, sy, a] of [[-17, -19, 0.5], [-2, -25, 0], [13, -18, -0.4], [-9, -13, 0.3], [7, -12, -0.2]])
       { ctx.save(); ctx.translate(sx, sy); ctx.rotate(a);
-        ctx.beginPath(); ctx.ellipse(0, 0, 1.7, 2.7, 0, 0, TAU); ctx.fill(); ctx.restore(); }
-    // ใบ + ขั้ว
+        ctx.beginPath(); ctx.ellipse(0, 0, 1.8, 2.9, 0, 0, TAU); ctx.fill(); ctx.restore(); }
     ctx.fillStyle = '#4ca64c';
     for (const a of [-0.6, 0, 0.6]) {
-      ctx.save(); ctx.translate(0, -28); ctx.rotate(a);
-      ctx.beginPath(); ctx.ellipse(0, -5, 4.4, 8.5, 0, 0, TAU); ctx.fill();
+      ctx.save(); ctx.translate(0, -31); ctx.rotate(a);
+      ctx.beginPath(); ctx.ellipse(0, -5, 4.8, 9.2, 0, 0, TAU); ctx.fill();
       ctx.restore();
     }
-    ctx.strokeStyle = '#3a7a3a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(2, -38); ctx.stroke();
+    ctx.strokeStyle = '#3a7a3a'; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, -33); ctx.lineTo(2, -42); ctx.stroke();
   } else {
-    // ผมไอซิ่งวาว + เงาใต้ขอบ
+    /* ผมไอซิ่งแบบต้นฉบับ: แผ่นครีมคลุมหัว ขอบหยักย้อย 4 ลอนบนหน้าผาก */
     ctx.fillStyle = ICING;
     ctx.beginPath();
-    ctx.arc(0, -4, 27, Math.PI * 1.05, Math.PI * 1.95);
-    ctx.quadraticCurveTo(16, -22, 7, -13);
-    ctx.quadraticCurveTo(2, -25, -5, -13);
-    ctx.quadraticCurveTo(-11, -25, -18, -11);
+    ctx.arc(0, -3, R + 0.5, Math.PI * 1.02, Math.PI * 1.98);
+    // ขอบหยักย้อยไล่จากขวาไปซ้าย
+    ctx.quadraticCurveTo(24, -6, 19, -13);
+    ctx.quadraticCurveTo(15, -4, 9.5, -12);
+    ctx.quadraticCurveTo(5, -3, -1, -12);
+    ctx.quadraticCurveTo(-7, -3, -13, -11);
+    ctx.quadraticCurveTo(-19, -4, -24, -12);
+    ctx.quadraticCurveTo(-28, -7, -29.7, -8);
     ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = 'rgba(150,160,185,.4)'; ctx.lineWidth = 1.8;
+    // เงาใต้ขอบไอซิ่ง
+    ctx.strokeStyle = 'rgba(150,160,185,.35)'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(-18, -11);
-    ctx.quadraticCurveTo(-11, -25, -5, -13);
-    ctx.quadraticCurveTo(2, -25, 7, -13);
-    ctx.quadraticCurveTo(16, -22, 24, -14);
+    ctx.moveTo(-24, -12);
+    ctx.quadraticCurveTo(-19, -4, -13, -11);
+    ctx.quadraticCurveTo(-7, -3, -1, -12);
+    ctx.quadraticCurveTo(5, -3, 9.5, -12);
+    ctx.quadraticCurveTo(15, -4, 19, -13);
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,.8)';
-    ctx.beginPath(); ctx.ellipse(-8, -20, 5.5, 2.6, 0.5, 0, TAU); ctx.fill();
-    // ลอนไอซิ่งม้วนบนหัวแบบ GingerBrave
+    // ลายม้วนบนผิวแผ่นไอซิ่ง (แบบครีมบีบของต้นฉบับ)
     if (ch.id === 'brave' || ch.id === 'angel') {
       ctx.lineCap = 'round';
-      ctx.strokeStyle = shade(ICING, -14); ctx.lineWidth = 9;
-      ctx.beginPath(); ctx.arc(1, -28.5, 7.5, Math.PI * 0.65, Math.PI * 2.35); ctx.stroke();
-      ctx.strokeStyle = ICING; ctx.lineWidth = 7;
-      ctx.beginPath(); ctx.arc(1, -29, 7.5, Math.PI * 0.65, Math.PI * 2.3); ctx.stroke();
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(2.5, -29, 3.2, Math.PI * 0.9, Math.PI * 2.6); ctx.stroke();
+      ctx.strokeStyle = 'rgba(190,198,218,.5)'; ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.arc(3, -20, 5.5, Math.PI * 0.4, Math.PI * 2.1); ctx.stroke();
+      ctx.beginPath(); ctx.arc(3.8, -20.5, 2.3, Math.PI * 0.7, Math.PI * 2.4); ctx.stroke();
     }
+    // แสงวาวบนไอซิ่ง
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.beginPath(); ctx.ellipse(-10, -22, 6, 2.8, 0.5, 0, TAU); ctx.fill();
   }
 
   if (ch.id === 'ninja') {
-    // แถบคาดหัว + ปมผูก
     ctx.fillStyle = '#c4372e';
-    roundRect(-27, -11, 54, 11, 5); ctx.fill();
+    roundRect(-30, -12, 60, 11.5, 5.5); ctx.fill();
     ctx.fillStyle = '#e0453a';
-    roundRect(-27, -11, 54, 6, 4); ctx.fill();
+    roundRect(-30, -12, 60, 6.2, 4); ctx.fill();
     ctx.fillStyle = '#c4372e';
-    ctx.beginPath(); ctx.arc(-26, -5, 4.5, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(-29, -5.5, 4.8, 0, TAU); ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(-27, -6); ctx.lineTo(-45, 2); ctx.lineTo(-41, 9); ctx.lineTo(-26, 0);
+    ctx.moveTo(-30, -6.5); ctx.lineTo(-49, 2); ctx.lineTo(-45, 9.5); ctx.lineTo(-29, 0.5);
     ctx.closePath(); ctx.fill();
   } else if (ch.id === 'angel') {
-    // วงแหวนเรืองแสง
     ctx.strokeStyle = 'rgba(255,224,102,.35)'; ctx.lineWidth = 9;
-    ctx.beginPath(); ctx.ellipse(0, -35, 17, 5.5, 0, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, -39, 18, 5.8, 0, 0, TAU); ctx.stroke();
     ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 4.5;
-    ctx.beginPath(); ctx.ellipse(0, -35, 17, 5.5, 0, 0, TAU); ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.ellipse(0, -36.4, 15, 4.2, 0, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, -39, 18, 5.8, 0, 0, TAU); ctx.stroke();
   }
 
-  // คิ้วตื่นเต้น
-  ctx.strokeStyle = ch.id === 'ninja' ? '#2a3040' : '#3a2410';
-  ctx.lineWidth = 2; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.arc(4, -6.5, 5.5, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
-  ctx.beginPath(); ctx.arc(17, -6.5, 5.5, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
-  // ตาโตรี + ประกาย 2 จุด
-  ctx.fillStyle = ch.id === 'ninja' ? '#2a3040' : '#3a2410';
-  ctx.beginPath(); ctx.ellipse(4, -1, 4.3, 5.8, 0, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(17, -1, 4.3, 5.8, 0, 0, TAU); ctx.fill();
+  /* --- หน้าตาแบบต้นฉบับ: ตารีใหญ่ ประกาย 2 จุด คิ้วเลิก ปากกว้าง --- */
+  const EYE = ch.id === 'ninja' ? '#252b38' : '#33200d';
+  // คิ้วเลิกสูงแบบตื่นเต้น
+  ctx.strokeStyle = EYE; ctx.lineWidth = 1.9; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(5, -9, 5.6, Math.PI * 1.25, Math.PI * 1.75); ctx.stroke();
+  ctx.beginPath(); ctx.arc(19.5, -9, 5.6, Math.PI * 1.25, Math.PI * 1.75); ctx.stroke();
+  // ตารีใหญ่
+  ctx.fillStyle = EYE;
+  ctx.beginPath(); ctx.ellipse(5, 0, 4.9, 6.8, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(19.5, 0, 4.9, 6.8, 0, 0, TAU); ctx.fill();
+  // ประกายตาใหญ่บน + เล็กล่าง
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(5.4, -3.2, 1.7, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(18.4, -3.2, 1.7, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(2.8, 0.6, 0.9, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(15.8, 0.6, 0.9, 0, TAU); ctx.fill();
-  // ปากยิ้มกว้าง + ลิ้น
-  ctx.fillStyle = '#5f2c14';
+  ctx.beginPath(); ctx.arc(6.6, -2.8, 2.2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(21.1, -2.8, 2.2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(3.6, 2.6, 1.1, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(18.1, 2.6, 1.1, 0, TAU); ctx.fill();
+  // ปากกว้างยิ้มร่า สีแดงอิฐ + ลิ้น
+  ctx.fillStyle = '#6d2c12';
   ctx.beginPath();
-  ctx.arc(11, 6, 8, 0.04 * Math.PI, 0.96 * Math.PI);
+  ctx.arc(12.5, 7.5, 9.2, 0.03 * Math.PI, 0.97 * Math.PI);
   ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = shade('#6d2c12', -25); ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(12.5, 7.5, 9.2, 0.03 * Math.PI, 0.97 * Math.PI);
+  ctx.closePath(); ctx.stroke();
   ctx.save();
   ctx.beginPath();
-  ctx.arc(11, 6, 8, 0.04 * Math.PI, 0.96 * Math.PI);
+  ctx.arc(12.5, 7.5, 9.2, 0.03 * Math.PI, 0.97 * Math.PI);
   ctx.closePath(); ctx.clip();
-  ctx.fillStyle = '#ff8f86';
-  ctx.beginPath(); ctx.ellipse(11, 13.4, 6.2, 4, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ef7d6a';
+  ctx.beginPath(); ctx.ellipse(12.5, 16.4, 7.4, 4.8, 0, 0, TAU); ctx.fill();
   ctx.restore();
-  // แก้มชมพูฟุ้ง
+  // แก้มชมพู
   ctx.fillStyle = ch.cheek;
-  ctx.beginPath(); ctx.arc(-6, 7, 5.2, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(24, 7, 4.6, 0, TAU); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.35)';
-  ctx.beginPath(); ctx.arc(-7.5, 5.6, 1.7, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(22.6, 5.6, 1.5, 0, TAU); ctx.fill();
-  // ไฮไลต์หัวโค้งบน
+  ctx.beginPath(); ctx.ellipse(-8.5, 9, 5.4, 3.9, 0.1, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(27, 9, 4.6, 3.5, -0.1, 0, TAU); ctx.fill();
+  // ไฮไลต์โค้งรับแสงบนหัว
   ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.arc(0, 2, 21, Math.PI * 1.22, Math.PI * 1.45); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 2, R - 6.5, Math.PI * 1.22, Math.PI * 1.42); ctx.stroke();
   ctx.restore();
 
-  // ไม้เท้าลูกกวาดคู่ใจ GingerBrave (มือหน้าถือวิ่ง)
+  /* --- ไม้เท้าลูกกวาดแท่งใหญ่ (เจ้าหนูกล้าหาญ) --- */
   if (ch.id === 'brave') {
     ctx.save();
-    ctx.translate(15, -46 + Math.sin(P.anim) * 1.6);
-    ctx.rotate(0.5 + Math.sin(P.anim) * 0.06);
+    ctx.translate(25, -33 + Math.sin(P.anim) * 1.6);
+    ctx.rotate(0.42 + Math.sin(P.anim) * 0.05);
     ctx.lineCap = 'round';
-    // เงาขอบแท่ง
-    ctx.strokeStyle = '#b8a88e'; ctx.lineWidth = 10.5;
-    ctx.beginPath(); ctx.moveTo(0, 26); ctx.lineTo(0, -18); ctx.arc(-7.5, -18, 7.5, 0, -Math.PI, true); ctx.stroke();
+    // ขอบไม้เท้า
+    ctx.strokeStyle = '#9a8d7c'; ctx.lineWidth = 10.6;
+    ctx.beginPath(); ctx.moveTo(0, 22); ctx.lineTo(0, -14); ctx.arc(-7, -14, 7, 0, -Math.PI, true); ctx.stroke();
     // แท่งครีม
-    ctx.strokeStyle = '#f8f2e6'; ctx.lineWidth = 8;
-    ctx.beginPath(); ctx.moveTo(0, 26); ctx.lineTo(0, -18); ctx.arc(-7.5, -18, 7.5, 0, -Math.PI, true); ctx.stroke();
-    // ลายแดงพันเกลียวช่วงแท่งตรง
-    ctx.strokeStyle = '#e0453a'; ctx.lineWidth = 8;
-    for (let s = 0; s < 4; s++) {
-      const yy = 20 - s * 11;
+    ctx.strokeStyle = '#faf4ea'; ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(0, 22); ctx.lineTo(0, -14); ctx.arc(-7, -14, 7, 0, -Math.PI, true); ctx.stroke();
+    // ลายแดงเฉียงบนแท่ง
+    ctx.strokeStyle = '#dd3b30'; ctx.lineWidth = 8;
+    for (let s = 0; s < 3; s++) {
+      const yy = 17 - s * 11;
       ctx.beginPath(); ctx.moveTo(-3.4, yy); ctx.lineTo(3.4, yy - 5); ctx.stroke();
     }
     // ลายแดงบนตะขอ
-    for (const [a1, a2] of [[-0.15, 0.35], [Math.PI * 0.45, Math.PI * 0.45 + 0.5]]) {
-      ctx.beginPath(); ctx.arc(-7.5, -18, 7.5, -a1, -a2, true); ctx.stroke();
+    for (const [a1, a2] of [[0.45, 0.95], [1.9, 2.4]]) {
+      ctx.beginPath(); ctx.arc(-7, -14, 7, -a1, -a2, true); ctx.stroke();
     }
-    // แสงวาวบนแท่ง
-    ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(-2.6, 24); ctx.lineTo(-2.6, -16); ctx.stroke();
-    // มือนวมกำไม้เท้า
-    ctx.fillStyle = ballGrad(0, 8, 7.5, ICING);
-    ctx.beginPath(); ctx.arc(0, 8, 7.5, 0, TAU); ctx.fill();
-    ctx.strokeStyle = shade(B, -58); ctx.lineWidth = 1.8;
-    ctx.beginPath(); ctx.arc(0, 8, 7.5, 0, TAU); ctx.stroke();
+    // แสงวาว
+    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(-2.6, 20); ctx.lineTo(-2.6, -12); ctx.stroke();
+    // มือกำ
+    ctx.fillStyle = B;
+    ctx.beginPath(); ctx.arc(0, 8, 6.8, 0, TAU); ctx.fill();
+    ctx.strokeStyle = OUTL; ctx.lineWidth = 2.3;
+    ctx.beginPath(); ctx.arc(0, 8, 6.8, 0, TAU); ctx.stroke();
     ctx.restore();
   }
 
