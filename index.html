@@ -643,7 +643,11 @@ const petLvNow = () => G.petLv[G.petIdx] || 1;
 const petFxMul = () => 1 + (petLvNow() - 1) * 0.12;   // สเกลพลังสัตว์เลี้ยงตามเลเวล
 const PFX = () => PT().fx || { k: '', v: 0 };
 
-function setState(s) { G.state = s; G.fade = 1; }
+function setState(s) {
+  G.state = s; G.fade = 1;
+  if (s === 'select') G.selFocus = G.charIdx;   // เปิดหน้าเลือก: โฟกัสตัวที่ใช้อยู่
+  if (s === 'pets') G.petFocus = G.petIdx;
+}
 
 /* ---------- player ---------- */
 const P = {
@@ -4675,7 +4679,8 @@ function petPortrait(i) {
   return cv;
 }
 
-/* ---------- กริดเลือกแบบหลายหน้า (ใช้ร่วมคุกกี้/สัตว์เลี้ยง) ---------- */
+/* ---------- กริดเลือกแบบหลายหน้า (ใช้ร่วมคุกกี้/สัตว์เลี้ยง) ----------
+   คลิกการ์ด = ดูรายละเอียด · ซื้อ/เลือกใช้ ด้วยปุ่มในแถบล่าง */
 function drawGrid(LIST, kind) {
   const isChar = kind === 'char';
   const page = (isChar ? G.selPage : G.petPage) || 0;
@@ -4684,7 +4689,9 @@ function drawGrid(LIST, kind) {
   const cw = 106, chh = 140, gapX = 4, gapY = 8;
   const x0 = (W - (cols * cw + (cols - 1) * gapX)) / 2;
   const y0 = 72;
-  const curIdx = isChar ? G.charIdx : G.petIdx;
+  const curIdx = isChar ? G.charIdx : G.petIdx;           // ตัวที่ใช้อยู่
+  let focus = isChar ? G.selFocus : G.petFocus;           // ตัวที่กำลังดู
+  if (focus == null || focus >= LIST.length) focus = curIdx;
   const ownedArr = isChar ? G.owned : G.petsOwned;
 
   for (let k = 0; k < perPage; k++) {
@@ -4693,13 +4700,18 @@ function drawGrid(LIST, kind) {
     const it = LIST[i];
     const x = x0 + (k % cols) * (cw + gapX);
     const y = y0 + Math.floor(k / cols) * (chh + gapY);
-    const selected = i === curIdx;
+    const using = i === curIdx;
+    const focused = i === focus;
     const owned = ownedArr.includes(i);
 
     drawPanel(x, y, cw, chh, 12);
-    if (selected) {
-      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3.5;
+    if (focused) {
+      ctx.strokeStyle = '#7ec8ff'; ctx.lineWidth = 3.5;
       roundRect(x + 2, y + 2, cw - 4, chh - 4, 10); ctx.stroke();
+    }
+    if (using) {
+      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3;
+      roundRect(x + 4.5, y + 4.5, cw - 9, chh - 9, 8); ctx.stroke();
     }
     // ป้ายเกรด
     ctx.fillStyle = GRADES[it.grade] || '#9aa7b0';
@@ -4711,7 +4723,7 @@ function drawGrid(LIST, kind) {
     // ภาพ (จากแคช)
     ctx.save();
     if (!owned) ctx.globalAlpha = 0.38;
-    const bob = selected ? Math.sin(G.time * 5) * 2.5 : 0;
+    const bob = focused ? Math.sin(G.time * 5) * 2.5 : 0;
     if (isChar) ctx.drawImage(cookiePortrait(i), x + 2, y + 3 + bob, 102, 118);
     else ctx.drawImage(petPortrait(i), x + 18, y + 22 + bob, 70, 70);
     ctx.restore();
@@ -4719,10 +4731,15 @@ function drawGrid(LIST, kind) {
       ctx.font = '15px Trebuchet MS'; ctx.textAlign = 'center';
       ctx.fillText('🔒', x + cw - 16, y + 22);
     }
+    if (using) {
+      ctx.font = 'bold 10px Trebuchet MS'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd24a';
+      ctx.fillText('✓ ใช้อยู่', x + cw / 2, y + 34);
+    }
 
     // ชื่อ + สถานะ
     ctx.font = 'bold 10.5px Trebuchet MS'; ctx.textAlign = 'center';
-    ctx.fillStyle = selected ? '#ffd24a' : '#fff';
+    ctx.fillStyle = focused ? '#7ec8ff' : using ? '#ffd24a' : '#fff';
     let nm = it.name.replace('คุกกี้', '');
     if (nm.length > 11) nm = nm.slice(0, 10) + '…';
     ctx.fillText(nm, x + cw / 2, y + chh - 22);
@@ -4735,24 +4752,29 @@ function drawGrid(LIST, kind) {
       ctx.fillStyle = '#ffd24a';
       ctx.fillText('🪙' + (it.cost >= 1000 ? (it.cost / 1000) + 'k' : it.cost), x + cw / 2, y + chh - 9);
     }
-    // คลิกการ์ด = เลือก/ซื้อ
-    drawBtn(x, y, cw, chh, '', () => (isChar ? trySelectChar(i) : trySelectPet(i)), { invisible: true });
+    // คลิกการ์ด = โฟกัสดูรายละเอียด (ไม่ซื้อ)
+    drawBtn(x, y, cw, chh, '', () => {
+      if (isChar) G.selFocus = i; else G.petFocus = i;
+      AudioSys.click();
+    }, { invisible: true });
   }
 
-  // ---------- แถบรายละเอียดตัวที่ใช้อยู่ ----------
-  const cur = LIST[curIdx];
+  // ---------- แถบรายละเอียดตัวที่กำลังดู ----------
+  const cur = LIST[focus];
+  const ownedCur = ownedArr.includes(focus);
   const dy = 372;
   drawPanel(16, dy, W - 32, 92, 14);
   ctx.save();
   if (isChar) { ctx.translate(64, dy + 78); ctx.scale(0.42, 0.42);
-    ctx.drawImage(cookiePortrait(curIdx), -65, -140, 130, 150); ctx.restore(); }
-  else { ctx.restore(); ctx.drawImage(petPortrait(curIdx), 28, dy + 12, 68, 68); }
+    ctx.drawImage(cookiePortrait(focus), -65, -140, 130, 150); ctx.restore(); }
+  else { ctx.restore(); ctx.drawImage(petPortrait(focus), 28, dy + 12, 68, 68); }
   ctx.textAlign = 'left';
   ctx.font = 'bold 17px Trebuchet MS';
   ctx.fillStyle = '#ffd24a';
-  const lvCur = (isChar ? G.charLv : G.petLv)[curIdx] || 1;
-  const wN = ctx.measureText(cur.name + '  Lv.' + lvCur).width;
-  ctx.fillText(cur.name + '  Lv.' + lvCur, 112, dy + 30);
+  const lvCur = (isChar ? G.charLv : G.petLv)[focus] || 1;
+  const title = cur.name + (ownedCur ? '  Lv.' + lvCur : '');
+  const wN = ctx.measureText(title).width;
+  ctx.fillText(title, 112, dy + 30);
   ctx.fillStyle = GRADES[cur.grade];
   roundRect(112 + wN + 12, dy + 15, 32, 19, 6); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center';
@@ -4762,33 +4784,47 @@ function drawGrid(LIST, kind) {
   ctx.fillText((cur.desc[0] || '') + (cur.desc[1] ? ' · ' + cur.desc[1] : ''), 112, dy + 52);
   // คู่ซี้ Combi
   if (isChar && cur.mate && PET_BY_ID[cur.mate]) {
-    const mateOn = PT().id === cur.mate;
+    const mateOn = PT().id === cur.mate && focus === curIdx;
     ctx.fillStyle = mateOn ? '#7bd94a' : '#c8b8a0';
     ctx.fillText((mateOn ? '💞 COMBI กับ ' : '🤍 คู่ซี้: ') + PET_BY_ID[cur.mate].name + ' (แต้ม +15%)', 112, dy + 72);
   } else if (!isChar) {
     const mate = CHARS.find(c2 => c2.mate === cur.id);
     if (mate) {
-      const on = CH().mate === cur.id;
+      const on = CH().mate === cur.id && focus === curIdx;
       ctx.fillStyle = on ? '#7bd94a' : '#c8b8a0';
       ctx.fillText((on ? '💞 COMBI กับ ' : '🤍 คู่ซี้: ') + mate.name + ' (แต้ม +15%)', 112, dy + 72);
     }
   }
-  // ปุ่มอัปเลเวล
-  const ownedCur = ownedArr.includes(curIdx);
-  if (ownedCur && lvCur < 8) {
-    const upCost = (isChar ? 350 : 300) * lvCur;
-    drawBtn(W - 208, dy + 24, 180, 40, '⬆ Lv.' + (lvCur + 1) + '  🪙' + upCost.toLocaleString(), () => {
-      if (G.bank >= upCost) {
-        G.bank -= upCost;
-        if (isChar) { G.charLv[curIdx] = lvCur + 1; SAVE.set('charLv', G.charLv); }
-        else { G.petLv[curIdx] = lvCur + 1; SAVE.set('petLv', G.petLv); }
-        SAVE.set('coins', G.bank);
-        AudioSys.buy();
-        floatText(W / 2, 100, cur.name + ' → Lv.' + (lvCur + 1) + '!', '#aee4ff', true);
-      } else { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true); }
-    }, G.bank >= upCost ? { color: '#5cb8e8', dark: '#3d92c4', font: 13 } : { color: '#8a8178', dark: '#6e675f', font: 13 });
-  } else if (ownedCur) {
-    drawBtn(W - 208, dy + 24, 180, 40, '★ MAX Lv.8', () => {}, { disabled: true, font: 13 });
+
+  // ---------- ปุ่มการกระทำในแถบรายละเอียด ----------
+  if (!ownedCur) {
+    const afford = G.bank >= cur.cost;
+    drawBtn(W - 228, dy + 26, 200, 42, '🛒 ซื้อ 🪙 ' + cur.cost.toLocaleString(),
+      () => (isChar ? trySelectChar(focus) : trySelectPet(focus)),
+      afford ? { color: '#ffb02e', dark: '#e07b12', font: 14 } : { color: '#8a8178', dark: '#6e675f', font: 14 });
+  } else {
+    if (focus !== curIdx) {
+      drawBtn(W - 228, dy + 8, 200, 36, '✓ ใช้ตัวนี้',
+        () => (isChar ? trySelectChar(focus) : trySelectPet(focus)),
+        { color: '#7bd94a', dark: '#57a832', font: 14 });
+    } else {
+      drawBtn(W - 228, dy + 8, 200, 36, '★ ใช้อยู่', () => {}, { disabled: true, font: 13 });
+    }
+    if (lvCur < 8) {
+      const upCost = (isChar ? 350 : 300) * lvCur;
+      drawBtn(W - 228, dy + 50, 200, 36, '⬆ Lv.' + (lvCur + 1) + '  🪙' + upCost.toLocaleString(), () => {
+        if (G.bank >= upCost) {
+          G.bank -= upCost;
+          if (isChar) { G.charLv[focus] = lvCur + 1; SAVE.set('charLv', G.charLv); }
+          else { G.petLv[focus] = lvCur + 1; SAVE.set('petLv', G.petLv); }
+          SAVE.set('coins', G.bank);
+          AudioSys.buy();
+          floatText(W / 2, 100, cur.name + ' → Lv.' + (lvCur + 1) + '!', '#aee4ff', true);
+        } else { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true); }
+      }, G.bank >= upCost ? { color: '#5cb8e8', dark: '#3d92c4', font: 13 } : { color: '#8a8178', dark: '#6e675f', font: 13 });
+    } else {
+      drawBtn(W - 228, dy + 50, 200, 36, '★ MAX Lv.8', () => {}, { disabled: true, font: 13 });
+    }
   }
 
   // ---------- แถวล่าง: เปลี่ยนหน้า + ไข่ + กลับ ----------
