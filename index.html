@@ -139,6 +139,16 @@ const MISSIONS = [
 ];
 
 /* ============================================================
+   บูสต์ใช้ครั้งเดียวก่อนวิ่ง (แบบเกมจริง)
+   ============================================================ */
+const BOOSTS = [
+  { id: 'energy', icon: '🧪', name: 'Energy Boost',  desc: 'พลังชีวิต +40 รอบนี้',        cost: 800 },
+  { id: 'power',  icon: '🍭', name: 'Power Jelly',   desc: 'ไอเทมอยู่นานขึ้น +50%',        cost: 800 },
+  { id: 'fast',   icon: '🚀', name: 'Fast Start',    desc: 'Rocket Start ยาวขึ้น x2',      cost: 1600 },
+  { id: 'coin',   icon: '🪙', name: 'Coin Doubler',  desc: 'เหรียญที่ได้ x2 รอบนี้',        cost: 1200 },
+];
+
+/* ============================================================
    สมบัติ — สวมได้ 2 ชิ้น เพิ่มพลังถาวร (แบบเกมจริง)
    ============================================================ */
 const TREASURES = [
@@ -282,6 +292,14 @@ const G = {
   bonusT: 0, revives: 0, fade: 0, paused: false,
   skill: 0, scoreMulT: 0,
   btProgress: 0, runBoxes: 0,
+  crystals: SAVE.get('crystals', 0),
+  charLv: Object.assign([1, 1, 1, 1], SAVE.get('charLv', [])),
+  petLv: Object.assign([1, 1, 1], SAVE.get('petLv', [])),
+  mode: 'normal',            // normal | coins | tower
+  towerBest: SAVE.get('towerBest', 0),
+  floorNow: 0, floorT: 0,
+  continueUsed: false, continueT: 0,
+  runBoost: {}, boostSel: {},
   trOwned: SAVE.get('trOwned', []),
   trEquip: SAVE.get('trEquip', []),
   name: SAVE.get('name', ''),
@@ -291,8 +309,10 @@ if (G.charIdx >= CHARS.length || !G.owned.includes(G.charIdx)) G.charIdx = 0;
 if (G.petIdx >= PETS.length || !G.petsOwned.includes(G.petIdx)) G.petIdx = 0;
 const CH = () => CHARS[G.charIdx];
 const PT = () => PETS[G.petIdx];
-const itemMul = () => 1 + G.upg.item * 0.18;
+const itemMul = () => (1 + G.upg.item * 0.18) * (G.runBoost.power ? 1.5 : 1);
 const hasTr = i => G.trEquip.includes(i);
+const lvMul = () => 1 + 0.03 * ((G.charLv[G.charIdx] || 1) - 1);   // โบนัสแต้มจากเลเวลคุกกี้
+const petLvNow = () => G.petLv[G.petIdx] || 1;
 
 function setState(s) { G.state = s; G.fade = 1; }
 
@@ -505,8 +525,45 @@ function spawnBonusPattern() {
   spawnX = x + 12 * 50;
 }
 
+/* เกาะโจรสลัด: มีแต่เหรียญ ยาใหญ่ และอุปสรรคเบา ๆ */
+function spawnCoinPattern() {
+  const x = spawnX;
+  const r = Math.random();
+  let w;
+  if (r < 0.06) {
+    rowJellies(x, 4, GROUND_Y - 36, 'coin');
+    J(x + 4 * 46 + 20, GROUND_Y - 46, 'potion');
+    w = 4 * 46 + 180;
+  } else if (r < 0.3) {
+    // โค้งเหรียญข้ามอุปสรรค
+    for (let i = 0; i < 7; i++) {
+      const t = i / 6;
+      J(x + i * 52, GROUND_Y - 36 - Math.sin(t * Math.PI) * 160, 'coin');
+    }
+    if (Math.random() < 0.6) OB(x + 7 * 26 - 26, Math.random() < 0.5 ? 'spike' : 'rock');
+    w = 7 * 52 + 130;
+  } else if (r < 0.5) {
+    // ชั้นลอย + เหรียญสองชั้น
+    const y = GROUND_Y - 150, pw2 = rndi(5, 7) * 60;
+    platforms.push({ x: x + 60, w: pw2, y });
+    for (let i = 0; i < Math.floor(pw2 / 52) - 1; i++) J(x + 90 + i * 52, y - 34, 'coin');
+    for (let i = 0; i < 5; i++) J(x + 100 + i * 56, GROUND_Y - 36, 'coin');
+    w = pw2 + 200;
+  } else if (r < 0.62) {
+    // ฝนเหรียญซิกแซก
+    for (let i = 0; i < 10; i++)
+      J(x + i * 46, GROUND_Y - 36 - (i % 4 < 2 ? 0 : 120), 'coin');
+    w = 10 * 46 + 110;
+  } else {
+    w = rowJellies(x, rndi(5, 9), GROUND_Y - 36, 'coin') + 110;
+    if (Math.random() < 0.3) pits.push({ x: x + w - 60, w: rndi(110, 150) });
+  }
+  spawnX = x + w + rnd(40, 110);
+}
+
 function spawnPattern() {
   if (G.bonusT > 0) { spawnBonusPattern(); return; }
+  if (G.mode === 'coins') { spawnCoinPattern(); return; }
   const x = spawnX;
   let w;
   const roll = Math.random();
@@ -570,12 +627,13 @@ addEventListener('keydown', e => {
   AudioSys.init(); AudioSys.resume();
   if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
     e.preventDefault();
-    if (G.state === 'menu') startGame();
-    else if (G.state === 'over') { if (G.overT > 1) startGame(); }
-    else if (['select','shop','rank','pets','treasure'].includes(G.state)) setState('menu');
+    if (G.state === 'menu') { G.boostSel = {}; setState('prep'); }
+    else if (G.state === 'prep') prepGo();
+    else if (G.state === 'over') { if (G.overT > 1) startGame(G.mode); }
+    else if (['select','shop','rank','pets','treasure','prep'].includes(G.state)) setState('menu');
     else doJump();
   }
-  if (e.code === 'Escape' && ['select','shop','rank','pets','treasure'].includes(G.state)) setState('menu');
+  if (e.code === 'Escape' && ['select','shop','rank','pets','treasure','prep'].includes(G.state)) setState('menu');
   if ((e.code === 'KeyP' || e.code === 'Escape') && G.state === 'play') togglePause();
   if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); doSlide(true); }
   if (e.code === 'KeyM') { AudioSys.muted = !AudioSys.muted; }
@@ -613,7 +671,7 @@ function pointerDown(x, y, id) {
     return;
   }
   if (uiClick(x, y)) return;
-  if (G.state === 'over' && G.overT > 1.2) startGame();
+  if (G.state === 'over' && G.overT > 1.2) startGame(G.mode);
 }
 
 const touches = {};
@@ -642,18 +700,22 @@ canvas.addEventListener('mouseup', () => { doSlide(false); mouseFly = false; });
 /* ============================================================
    GAME FLOW
    ============================================================ */
-function startGame() {
+function startGame(mode, boosts) {
+  G.mode = mode || 'normal';
+  G.runBoost = boosts || {};
+  G.continueUsed = false;
+  G.floorNow = 1; G.floorT = 0;
   setState('play');
   G.time = G.time; G.dist = 0; G.score = 0; G.coins = 0; G.jellies = 0;
   G.combo = 0; G.comboTimer = 0;
-  G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12;
+  G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12 + (G.runBoost.energy ? 40 : 0);
   G.hp = G.hpMax;
   G.stage = 1; G.stageTimer = 0;
   G.hpDrain = 3.2;
   G.speed = G.baseSpeed; G.newBest = false; G.rankPos = -1;
   P.y = GROUND_Y - P.h; P.vy = 0; P.onGround = true; P.jumps = 0;
   P.sliding = false; P.invT = 0; P.giantT = 0; P.magnetT = 0;
-  P.boostT = 2.4 + CH().boostBonus + G.upg.boost * 0.6;
+  P.boostT = (2.4 + CH().boostBonus + G.upg.boost * 0.6) * (G.runBoost.fast ? 2 : 1);
   G.bonusT = 0; G.revives = CH().revives + (hasTr(1) ? 1 : 0);
   G.skill = 0; G.scoreMulT = 0;
   P.dead = false; P.fallingPit = false; slideHeld = false; G.paused = false;
@@ -664,12 +726,14 @@ function startGame() {
   worldX = 0; spawnX = W + 100;
   skyPrev = 0; skyCur = 0; skyT = 1;
   ovenAmt = 1;                     // เริ่มเกม = อยู่ในเตาอบ
-  banner('EPISODE 1: หนีจากเตาอบ! GO!!', '#ffdd44');
+  if (G.mode === 'coins') banner('🏴‍☠️ เกาะโจรสลัด: กวาดเหรียญให้มากที่สุด!', '#ffd24a');
+  else if (G.mode === 'tower') { banner('🧊 หอคอยน้ำแข็ง — ชั้นที่ 1!', '#8fd3ff'); skyPrev = 3; skyCur = 3; }
+  else banner('EPISODE 1: หนีจากเตาอบ! GO!!', '#ffdd44');
   AudioSys.startMusic();
 }
 
 function gameOver() {
-  if (G.state === 'over') return true;
+  if (G.state !== 'play') return true;
   if (G.revives > 0) {
     G.revives--;
     G.hp = G.hpMax * 0.6;
@@ -680,21 +744,50 @@ function gameOver() {
     sparkle(P.x + P.w / 2, P.y + P.h / 2, 26, '#ffd24a');
     return false;
   }
+  // เสนอ Continue ด้วยคริสตัล (ครั้งเดียวต่อรอบ แบบเกมจริง)
+  if (!G.continueUsed && G.crystals >= 3) {
+    G.state = 'continue';
+    G.continueT = 6;
+    P.dead = true;
+    AudioSys.stopMusic();
+    return true;
+  }
+  settleGameOver();
+  return true;
+}
+
+function doContinue() {
+  G.crystals -= 3; SAVE.set('crystals', G.crystals);
+  G.continueUsed = true;
+  G.state = 'play';
+  P.dead = false; P.fallingPit = false;
+  G.hp = G.hpMax * 0.6;
+  P.y = Math.min(P.y, GROUND_Y - P.h - 120); P.vy = 0;
+  P.invT = 3;
+  banner('💎 CONTINUE! ลุยต่อ!', '#7ee0ff');
+  AudioSys.power();
+  AudioSys.startMusic();
+}
+
+function settleGameOver() {
   setState('over'); G.overT = 0;
   P.dead = true;
-  puff(P.x + 28, P.y + P.h - 6, 16, '#a97b45');   // เศษคุกกี้กระจาย
+  puff(P.x + 28, P.y + P.h - 6, 16, '#a97b45');
   sparkle(P.x + 28, P.y + 30, 8, '#ffce2e');
   AudioSys.stopMusic();
   AudioSys.over();
   G.score = Math.floor(G.score);
   if (G.score > G.best) { G.best = G.score; G.newBest = true; SAVE.set('best', G.best); }
-  // เหรียญที่ได้ = เหรียญในด่าน + โบนัสจากคะแนน
-  G.boxCoins = 0;
-  for (let i = 0; i < G.runBoxes; i++) G.boxCoins += rndi(60, 250);
-  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (hasTr(4) ? 1.5 : 1));
+  // เปิดกล่องปริศนา: เหรียญ + โอกาสได้คริสตัล 20%
+  G.boxCoins = 0; G.boxGems = 0;
+  for (let i = 0; i < G.runBoxes; i++) {
+    G.boxCoins += rndi(60, 250);
+    if (Math.random() < 0.2) G.boxGems++;
+  }
+  if (G.boxGems > 0) { G.crystals += G.boxGems; SAVE.set('crystals', G.crystals); }
+  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (hasTr(4) ? 1.5 : 1) * (G.runBoost.coin ? 2 : 1));
   G.bank += G.earned;
   SAVE.set('coins', G.bank);
-  // บันทึกอันดับ
   const entry = { s: G.score, d: Math.floor(G.dist), c: G.charIdx, t: Date.now() };
   G.board.push(entry);
   G.board.sort((a, b) => b.s - a.s);
@@ -702,13 +795,14 @@ function gameOver() {
   G.rankPos = G.board.indexOf(entry);
   SAVE.set('board', G.board);
   submitOnline();
-  // เช็คภารกิจ
+  // เช็คภารกิจ (+1 คริสตัลด้วย)
   const m = MISSIONS[G.missionIdx];
   if (m && m.check({ dist: G.dist, jellies: G.jellies, score: G.score, combo: G.maxCombo,
                      bears: G.runBears, stars: G.runStars, stage: G.stage })) {
     G.missionDone = true;
     G.missionReward = m.reward;
     G.bank += m.reward;
+    G.crystals += 1; SAVE.set('crystals', G.crystals);
     G.missionIdx++;
     SAVE.set('coins', G.bank);
     SAVE.set('mission', G.missionIdx);
@@ -835,6 +929,36 @@ function fetchOnline() {
   } catch (e) { G.online = []; G.onlineErr = true; }
 }
 
+/* ฟักไข่สุ่มสัตว์เลี้ยง: ตัวซ้ำ = เลเวลอัป (แบบเกมจริง) */
+function hatchEgg(premium) {
+  if (premium) {
+    if (G.crystals < 5) { AudioSys.deny(); floatText(W / 2, 100, 'คริสตัลไม่พอ (ต้องใช้ 5💎)', '#ff8888', true); return; }
+    G.crystals -= 5; SAVE.set('crystals', G.crystals);
+  } else {
+    if (G.bank < 800) { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ (ต้องใช้ 800🪙)', '#ff8888', true); return; }
+    G.bank -= 800; SAVE.set('coins', G.bank);
+  }
+  const locked = [0, 1, 2].filter(i => !G.petsOwned.includes(i));
+  let pick;
+  if (premium && locked.length) pick = locked[rndi(0, locked.length - 1)];   // ไข่ทองการันตีตัวใหม่
+  else pick = rndi(0, 2);
+  AudioSys.buy();
+  if (!G.petsOwned.includes(pick)) {
+    G.petsOwned.push(pick);
+    G.petIdx = pick;
+    SAVE.set('petsOwned', G.petsOwned); SAVE.set('pet', pick);
+    floatText(W / 2, 100, '🥚 ฟักได้ตัวใหม่: ' + PETS[pick].name + '!', '#ffd24a', true);
+  } else if ((G.petLv[pick] || 1) < 8) {
+    G.petLv[pick] = (G.petLv[pick] || 1) + 1;
+    SAVE.set('petLv', G.petLv);
+    floatText(W / 2, 100, '🥚 ได้ ' + PETS[pick].name + ' ซ้ำ → Lv.' + G.petLv[pick] + '!', '#7bd94a', true);
+  } else {
+    const refund = premium ? 1000 : 300;
+    G.bank += refund; SAVE.set('coins', G.bank);
+    floatText(W / 2, 100, PETS[pick].name + ' เลเวลเต็มแล้ว → คืน ' + refund + '🪙', '#ffe9b8', true);
+  }
+}
+
 function trySelectPet(i) {
   const p = PETS[i];
   if (G.petsOwned.includes(i)) {
@@ -921,7 +1045,7 @@ function update(dt) {
     if (b.x < -40) { b.x = W + rnd(10, 60); b.y = rnd(30, 430); }
   }
   // ฉากเตาอบค่อย ๆ เปลี่ยนเป็นโลกภายนอกเมื่อถึงด่าน 3
-  const ovTarget = (G.state === 'play' || G.state === 'over') && G.stage < 3 ? 1 : 0;
+  const ovTarget = (G.state === 'play' || G.state === 'over') && G.stage < 3 && G.mode !== 'tower' ? 1 : 0;
   ovenAmt += (ovTarget - ovenAmt) * Math.min(1, 1.3 * dt);
   if (ovTarget === 1 && ovenAmt > 0.99) ovenAmt = 1;
   P.squash += (0 - P.squash) * Math.min(1, 10 * dt);
@@ -934,6 +1058,10 @@ function update(dt) {
 
   if (G.state !== 'play') {
     if (G.state === 'over') G.overT += dt;
+    if (G.state === 'continue') {
+      G.continueT -= dt;
+      if (G.continueT <= 0) settleGameOver();
+    }
     updateParticles(dt);
     P.anim += dt * 8;
     Pet.wing += dt * 14;
@@ -947,15 +1075,15 @@ function update(dt) {
     G.speed = Math.min(G.maxSpeed, G.speed + 62);
     G.hpDrain += 0.35;
     skyPrev = skyCur;
-    skyCur = G.stage < 3 ? 0 : (G.stage - 3) % SKIES.length;
+    skyCur = G.mode === 'tower' ? 3 : G.stage < 3 ? 0 : (G.stage - 3) % SKIES.length;
     skyT = 0;
-    if (G.stage === 3) banner('🎉 หนีออกจากเตาอบสำเร็จ! 🎉', '#ffd24a');
+    if (G.mode !== 'tower' && G.stage === 3) banner('🎉 หนีออกจากเตาอบสำเร็จ! 🎉', '#ffd24a');
     else banner('SPEED UP!  ⚡ ด่าน ' + G.stage, '#7ee0ff');
     AudioSys.speedup();
   }
 
   /* --- HP ลดตามเวลา --- */
-  if (PT().id === 'cloud') G.hp = Math.min(G.hpMax, G.hp + 1.0 * dt);   // ปุยเมฆฟื้นพลัง
+  if (PT().id === 'cloud') G.hp = Math.min(G.hpMax, G.hp + (1.0 + (petLvNow() - 1) * 0.15) * dt);
   if (G.bonusT <= 0) G.hp -= G.hpDrain * (hasTr(2) ? 0.85 : 1) * dt;
   if (G.hp <= 0) {
     G.hp = 0;
@@ -969,6 +1097,23 @@ function update(dt) {
   G.score += move * 0.02;
 
   while (spawnX < worldX + W + 700) spawnPattern();
+
+  /* --- หอคอยน้ำแข็ง: ผ่านชั้นทุก 20 วิ --- */
+  if (G.mode === 'tower') {
+    G.floorT += dt;
+    if (G.floorT >= 20) {
+      G.floorT = 0;
+      G.floorNow++;
+      G.coins += 40;
+      G.speed = Math.min(G.maxSpeed, G.speed + 22);
+      if (G.floorNow % 5 === 0) {
+        G.crystals++; SAVE.set('crystals', G.crystals);
+        banner('🧊 ชั้น ' + G.floorNow + '! รางวัล +40🪙 +1💎', '#8fd3ff');
+      } else banner('🧊 ผ่านชั้น ' + (G.floorNow - 1) + '! ขึ้นชั้น ' + G.floorNow, '#8fd3ff');
+      if (G.floorNow > G.towerBest) { G.towerBest = G.floorNow; SAVE.set('towerBest', G.towerBest); }
+      AudioSys.speedup();
+    }
+  }
 
   /* --- timers --- */
   P.invT = Math.max(0, P.invT - dt);
@@ -1016,7 +1161,8 @@ function update(dt) {
     const jx = j.x - worldX;
     if (jx < -40 || jx > 300) continue;
     if (['potion','giant','magnet','star','bear','blast','box','letter'].includes(j.type)) continue;
-    if (Math.hypot(jx - Pet.x, j.y - Pet.y) < 36) { j.dead = true; collectJelly(j, jx); }
+    const petR = 36 + (PT().id === 'maca' ? (petLvNow() - 1) * 4 : 0);   // มาการอง: เลเวลเพิ่มรัศมี
+    if (Math.hypot(jx - Pet.x, j.y - Pet.y) < petR) { j.dead = true; collectJelly(j, jx); }
   }
 
   /* --- ฟิสิกส์ผู้เล่น --- */
@@ -1173,13 +1319,15 @@ function collectJelly(j, jx) {
       if (j.type === 'bear') base = j.v === 'b' ? 5000 : j.v === 'p' ? 2500 : 1000;   // หมี 3 ระดับ
       let pts = (base + comboBonus) * mult;
       pts *= 1 + G.upg.jelly * 0.06;                         // เยลลี่พลัส
+      pts *= lvMul();                                        // เลเวลคุกกี้
       if (j.type === 'bear' && hasTr(0)) pts *= 2;          // จี้หมีทองคำ
       if (G.scoreMulT > 0) pts *= 2;                         // สกิลนินจา
       pts = Math.round(pts);
       G.score += pts; G.jellies++;
       G.skill = Math.min(100, G.skill + 1.7 * (hasTr(5) ? 1.3 : 1));   // ชาร์จเกจสกิล
       G.maxCombo = Math.max(G.maxCombo, G.combo);
-      if (j.type === 'coin') G.coins += PT().id === 'chick' ? 2 : 1;   // ลูกเจี๊ยบ x2
+      if (j.type === 'coin')
+        G.coins += PT().id === 'chick' ? 2 + (petLvNow() >= 4 ? 1 : 0) + (petLvNow() >= 8 ? 1 : 0) : 1;
       if (j.type === 'bear') {
         G.runBears++;
         AudioSys.bear();
@@ -1294,7 +1442,7 @@ function draw() {
   drawTrail();
   drawJellies();
   drawObstacles();
-  if (G.state === 'play' || G.state === 'over') drawPlayer();
+  if (G.state === 'play' || G.state === 'over' || G.state === 'continue') drawPlayer();
   if (G.state === 'play') drawPet();
   drawParticles();
 
@@ -1323,12 +1471,14 @@ function draw() {
 
   if (G.state === 'play') drawHUD();
   if (G.state === 'menu') drawMenu();
+  if (G.state === 'prep') drawPrep();
   if (G.state === 'select') drawSelect();
   if (G.state === 'pets') drawPets();
   if (G.state === 'treasure') drawTreasure();
   if (G.state === 'shop') drawShop();
   if (G.state === 'rank') drawRank();
   if (G.state === 'over') drawGameOver();
+  if (G.state === 'continue') drawContinue();
   drawFloaters();
   drawBanner();
 
@@ -2581,6 +2731,20 @@ function drawPanel(x, y, w, h, r = 18) {
   roundRect(x + 3, y + 3, w - 6, h - 6, r - 3); ctx.stroke();
 }
 
+function drawGemChip(x, y) {
+  ctx.save();
+  ctx.font = 'bold 19px Trebuchet MS';
+  const text = G.crystals.toLocaleString();
+  const tw = ctx.measureText(text).width + 52;
+  drawPanel(x - tw, y, tw, 34, 17);
+  ctx.font = '17px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('💎', x - tw + 20, y + 18);
+  ctx.font = 'bold 19px Trebuchet MS';
+  ctx.fillStyle = '#bfe8ff'; ctx.textAlign = 'left';
+  ctx.fillText(text, x - tw + 38, y + 18);
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
 function drawCoinChip(x, y, text) {
   const w = ctx.measureText(text).width;
   ctx.save();
@@ -2668,8 +2832,18 @@ function drawHUD() {
   const meta = `🏃 ${Math.floor(G.dist)} m    🍬 ${G.jellies}    🪙 ${G.coins}`;
   ctx.strokeText(meta, W - 26, 72);
   ctx.fillText(meta, W - 26, 72);
+  // ชั้นหอคอย
+  if (G.mode === 'tower') {
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 19px Trebuchet MS';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(20,40,70,.8)';
+    const ft = '🧊 ชั้น ' + G.floorNow + '  (' + Math.ceil(20 - G.floorT) + ' วิ)';
+    ctx.strokeText(ft, W - 26, 118);
+    ctx.fillStyle = '#aee4ff';
+    ctx.fillText(ft, W - 26, 118);
+  }
   // ความคืบหน้าตัวอักษร BONUSTIME
-  if (G.bonusT <= 0) {
+  if (G.bonusT <= 0 && G.mode === 'normal') {
     ctx.font = 'bold 15px Trebuchet MS';
     for (let i = 0; i < 9; i++) {
       const cx2 = W - 26 - (8 - i) * 15;
@@ -2870,6 +3044,7 @@ function drawMenu() {
 
   // เหรียญสะสม + สถิติ
   drawCoinChip(W - 20, 16, G.bank.toLocaleString());
+  drawGemChip(W - 20, 56);
   if (G.best > 0) {
     ctx.font = 'bold 19px Trebuchet MS'; ctx.textAlign = 'center';
     ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(60,30,0,.85)';
@@ -2896,12 +3071,14 @@ function drawMenu() {
   ctx.fillText(CH().name, 215, 465);
 
   // ปุ่มหลัก
-  drawBtn(W / 2 - 10, 228, 310, 58, '▶  เริ่มวิ่ง!', () => startGame(), { color: '#ffb02e', dark: '#e07b12', font: 26 });
-  drawBtn(W / 2 - 10, 300, 150, 46, '🍪 ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 16 });
-  drawBtn(W / 2 + 150, 300, 150, 46, '🐥 สัตว์เลี้ยง', () => setState('pets'), { color: '#7bd94a', dark: '#57a832', font: 16 });
-  drawBtn(W / 2 - 10, 356, 150, 46, '💎 สมบัติ', () => setState('treasure'), { color: '#e8b23c', dark: '#c08d1e', font: 16 });
-  drawBtn(W / 2 + 150, 356, 150, 46, '🛍 ร้านค้า', () => setState('shop'), { color: '#5cb8e8', dark: '#3d92c4', font: 16 });
-  drawBtn(W / 2 - 10, 412, 310, 46, '🏆 ตารางอันดับ (ออนไลน์)', () => { fetchOnline(); setState('rank'); }, { color: '#9d7ee0', dark: '#7a5cc0', font: 16 });
+  drawBtn(W / 2 - 10, 222, 310, 54, '▶  เริ่มวิ่ง!', () => { G.boostSel = {}; setState('prep'); }, { color: '#ffb02e', dark: '#e07b12', font: 25 });
+  drawBtn(W / 2 - 10, 284, 150, 40, '🏴‍☠️ เกาะเหรียญ', () => startGame('coins'), { color: '#c9a227', dark: '#a17d12', font: 14 });
+  drawBtn(W / 2 + 150, 284, 150, 40, '🧊 หอคอย ' + (G.towerBest > 0 ? '(ชั้น ' + G.towerBest + ')' : ''), () => startGame('tower'), { color: '#6fb8d8', dark: '#4d92b4', font: 14 });
+  drawBtn(W / 2 - 10, 334, 150, 44, '🍪 ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 16 });
+  drawBtn(W / 2 + 150, 334, 150, 44, '🐥 สัตว์เลี้ยง', () => setState('pets'), { color: '#7bd94a', dark: '#57a832', font: 16 });
+  drawBtn(W / 2 - 10, 388, 150, 44, '💎 สมบัติ', () => setState('treasure'), { color: '#e8b23c', dark: '#c08d1e', font: 16 });
+  drawBtn(W / 2 + 150, 388, 150, 44, '🛍 ร้านค้า', () => setState('shop'), { color: '#5cb8e8', dark: '#3d92c4', font: 16 });
+  drawBtn(W / 2 - 10, 442, 310, 44, '🏆 ตารางอันดับ (ออนไลน์)', () => { fetchOnline(); setState('rank'); }, { color: '#9d7ee0', dark: '#7a5cc0', font: 16 });
 
   // ป้ายภารกิจปัจจุบัน
   const m = MISSIONS[G.missionIdx];
@@ -2928,6 +3105,77 @@ function drawMenu() {
   const help = 'SPACE/แตะซ้าย = โดด 2 ครั้ง = ตีลังกา  ·  ↓/กดขวาค้าง = สไลด์  ·  M = เสียง';
   ctx.strokeText(help, W / 2, 526);
   ctx.fillText(help, W / 2, 526);
+}
+
+/* ---------- เตรียมพร้อมก่อนวิ่ง: เลือกบูสต์ใช้ครั้งเดียว ---------- */
+function prepTotal() {
+  return BOOSTS.reduce((s, b) => s + (G.boostSel[b.id] ? b.cost : 0), 0);
+}
+function prepGo() {
+  const total = prepTotal();
+  if (total > G.bank) { AudioSys.deny(); floatText(W / 2, 120, 'เหรียญไม่พอสำหรับบูสต์!', '#ff8888', true); return; }
+  if (total > 0) { G.bank -= total; SAVE.set('coins', G.bank); AudioSys.buy(); }
+  startGame('normal', Object.assign({}, G.boostSel));
+}
+function drawPrep() {
+  ctx.fillStyle = 'rgba(40,20,5,.62)';
+  ctx.fillRect(0, 0, W, H);
+  drawTitleText('เตรียมพร้อมก่อนวิ่ง', W / 2, 56, 34);
+  drawCoinChip(W - 20, 20, G.bank.toLocaleString());
+
+  // ตัวละคร + สัตว์เลี้ยงที่ใช้
+  ctx.save();
+  ctx.translate(150, 330);
+  ctx.scale(1.15, 1.15);
+  drawCookieRun(P.anim);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(70, 230 + Math.sin(G.time * 4) * 8);
+  drawPet(PT());
+  ctx.restore();
+  ctx.font = 'bold 16px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(CH().name + '  Lv.' + (G.charLv[G.charIdx] || 1), 150, 372);
+  ctx.font = '13px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+  ctx.fillText(PT().name + '  Lv.' + petLvNow(), 150, 394);
+
+  // การ์ดบูสต์ 2x2
+  ctx.font = 'bold 15px Trebuchet MS';
+  ctx.fillStyle = '#ffe9b8'; ctx.textAlign = 'center';
+  ctx.fillText('บูสต์ใช้ครั้งเดียว (เลือกได้หลายอัน)', 610, 96);
+  BOOSTS.forEach((b, i) => {
+    const x = 330 + (i % 2) * 290, y = 110 + Math.floor(i / 2) * 122;
+    const on = !!G.boostSel[b.id];
+    drawPanel(x, y, 276, 108, 14);
+    if (on) {
+      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 4;
+      roundRect(x + 2, y + 2, 272, 104, 12); ctx.stroke();
+    }
+    ctx.font = '30px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(b.icon, x + 38, y + 42);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 16px Trebuchet MS';
+    ctx.fillStyle = on ? '#ffd24a' : '#fff';
+    ctx.fillText(b.name, x + 70, y + 34);
+    ctx.font = '12.5px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+    ctx.fillText(b.desc, x + 70, y + 55);
+    drawBtn(x + 16, y + 66, 244, 32, on ? '✓ เลือกแล้ว — 🪙 ' + b.cost.toLocaleString() : '🪙 ' + b.cost.toLocaleString(),
+      () => {
+        if (!G.boostSel[b.id] && prepTotal() + b.cost > G.bank) { AudioSys.deny(); return; }
+        G.boostSel[b.id] = !G.boostSel[b.id];
+        AudioSys.click();
+      },
+      on ? { color: '#7bd94a', dark: '#57a832', font: 14 } : { color: '#a08468', dark: '#7d6448', font: 14 });
+  });
+
+  const total = prepTotal();
+  ctx.font = 'bold 16px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = total > G.bank ? '#ff8888' : '#ffe9b8';
+  ctx.fillText('รวมค่าบูสต์: 🪙 ' + total.toLocaleString(), 610, 376);
+
+  drawBtn(W / 2 - 40, 400, 340, 58, '🏁 GO!!', prepGo, { color: '#ffb02e', dark: '#e07b12', font: 26 });
+  drawBtn(W / 2 - 40, 472, 340, 42, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448', font: 16 });
 }
 
 /* ---------- เลือกตัวละคร ---------- */
@@ -2958,13 +3206,35 @@ function drawSelect() {
     ctx.restore();
 
     ctx.textAlign = 'center';
-    ctx.font = 'bold 19px Trebuchet MS';
+    ctx.font = 'bold 18px Trebuchet MS';
     ctx.fillStyle = selected ? '#ffd24a' : '#fff';
-    ctx.fillText(c.name, x + cw / 2, y + 196);
-    ctx.font = '14px Trebuchet MS';
+    ctx.fillText(c.name, x + cw / 2, y + 192);
+    ctx.font = '13px Trebuchet MS';
     ctx.fillStyle = '#ffe9b8';
-    ctx.fillText(c.desc[0], x + cw / 2, y + 222);
-    ctx.fillText(c.desc[1], x + cw / 2, y + 242);
+    ctx.fillText(c.desc[0], x + cw / 2, y + 213);
+    ctx.fillText(c.desc[1], x + cw / 2, y + 231);
+
+    // เลเวลคุกกี้ Lv.1-8: แต้ม +3% ต่อเลเวล
+    if (owned) {
+      const lv = G.charLv[i] || 1;
+      ctx.font = 'bold 13px Trebuchet MS';
+      ctx.fillStyle = '#aee4ff';
+      ctx.fillText('Lv.' + lv + '  (แต้ม +' + ((lv - 1) * 3) + '%)', x + cw / 2, y + 252);
+      if (lv < 8) {
+        const upCost = 350 * lv;
+        drawBtn(x + 24, y + h - 122, cw - 48, 36, '⬆ อัปเลเวล 🪙 ' + upCost.toLocaleString(), () => {
+          if (G.bank >= upCost) {
+            G.bank -= upCost;
+            G.charLv[i] = lv + 1;
+            SAVE.set('coins', G.bank); SAVE.set('charLv', G.charLv);
+            AudioSys.buy();
+            floatText(W / 2, 100, c.name + ' → Lv.' + (lv + 1) + '!', '#aee4ff', true);
+          } else { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true); }
+        }, G.bank >= upCost ? { color: '#5cb8e8', dark: '#3d92c4', font: 13.5 } : { color: '#8a8178', dark: '#6e675f', font: 13.5 });
+      } else {
+        drawBtn(x + 24, y + h - 122, cw - 48, 36, '★ MAX Lv.8', () => {}, { disabled: true, font: 14 });
+      }
+    }
 
     if (selected) {
       drawBtn(x + 24, y + h - 76, cw - 48, 46, '✓ ใช้อยู่', () => {}, { disabled: true });
@@ -3008,7 +3278,7 @@ function drawPets() {
     ctx.textAlign = 'center';
     ctx.font = 'bold 19px Trebuchet MS';
     ctx.fillStyle = selected ? '#ffd24a' : '#fff';
-    ctx.fillText(p.name, x + cw / 2, y + 196);
+    ctx.fillText(p.name + (owned ? '  Lv.' + (G.petLv[i] || 1) : ''), x + cw / 2, y + 196);
     ctx.font = '14px Trebuchet MS';
     ctx.fillStyle = '#ffe9b8';
     ctx.fillText(p.desc[0], x + cw / 2, y + 222);
@@ -3025,7 +3295,10 @@ function drawPets() {
     }
   });
 
-  drawBtn(W / 2 - 90, 476, 180, 46, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
+  drawBtn(120, 476, 230, 46, '🥚 ฟักไข่ 800🪙', () => hatchEgg(false), { color: '#e8b23c', dark: '#c08d1e', font: 16 });
+  drawBtn(370, 476, 230, 46, '✨ ไข่ทอง 5💎', () => hatchEgg(true), { color: '#7ec3e8', dark: '#559ec4', font: 16 });
+  drawBtn(620, 476, 220, 46, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
+  drawGemChip(W - 20, 62);
 }
 
 /* ---------- สมบัติ ---------- */
@@ -3181,6 +3454,27 @@ function drawRank() {
   drawBtn(W / 2 + 30, 476, 200, 44, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
 }
 
+/* ---------- Continue ด้วยคริสตัล ---------- */
+function drawContinue() {
+  ctx.fillStyle = 'rgba(30,12,2,.7)';
+  ctx.fillRect(0, 0, W, H);
+  drawTitleText('เล่นต่อไหม?', W / 2, 150, 52);
+  // วงนับถอยหลัง
+  const frac = clamp(G.continueT / 6, 0, 1);
+  ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 10;
+  ctx.beginPath(); ctx.arc(W / 2, 262, 56, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = '#7ee0ff'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(W / 2, 262, 56, -Math.PI / 2, -Math.PI / 2 + TAU * frac); ctx.stroke();
+  ctx.font = 'bold 46px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(Math.ceil(G.continueT), W / 2, 278);
+  ctx.font = 'bold 17px Trebuchet MS';
+  ctx.fillStyle = '#ffe9b8';
+  ctx.fillText('มีคริสตัล 💎 ' + G.crystals + ' — ใช้ 3 เม็ดเพื่อวิ่งต่อจากจุดเดิม', W / 2, 348);
+  drawBtn(W / 2 - 230, 384, 220, 56, '💎3  เล่นต่อ!', doContinue, { color: '#5cb8e8', dark: '#3d92c4', font: 21 });
+  drawBtn(W / 2 + 10, 384, 220, 56, 'พอแค่นี้', () => settleGameOver(), { color: '#a08468', dark: '#7d6448', font: 19 });
+}
+
 /* ---------- game over ---------- */
 function drawGameOver() {
   const a = clamp(G.overT / 0.6, 0, 1);
@@ -3197,7 +3491,8 @@ function drawGameOver() {
     ['เยลลี่ที่เก็บ', G.jellies.toLocaleString()],
     ['เหรียญที่ได้ (+โบนัส)', '🪙 ' + G.earned.toLocaleString()],
     G.runBoxes > 0
-      ? ['กล่องปริศนา x' + G.runBoxes, '🎁 +' + (G.boxCoins || 0).toLocaleString() + ' เหรียญ']
+      ? ['กล่องปริศนา x' + G.runBoxes, '🎁 +' + (G.boxCoins || 0).toLocaleString() + '🪙' + (G.boxGems ? ' +' + G.boxGems + '💎' : '')]
+      : G.mode === 'tower' ? ['ชั้นสูงสุดรอบนี้', '🧊 ชั้น ' + G.floorNow]
       : ['ด่านที่ไปถึง', 'ด่าน ' + G.stage],
   ];
   ctx.font = 'bold 21px Trebuchet MS';
@@ -3213,7 +3508,7 @@ function drawGameOver() {
   ctx.font = 'bold 18px Trebuchet MS';
   if (G.missionDone) {
     ctx.fillStyle = '#7bd94a';
-    ctx.fillText('📜 ภารกิจสำเร็จ! รับโบนัส 🪙 ' + G.missionReward.toLocaleString(), W / 2, 366);
+    ctx.fillText('📜 ภารกิจสำเร็จ! รับ 🪙 ' + G.missionReward.toLocaleString() + ' +1💎', W / 2, 366);
   } else if (MISSIONS[G.missionIdx]) {
     ctx.fillStyle = 'rgba(255,233,184,.75)';
     ctx.fillText('📜 ภารกิจ: ' + MISSIONS[G.missionIdx].desc, W / 2, 366);
@@ -3239,7 +3534,7 @@ function drawGameOver() {
   }
 
   if (G.overT > 0.9) {
-    drawBtn(W / 2 - 230, 448, 220, 54, '▶ เล่นอีกครั้ง', () => startGame(), { color: '#ffb02e', dark: '#e07b12' });
+    drawBtn(W / 2 - 230, 448, 220, 54, '▶ เล่นอีกครั้ง', () => startGame(G.mode), { color: '#ffb02e', dark: '#e07b12' });
     drawBtn(W / 2 + 10, 448, 220, 54, '🏠 เมนูหลัก', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
   }
 }
