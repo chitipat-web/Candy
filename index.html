@@ -569,7 +569,7 @@ function pointerDown(x, y, id) {
   if (G.state === 'play') {
     if (G.paused) { togglePause(); return; }
     if (Math.hypot(x - W / 2, y - 30) < 26) { togglePause(); return; }   // ปุ่มพักกลางบน
-    if (x < W / 2) { if (id !== undefined) touches[id] = 'L'; doJump(); }
+    if (x < W / 2) { if (id !== undefined) touches[id] = 'L'; else mouseFly = true; doJump(); }
     else { if (id !== undefined) touches[id] = 'R'; doSlide(true); }
     return;
   }
@@ -578,6 +578,7 @@ function pointerDown(x, y, id) {
 }
 
 const touches = {};
+let mouseFly = false;   // เมาส์กดค้างฝั่งซ้าย (ใช้บังคับบินขึ้นช่วงโบนัส)
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   AudioSys.init(); AudioSys.resume();
@@ -597,7 +598,7 @@ canvas.addEventListener('mousedown', e => {
   const [x, y] = canvasXY(e.clientX, e.clientY);
   pointerDown(x, y);
 });
-canvas.addEventListener('mouseup', () => doSlide(false));
+canvas.addEventListener('mouseup', () => { doSlide(false); mouseFly = false; });
 
 /* ============================================================
    GAME FLOW
@@ -898,10 +899,17 @@ function update(dt) {
   const footX = P.x + pw * 0.5;
 
   if (G.bonusT > 0) {
+    /* บินบังคับเอง: ค้างโดด = ขึ้น, ค้างสไลด์ = ดิ่ง, ปล่อย = ร่อนลงช้า ๆ */
     P.fallingPit = false; P.sliding = false;
-    const targetY = bonusPathY(worldX + footX) - ph / 2;
-    P.y += (targetY - P.y) * Math.min(1, 8 * dt);
-    P.vy = 0; P.onGround = false; P.jumps = 1;
+    const flyUp = keys['Space'] || keys['ArrowUp'] || keys['KeyW'] ||
+                  Object.values(touches).includes('L') || mouseFly;
+    P.vy += (flyUp ? -2700 : slideHeld ? 2700 : 1150) * dt;
+    P.vy = clamp(P.vy, -450, 450);
+    P.y += P.vy * dt;
+    const yMin = 76, yMax = GROUND_Y - ph - 4;
+    if (P.y < yMin) { P.y = yMin; P.vy = Math.max(P.vy, 0); }
+    if (P.y > yMax) { P.y = yMax; P.vy = Math.min(P.vy, 0); }
+    P.onGround = false; P.jumps = 1;
     if (Math.random() < 0.6) sparkle(P.x - 10, P.y + ph / 2, 1, '#ffd24a');
   } else {
     const prevFoot = P.y + ph;
@@ -1064,9 +1072,10 @@ function collectJelly(j, jx) {
       bonusLetterQueue = ['B','O','N','U','S'];
       bonusBearSpawned = false;
       G.bonusT = 6.5 + G.upg.bonus * 0.7;
+      P.vy = -120;
       AudioSys.bear();
       sparkle(jx, j.y, 28, '#ffe066');
-      banner('⭐ BONUS TIME!! ⭐', '#ffe066');
+      banner('⭐ BONUS TIME! ค้างปุ่มบิน ขึ้น/ลง ⭐', '#ffe066');
       break;
   }
 }
@@ -1891,6 +1900,9 @@ function drawPlayer() {
       ctx.beginPath(); ctx.moveTo(-32, yy); ctx.lineTo(-32 - ln, yy); ctx.stroke();
     }
   }
+
+  if (G.bonusT > 0 && !P.dead)
+    ctx.rotate(clamp(P.vy * 0.0007, -0.32, 0.32));   // เอียงหัวตามทิศบิน
 
   const run = P.anim;
   if (P.dead) {
