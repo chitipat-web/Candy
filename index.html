@@ -823,8 +823,9 @@ const LOOK = {
   cream: { body: '#f0e0c8', deco: ['puff:#ffffff', 'sprinkles:#5a3a26', 'collar:#e8d0b0', 'staff:#8a5a2e', 'heldfruit:#8fbf4a'] },
   cloudc: { body: '#f2d048', eye: '#4a9fe0', deco: ['puff:#bfe4f8', 'starchest:#ffffff', 'hookstaff:#5aa8e0'] },
   bcchoco: { body: '#6a4028', deco: ['swirl:#f6e8d0', 'buttons:#f2d8b0'] },
-  gclaus: { icing: '#c8342a', deco: ['suit:#c8342a', 'belt:#3a3028', 'collar:#ffffff', 'sack:#b02a20', 'santa:#e0453a', 'beard:#ffffff', 'candycane'] },
-  coffee: { body: '#5a3a26', eyeS: 'sharp', deco: ['vest:#6a5a9a', 'collar:#ffffff', 'nytag', 'side:#d9a05e', 'mug:#e8e0d0'] },
+  gclaus: { icing: '#c8342a', deco: ['suit:#c8342a', 'belt:#3a3028', 'collar:#ffffff', 'gloves:#ffffff', 'sack:#b02a20', 'santa:#e0453a', 'beard:#ffffff', 'candycane'] },
+  coffee: { body: '#5a3a26', eyeS: 'sharp', deco: ['vest:#6a5a9a', 'sleeves:#6a5a9a', 'collar:#ffffff', 'nytag', 'side:#d9a05e', 'mug:#e8e0d0'] },
+  angel: { deco: ['curl:#f2d977', 'icing:#ffffff'] },
   skater: { deco: ['cap:#3a86c8', 'icing:#ffffff'] },
   princess: { icing: '#ff9ec0', deco: ['dress:#ff9ec0', 'frillhem:#fff4f8', 'drills:#f2d848', 'crown:#ffd24a', 'blushdot', 'heartwand:#ff5a8a'] },
   knight: { body: '#c8b090', deco: ['armor:#aab6c4', 'helmet:#aab6c4', 'sword:#dfe8f2'] },
@@ -4145,7 +4146,7 @@ const DECO_ALIAS = {
   wavyhair:'long', longhair:'long', ponytail:'pony',
   fedora:'cap', sailor:'cap', generalhat:'tophat', admiralhat:'tophat', monkhat:'tophat',
   pancakehat:'beret', strawhat:'beret', diamondhat:'beret', furhood:'hood', dinohood:'hood',
-  leafhood:'hood', baricrown:'crown', dancheongcrown:'crown', maidband:'band',
+  leafhood:'hood', baricrown:'crown', dancheongcrown:'crown',
   wolfears:'ears', foxears:'ears', bunnyears:'bunny', heromask:'mask',
   lilyflower:'flower', leafpin:'flower', silverleaf:'moonpin', seastar:'moonpin',
   honeydrip:'drip', sylip:'drip', hanbokribbon:'bowtie', stardust:'freckles', bubbles:'freckles',
@@ -4267,17 +4268,18 @@ function runDecos(ch, phase, RIM) {
         ctx.font = 'bold 9px Trebuchet MS'; ctx.textAlign = 'center';
         ctx.fillText('NY', 0, -39.5);
       } else if (p === 'collar') {
+        // เลื่อนลงพ้นคาง (หัวใหญ่ขึ้นตามสัดส่วนจริงแล้วคางอยู่ ~-52)
         ctx.fillStyle = c;
-        roundRect(-13, -58, 26, 7, 3.5); ctx.fill();
+        roundRect(-13, -50.5, 26, 7, 3.5); ctx.fill();
       } else if (p === 'bowtie') {
         ctx.fillStyle = c;
-        ctx.beginPath(); ctx.moveTo(-1, -52); ctx.lineTo(-9, -56); ctx.lineTo(-9, -48); ctx.closePath(); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(1, -52); ctx.lineTo(9, -56); ctx.lineTo(9, -48); ctx.closePath(); ctx.fill();
-        ctx.beginPath(); ctx.arc(0, -52, 2.4, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-1, -46); ctx.lineTo(-9, -50); ctx.lineTo(-9, -42); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(1, -46); ctx.lineTo(9, -50); ctx.lineTo(9, -42); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -46, 2.4, 0, TAU); ctx.fill();
       } else if (p === 'scarfB') {
         ctx.fillStyle = c;
-        roundRect(-13, -58, 26, 8, 4); ctx.fill();
-        roundRect(-6, -54, 8, 16, 4); ctx.fill();
+        roundRect(-13, -51, 26, 8, 4); ctx.fill();
+        roundRect(-6, -47, 8, 16, 4); ctx.fill();
       } else if (p === 'dress') {
         // เดรสบานคลุมสะโพก-ขา (เจ้าหญิง/ราชินี ฯลฯ)
         const DK = shade(c, -40);
@@ -4386,58 +4388,87 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.beginPath(); ctx.arc(2, -22, 9, Math.PI * 0.9, Math.PI * 2.5); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(10, -24); ctx.quadraticCurveTo(18, -20, 20, -12); ctx.stroke();
     } else if (p === 'spiky') {
+      // ผมตั้งแหลมเต็มกบาล: ฐานคลุมหัวลึกถึงแนวคิ้ว + ยอดสูง
       drewHair = true; ctx.fillStyle = c;
-      ctx.beginPath(); ctx.moveTo(-26, -12);
+      ctx.beginPath(); ctx.moveTo(-30, -3);
       for (let i = 0; i < 5; i++) {
-        const x = -24 + i * 11;
-        ctx.lineTo(x + 5, -30 - (i % 2) * 6); ctx.lineTo(x + 11, -13 + (i % 2) * 2);
+        const x = -28 + i * 12.2;
+        ctx.lineTo(x + 5.5, -34 - (i % 2) * 7); ctx.lineTo(x + 12.2, -8 + (i % 2) * 2);
       }
-      ctx.quadraticCurveTo(0, -20, -26, -12); ctx.closePath(); ctx.fill();
+      ctx.lineTo(30, -3);
+      ctx.quadraticCurveTo(0.5, -16, -30, -3); ctx.closePath(); ctx.fill();
     } else if (p === 'bob') {
+      // บ๊อบคลุมหัว: หน้าม้าหยัก + ปอยยาวข้างแก้มสองข้าง
       drewHair = true; ctx.fillStyle = c;
-      ctx.beginPath(); ctx.arc(0.5, -6, 30, Math.PI * 0.95, Math.PI * 2.05);
-      ctx.quadraticCurveTo(24, -4, 16, -12);
-      ctx.quadraticCurveTo(6, -2, -4, -12);
-      ctx.quadraticCurveTo(-14, -2, -22, -12);
-      ctx.quadraticCurveTo(-30, -6, -29, -4);
+      ctx.beginPath(); ctx.arc(0.5, -3, 31.5, Math.PI * 0.98, Math.PI * 2.02);
+      ctx.quadraticCurveTo(25, 0, 17, -9);
+      ctx.quadraticCurveTo(7, 1, -3, -9);
+      ctx.quadraticCurveTo(-13, 1, -23, -9);
+      ctx.quadraticCurveTo(-30, -2, -30.5, -3);
       ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-29.5, 6, 6.5, 14, 0.1, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(30.5, 6, 6.5, 14, -0.1, 0, TAU); ctx.fill();
     } else if (p === 'long') {
+      // ผมยาว: คลุมหัว + ม่านผมสองข้างยาวถึงบ่า
       drewHair = true; ctx.fillStyle = c;
-      ctx.beginPath(); ctx.arc(0.5, -5, 30.5, Math.PI * 0.9, Math.PI * 2.1);
-      ctx.lineTo(29, 16); ctx.quadraticCurveTo(22, 10, 20, 2);
-      ctx.quadraticCurveTo(8, -8, -6, -10);
-      ctx.quadraticCurveTo(-20, -8, -21, 2);
-      ctx.quadraticCurveTo(-24, 12, -30, 16);
+      ctx.beginPath(); ctx.arc(0.5, -3, 31.5, Math.PI * 0.92, Math.PI * 2.08);
+      ctx.quadraticCurveTo(33, 8, 30, 22);
+      ctx.quadraticCurveTo(26, 12, 22, 4);
+      ctx.quadraticCurveTo(10, -6, 0.5, -6);
+      ctx.quadraticCurveTo(-9, -6, -21, 4);
+      ctx.quadraticCurveTo(-25, 12, -29, 22);
+      ctx.quadraticCurveTo(-32, 8, -30.5, -3);
       ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-27, 14, 5.5, 12, 0.14, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(28, 14, 5.5, 12, -0.14, 0, TAU); ctx.fill();
     } else if (p === 'curl') {
+      // ลอนใหญ่เต็มหัว + ลอนข้างแก้ม
       drewHair = true; ctx.fillStyle = c;
-      for (const [x, y, r] of [[-14, -22, 9], [1, -26, 10], [15, -21, 8.5]])
+      for (const [x, y, r] of [[-18, -16, 11], [-2, -23, 12.5], [14, -18, 11], [-27, -4, 8.5], [27, -6, 8.5], [0, -12, 12]])
         { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
     } else if (p === 'puff') {
+      // ผมฟูก้อนเมฆเต็มกบาล
       drewHair = true; ctx.fillStyle = c;
-      for (const [x, y, r] of [[-18, -18, 9], [-6, -25, 10.5], [8, -24, 10], [19, -16, 8]])
+      for (const [x, y, r] of [[-21, -10, 10.5], [-9, -20, 12], [4, -21, 12], [17, -13, 10.5], [25, -3, 8], [-27, -1, 8], [-1, -10, 12.5]])
         { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
     } else if (p === 'messy') {
+      // ผมกระเซิงเต็มหัว ปลายแหลมหลายทิศ
       drewHair = true; ctx.fillStyle = c;
-      ctx.beginPath(); ctx.moveTo(-28, -8);
-      ctx.lineTo(-18, -26) ; ctx.lineTo(-10, -14); ctx.lineTo(-2, -30);
-      ctx.lineTo(6, -15); ctx.lineTo(15, -27); ctx.lineTo(22, -10);
-      ctx.quadraticCurveTo(0, -20, -28, -8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-31, 0);
+      ctx.lineTo(-24, -24); ctx.lineTo(-14, -12); ctx.lineTo(-8, -32);
+      ctx.lineTo(1, -14); ctx.lineTo(9, -33); ctx.lineTo(16, -13);
+      ctx.lineTo(25, -25); ctx.lineTo(30, 0);
+      ctx.quadraticCurveTo(0.5, -14, -31, 0); ctx.closePath(); ctx.fill();
     } else if (p === 'pony') {
+      // มัดหางม้า: คลุมหัว + หางยาวสะบัดด้านหลัง
       drewHair = true; ctx.fillStyle = c;
-      ctx.beginPath(); ctx.arc(0.5, -8, 29, Math.PI * 0.95, Math.PI * 2.05); ctx.closePath(); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(-26, -18, 7, 13, 0.5, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(0.5, -4, 30.5, Math.PI * 0.95, Math.PI * 2.05);
+      ctx.quadraticCurveTo(20, -6, 8, -11);
+      ctx.quadraticCurveTo(-6, -4, -30, -6);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-29, -14, 8.5, 17, 0.55, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-35, 2, 5.5, 11, 0.25, 0, TAU); ctx.fill();
     } else if (p === 'twin') {
+      // มัดแฝด: คลุมหัว + หางสองข้างยาวถึงไหล่
       drewHair = true; ctx.fillStyle = c;
-      ctx.beginPath(); ctx.arc(0.5, -8, 29, Math.PI * 0.95, Math.PI * 2.05); ctx.closePath(); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(-28, -2, 6, 12, 0.3, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(29, -2, 6, 12, -0.3, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(0.5, -4, 30.5, Math.PI * 0.95, Math.PI * 2.05);
+      ctx.quadraticCurveTo(14, -8, 0.5, -9);
+      ctx.quadraticCurveTo(-13, -8, -29.5, -6);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-31, 6, 7, 16, 0.22, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(32, 6, 7, 16, -0.22, 0, TAU); ctx.fill();
     } else if (p === 'side') {
+      // ผมยาวปัดข้าง: คลุมหัวแล้วสะบัดปลายลงข้างเดียวถึงบ่า
       drewHair = true; ctx.fillStyle = c;
-      ctx.beginPath(); ctx.moveTo(-26, -6);
-      ctx.quadraticCurveTo(-16, -30, 12, -26);
-      ctx.quadraticCurveTo(2, -18, 4, -10);
-      ctx.quadraticCurveTo(-12, -18, -26, -6);
+      ctx.beginPath(); ctx.arc(0.5, -4, 31, Math.PI * 0.95, Math.PI * 2.05);
+      ctx.quadraticCurveTo(26, 0, 14, -8);
+      ctx.quadraticCurveTo(0, 0, -12, -8);
+      ctx.quadraticCurveTo(-24, 0, -30.5, -4);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-30, -8);
+      ctx.quadraticCurveTo(-36, 6, -28, 20);
+      ctx.quadraticCurveTo(-22, 10, -24, -2);
       ctx.closePath(); ctx.fill();
     }
   }
@@ -4491,6 +4522,13 @@ function runHeadDecos(ch, RIM, EYE) {
     } else if (p === 'band') {
       ctx.fillStyle = c;
       roundRect(-27, -18, 54, 9, 4.5); ctx.fill();
+    } else if (p === 'maidband') {
+      // หมวกเมดระบายจีบ วางบนกบาล (ไม่ใช่แถบคาดหน้าผาก)
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.moveTo(-16, -22);
+      for (let q = 0; q < 4; q++) ctx.arc(-12 + q * 8, -24, 4.6, Math.PI, 0, false);
+      ctx.lineTo(16, -22); ctx.quadraticCurveTo(0, -18, -16, -22);
+      ctx.closePath(); ctx.fill();
     } else if (p === 'bandana') {
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.arc(0.5, -8, 29.5, Math.PI * 0.95, Math.PI * 2.05); ctx.closePath(); ctx.fill();
@@ -4905,6 +4943,13 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   const B = ch.body, ICING = ch.icing;
   const RIM = shade(B, -80);
   const EYE = ch.eye || '#2b8fd6';
+  /* สีชุดสำหรับแขน-ขา: ดึงจากชุดที่ใส่ → ใส่เสื้อผ้าจริงทั้งตัวทุกท่า (แบบสไปรต์ทางการ) */
+  const ds0 = decosOf(ch) || [];
+  const pickC = (...names) => { for (const n of names) { const f = ds0.find(q => q.p === n); if (f) return f.c; } return null; };
+  const SLV = pickC('sleeves', 'suit', 'robe', 'armor', 'dress');
+  const LEGC = pickC('pants', 'suit', 'robe', 'overalls');
+  const SHOE = pickC('shoes', 'boots') || (LEGC ? dk(LEGC, 0.72) : null);
+  const GLOVE = pickC('gloves');
 
   const main = ctx;
   ctx = charCtx;
@@ -4918,16 +4963,20 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   /* --- ของประดับด้านหลังตัว --- */
   if (ch.id === 'angel') {
     const f = Math.sin(P.anim * 2.2) * 0.16;
-    ctx.save();
-    ctx.translate(-13, -58);
-    ctx.rotate(-0.35 + f);
-    for (let i = 0; i < 3; i++) {
-      ctx.fillStyle = i === 0 ? '#ffffff' : i === 1 ? '#f2ecff' : '#e4dcf8';
-      ctx.beginPath();
-      ctx.ellipse(-12 - i * 7, 2 + i * 5.5, 17 - i * 3, 7.5 - i * 1.2, -0.55 - i * 0.16, 0, TAU);
-      ctx.fill();
+    // หันหน้าตรง → เห็นปีกสองข้างแบบภาพทางการ
+    for (const sgn of FRONT ? [1, -1] : [1]) {
+      ctx.save();
+      ctx.scale(sgn, 1);
+      ctx.translate(-13, -58);
+      ctx.rotate(-0.35 + f);
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = i === 0 ? '#ffffff' : i === 1 ? '#f2ecff' : '#e4dcf8';
+        ctx.beginPath();
+        ctx.ellipse(-12 - i * 7, 2 + i * 5.5, 17 - i * 3, 7.5 - i * 1.2, -0.55 - i * 0.16, 0, TAU);
+        ctx.fill();
+      }
+      ctx.restore();
     }
-    ctx.restore();
   }
   if (ch.id === 'ninja') {
     const w1 = Math.sin(P.anim * 2.4) * 5, w2 = Math.sin(P.anim * 2.4 + 1.2) * 7;
@@ -4954,15 +5003,17 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       ctx.lineWidth = w + grow;
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, len); ctx.stroke();
     };
-    // ขา: ตอสั้นป้อม
+    // ขา: ตอสั้นป้อม (สีกางเกง/รองเท้าตามชุด)
     const legP = (hip, knee, ox) => {
       ctx.save();
+      if (mode === 'fill' && LEGC) { ctx.strokeStyle = LEGC; ctx.fillStyle = LEGC; }
       ctx.translate(ox || 0, -26);
       ctx.rotate(hip);
       segP(9, 13.5);
       ctx.translate(0, 9);
       ctx.rotate(knee * 0.75);
       segP(9, 12.5);
+      if (mode === 'fill' && SHOE) ctx.fillStyle = SHOE;
       ctx.beginPath(); ctx.ellipse(FRONT ? 0 : 2, 10.5, 8.5 + pad, 6 + pad, 0, 0, TAU); ctx.fill();
       ctx.restore();
     };
@@ -4974,12 +5025,14 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     // แขน: ปีกเรียวสั้นปลายมน (สามท่อนลดหลั่นให้ tapered)
     const armP = (sh, el, ox) => {
       ctx.save();
+      if (mode === 'fill' && SLV) { ctx.strokeStyle = SLV; ctx.fillStyle = SLV; }
       ctx.translate(ox || 0, -52);
       ctx.rotate(sh - Math.PI);        // แปลงพิกัด: แขนกางออกหน้า-ข้างแบบสไปรต์
       segP(9, 16);
       ctx.translate(0, 9);
       ctx.rotate(el * 0.45);
       segP(9, 13);
+      if (mode === 'fill') ctx.fillStyle = GLOVE || B;   // มือ = สีคุกกี้/ถุงมือ
       ctx.beginPath(); ctx.arc(0, 11, 7.2 + pad, 0, TAU); ctx.fill();
       ctx.restore();
     };
