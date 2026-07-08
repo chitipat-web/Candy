@@ -783,11 +783,11 @@ CHARS.forEach(c => { if (REAL[c.id]) Object.assign(c, REAL[c.id]); });
 /* ---------- ปรับสี/ทรงผม/เครื่องแต่งกายทุกตัวให้ใกล้ตัวจริงยิ่งขึ้น ---------- */
 const LOOK = {
   bright: { body: '#e8ac6a', icing: '#ffd8e8', eye: '#8a5230', deco: ['skirt:#ffd8e8', 'bob:#6b4423', 'bow:#ff7ba0', 'collar:#fff4f8', 'blushdot', 'lollipop:#ff6b8d'] },
-  cream: { body: '#f0e0c8', deco: ['puff:#ffffff', 'buttons:#e8c87a'] },
-  cloudc: { body: '#f2d048', eye: '#4a9fe0', deco: ['puff:#bfe4f8', 'buttons:#ffffff'] },
+  cream: { body: '#f0e0c8', deco: ['puff:#ffffff', 'sprinkles:#5a3a26', 'collar:#e8d0b0', 'staff:#8a5a2e', 'heldfruit:#8fbf4a'] },
+  cloudc: { body: '#f2d048', eye: '#4a9fe0', deco: ['puff:#bfe4f8', 'starchest:#ffffff', 'hookstaff:#5aa8e0'] },
   bcchoco: { body: '#6a4028', deco: ['swirl:#f6e8d0', 'buttons:#f2d8b0'] },
-  gclaus: { icing: '#e0453a', deco: ['santa:#e0453a', 'beard:#ffffff', 'collar:#ffffff', 'buttons:#3a3a3a'] },
-  coffee: { body: '#5a3a26', deco: ['side:#d9a05e', 'collar:#ffffff', 'mug:#e8e0d0'] },
+  gclaus: { icing: '#c8342a', deco: ['suit:#c8342a', 'belt:#3a3028', 'collar:#ffffff', 'sack:#b02a20', 'santa:#e0453a', 'beard:#ffffff', 'candycane'] },
+  coffee: { body: '#5a3a26', eyeS: 'sharp', deco: ['vest:#6a5a9a', 'collar:#ffffff', 'nytag', 'side:#d9a05e', 'mug:#e8e0d0'] },
   skater: { deco: ['cap:#3a86c8', 'icing:#ffffff'] },
   princess: { icing: '#ff9ec0', deco: ['dress:#ff9ec0', 'frillhem:#fff4f8', 'drills:#f2d848', 'crown:#ffd24a', 'blushdot', 'heartwand:#ff5a8a'] },
   knight: { body: '#c8b090', deco: ['armor:#aab6c4', 'helmet:#aab6c4', 'sword:#dfe8f2'] },
@@ -4152,6 +4152,16 @@ function runDecos(ch, phase, RIM) {
           ctx.beginPath(); ctx.ellipse(-13, 0, 15, 6, -0.3, 0, TAU); ctx.fill();
           ctx.restore();
         }
+      } else if (p === 'sack') {
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(-10, -52);
+        ctx.quadraticCurveTo(-40, -50, -38, -26);
+        ctx.quadraticCurveTo(-36, -10, -18, -14);
+        ctx.quadraticCurveTo(-8, -30, -10, -52);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = shade(c, -35); ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-14, -48); ctx.quadraticCurveTo(-20, -44, -18, -38); ctx.stroke();
       } else if (p === 'deviltail') {
         const wag = Math.sin(P.anim * 2.6) * 0.12;
         ctx.strokeStyle = c; ctx.lineWidth = 4.4; ctx.lineCap = 'round';
@@ -4198,6 +4208,26 @@ function runDecos(ch, phase, RIM) {
         ctx.fillStyle = c;
         for (const [x, y] of [[-7, -47], [5, -43], [-3, -37], [8, -33], [-8, -31]])
           { ctx.beginPath(); ctx.arc(x, y, 2.2, 0, TAU); ctx.fill(); }
+      } else if (p === 'starchest') {
+        ctx.fillStyle = c;
+        ctx.save(); ctx.translate(0, -42);
+        ctx.beginPath();
+        for (let q = 0; q < 10; q++) {
+          const aa = -Math.PI / 2 + q * Math.PI / 5, rr = q % 2 ? 3.6 : 8;
+          ctx[q ? 'lineTo' : 'moveTo'](Math.cos(aa) * rr, Math.sin(aa) * rr);
+        }
+        ctx.closePath(); ctx.fill(); ctx.restore();
+      } else if (p === 'belt') {
+        ctx.fillStyle = c;
+        roundRect(-16, -38, 32, 6.5, 3); ctx.fill();
+        ctx.fillStyle = '#e8b03a';
+        roundRect(-4, -38.5, 8, 7.5, 2); ctx.fill();
+      } else if (p === 'nytag') {
+        ctx.fillStyle = '#ffffff';
+        roundRect(-9, -50, 18, 14, 3); ctx.fill();
+        ctx.fillStyle = '#3a3a44';
+        ctx.font = 'bold 9px Trebuchet MS'; ctx.textAlign = 'center';
+        ctx.fillText('NY', 0, -39.5);
       } else if (p === 'collar') {
         ctx.fillStyle = c;
         roundRect(-13, -58, 26, 7, 3.5); ctx.fill();
@@ -4531,6 +4561,13 @@ function runHeadDecos(ch, RIM, EYE) {
         ctx.quadraticCurveTo(sgn * 24, -36, sgn * 19, -24);
         ctx.closePath(); ctx.fill();
       }
+    } else if (p === 'sprinkles') {
+      ctx.strokeStyle = c; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+      for (const [sx, sy, aa] of [[-16, -20, 0.5], [-5, -28, -0.4], [7, -25, 0.9], [17, -17, -0.6], [0, -16, 0.2], [-11, -11, -0.8]]) {
+        ctx.save(); ctx.translate(sx, sy); ctx.rotate(aa);
+        ctx.beginPath(); ctx.moveTo(-3.2, 0); ctx.lineTo(3.2, 0); ctx.stroke();
+        ctx.restore();
+      }
     } else if (p === 'drip') {
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.arc(0.5, -10, 29, Math.PI * 1.02, Math.PI * 1.98);
@@ -4714,6 +4751,31 @@ function runHeldDecos(ch, RIM) {
         ctx.beginPath(); ctx.moveTo(0, 6);
         ctx.lineTo(Math.cos(a * Math.PI) * 16, 6 + Math.sin(a * Math.PI) * 16); ctx.stroke();
       }
+      ctx.restore();
+    } else if (p === 'hookstaff') {
+      ctx.save(); ctx.translate(27, -30); ctx.rotate(0.08);
+      line(5, c);
+      ctx.beginPath(); ctx.moveTo(0, 24); ctx.lineTo(0, -26); ctx.stroke();
+      ctx.beginPath(); ctx.arc(6, -26, 6, Math.PI, Math.PI * 1.95); ctx.stroke();
+      ctx.restore();
+    } else if (p === 'candycane') {
+      ctx.save(); ctx.translate(27, -30); ctx.rotate(0.08);
+      line(5.2, '#fdfaf4');
+      ctx.beginPath(); ctx.moveTo(0, 24); ctx.lineTo(0, -26); ctx.stroke();
+      ctx.beginPath(); ctx.arc(6, -26, 6, Math.PI, Math.PI * 1.95); ctx.stroke();
+      line(4, '#e03028');
+      for (let yy = 20; yy > -24; yy -= 9) {
+        ctx.beginPath(); ctx.moveTo(-2.4, yy + 2); ctx.lineTo(2.4, yy - 2); ctx.stroke();
+      }
+      ctx.restore();
+    } else if (p === 'heldfruit') {
+      ctx.save(); ctx.translate(27, -32);
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0, 0, 7.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#5a8a3a';
+      ctx.beginPath(); ctx.ellipse(2, -7.5, 3.4, 1.9, 0.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.4)';
+      ctx.beginPath(); ctx.arc(-2.4, -2.4, 2.2, 0, TAU); ctx.fill();
       ctx.restore();
     } else if (p === 'bone') {
       ctx.save(); ctx.translate(27, -36); ctx.rotate(-0.5);
@@ -4912,8 +4974,12 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     runDecos(ch, 'body', RIM);
   }
   if (ch.id === 'berry') {
+    // สายเป้เขียวแบบต้นฉบับ
+    ctx.strokeStyle = '#3f8a4a'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-9, -56); ctx.lineTo(-9, -30); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(9, -56); ctx.lineTo(9, -30); ctx.stroke();
     ctx.fillStyle = 'rgba(255,240,200,.9)';
-    for (const [dx, dy] of [[-7, -31], [6, -29], [-3, -26], [8, -44], [-9, -46]])
+    for (const [dx, dy] of [[-3, -44], [3, -34], [0, -50]])
       { ctx.beginPath(); ctx.ellipse(dx, dy, 1.5, 2.3, 0.4, 0, TAU); ctx.fill(); }
   }
 
@@ -4924,7 +4990,7 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   if (ch.id === 'berry') {
     ctx.fillStyle = '#e8506e';
     ctx.beginPath();
-    ctx.arc(0, -4, 31, Math.PI * 1.02, Math.PI * 1.98);
+    ctx.arc(0, -2, 32.5, Math.PI * 0.94, Math.PI * 2.06);
     ctx.quadraticCurveTo(21, -1, 11, -9);
     ctx.quadraticCurveTo(5.5, 0, -1, -9);
     ctx.quadraticCurveTo(-8, 0, -15.5, -9);
@@ -4977,7 +5043,7 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     ctx.beginPath(); ctx.ellipse(0, -40, 18, 5.8, 0, 0, TAU); ctx.stroke();
   }
 
-  const eyeStyle = ch.deco ? (ch.eyeS || 'round') : 'fierce';
+  const eyeStyle = ch.deco ? (ch.eyeS || 'round') : (ch.eyeS === 'round' ? 'round' : 'fierce');
   if (eyeStyle === 'fierce') {
   /* --- คิ้วขาวหนาเฉียง + ตาครึ่งวงฟ้า "มุ่งมั่น" (แบบสไปรต์เป๊ะ) --- */
   ctx.lineCap = 'round';
@@ -5067,6 +5133,31 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     ctx.beginPath(); ctx.ellipse(27, 8, 4.2, 3.2, -0.1, 0, TAU); ctx.fill();
   }
   ctx.restore();
+
+  /* --- สตรอว์เบอร์รีคู่ใจ (เฉพาะคุกกี้สตรอว์เบอร์รี) --- */
+  if (ch.id === 'berry') {
+    ctx.save();
+    ctx.translate(30, -32);
+    ctx.rotate(0.15);
+    ctx.fillStyle = '#e8506e';
+    ctx.beginPath();
+    ctx.moveTo(0, -9);
+    ctx.quadraticCurveTo(11, -7, 10, 2);
+    ctx.quadraticCurveTo(8, 11, 0, 13);
+    ctx.quadraticCurveTo(-8, 11, -10, 2);
+    ctx.quadraticCurveTo(-11, -7, 0, -9);
+    ctx.fill();
+    ctx.fillStyle = '#3f8a4a';
+    for (const aa of [-0.7, 0, 0.7]) {
+      ctx.save(); ctx.rotate(aa);
+      ctx.beginPath(); ctx.ellipse(0, -10, 3, 5, 0, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle = 'rgba(255,244,220,.95)';
+    for (const [dx, dy] of [[-4, 0], [4, -1], [0, 6], [-2, -5], [5, 5]])
+      { ctx.beginPath(); ctx.ellipse(dx, dy, 1.1, 1.7, 0.3, 0, TAU); ctx.fill(); }
+    ctx.restore();
+  }
 
   /* --- ไม้เท้าลูกกวาด: ลายแดงเฉียงแบบสไปรต์ --- */
   if (ch.id === 'brave') {
