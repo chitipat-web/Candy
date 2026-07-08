@@ -1617,14 +1617,14 @@ function drawPoseSheet() {
   ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#5a3413';
   ctx.font = 'bold 16px Trebuchet MS'; ctx.textAlign = 'center';
-  // แถวบน: วงจรวิ่ง 6 เฟรม
-  for (let i = 0; i < 6; i++) {
+  // แถวบน: วงจรวิ่ง 8 เฟรมสไปรต์
+  for (let i = 0; i < 8; i++) {
     ctx.save();
-    ctx.translate(90 + i * 156, 258);
-    ctx.scale(1.55, 1.55);
-    drawCookieRun(i * TAU / 6 / 1.15);
+    ctx.translate(68 + i * 118, 252);
+    ctx.scale(1.32, 1.32);
+    drawCookieRun((i + 0.01) * TAU / 8 / 1.15);
     ctx.restore();
-    ctx.fillText('วิ่ง ' + (i + 1), 90 + i * 156, 282);
+    ctx.fillText('F' + (i + 1), 68 + i * 118, 278);
   }
   // แถวล่าง: โดดขึ้น / ร่วงลง / สไลด์ / ยืน
   const oldVy = P.vy;
@@ -2554,17 +2554,20 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     /* ปอยไอซิ่งขาวหยักซิกแซกเหลี่ยม (แบบสไปรต์ในเกมเป๊ะ) */
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    // ปลายผมพลิ้วตามจังหวะ (สเต็ป 12fps ให้เข้ากับฟีลสไปรต์)
+    const qf = Math.floor(G.time * 12) / 12;
+    const f1 = Math.sin(qf * 9) * 1.6, f2 = Math.sin(qf * 9 + 1.3) * 2.0;
     ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4.6;
     ctx.beginPath();
     ctx.moveTo(-19, -19);
-    ctx.lineTo(2, -29.5);
+    ctx.lineTo(2, -29.5 + f1 * 0.6);
     ctx.lineTo(-10, -18.5);
-    ctx.lineTo(12, -26.5);
+    ctx.lineTo(12, -26.5 + f2);
     ctx.stroke();
     ctx.lineWidth = 3.8;
     ctx.beginPath();
     ctx.moveTo(-14, -27);
-    ctx.lineTo(6, -32);
+    ctx.lineTo(6, -32 + f1);
     ctx.stroke();
   }
 
@@ -2619,8 +2622,10 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   /* --- ไม้เท้าลูกกวาดขาวคาดแถบแดง ชูขึ้นสูง (แบบต้นฉบับ) --- */
   if (ch.id === 'brave') {
     ctx.save();
-    ctx.translate(38, -54 + Math.sin(P.anim) * 1.6);
-    ctx.rotate(0.1 + Math.sin(P.anim) * 0.04);
+    // แกว่งหน่วงตามจังหวะก้าว (เฟสตามหลังแขน) + เอียงหน้าตอนลอยตัว
+    const cq = Math.floor(((P.anim * 1.15 % TAU) + TAU) % TAU / TAU * 8) / 8 * TAU;
+    ctx.translate(38, -54 + Math.sin(cq - 0.6) * 2.6);
+    ctx.rotate(0.12 + Math.sin(cq - 0.6) * 0.1 + (P.onGround ? 0 : -0.14));
     ctx.lineCap = 'round';
     const canePath = () => {
       ctx.beginPath();
@@ -2653,21 +2658,30 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
 
 
 function drawCookieRun(t, ch) {
-  t *= 1.15;                                  // จังหวะก้าวเร็วขึ้นเล็กน้อย
-  const s = Math.sin(t), c = Math.cos(t);
-  const sB = Math.sin(t + Math.PI);
+  t *= 1.15;
+  /* จังหวะแบบสไปรต์เกมจริง: ล็อกท่าเป็นสเต็ป 8 เฟรมต่อรอบ (~12fps)
+     ทำให้ท่า "คม" เป็นเฟรม ๆ ไม่ใช่ tween ลื่น ๆ */
+  const STEPS = 8;
+  const tq = Math.floor(((t % TAU) + TAU) % TAU / TAU * STEPS) / STEPS * TAU;
+  const s = Math.sin(tq), c = Math.cos(tq);
+  const sB = Math.sin(tq + Math.PI);
+  /* squash & stretch ในวงจรวิ่ง: หดตอนเท้ากระแทกพื้น ยืดตอนถีบตัวลอย */
+  const sy = 1 - 0.06 * Math.cos(tq * 2 + 0.5);
   ctx.save();
-  ctx.translate(0, -Math.abs(c) * 3);         // ตัวเด้งขึ้นลงตามก้าว
+  ctx.translate(0, -Math.abs(c) * 3.4);          // ตัวเด้งตามก้าว
+  ctx.scale(2 - sy, sy);                          // ยืด-หดรักษาปริมาตร (จุดหมุนที่เท้า)
+  /* ท่าควบแบบต้นฉบับ: สวิงหน้าแรงกว่าหลัง + เข่าพับสูงตอนตวัดขากลับ */
+  const hipA = s < 0 ? s * 1.3 : s * 0.95;
+  const hipB = sB < 0 ? sB * 1.3 : sB * 0.95;
+  const kneeA = 0.1 + Math.pow(Math.max(0, Math.sin(tq - 0.7)), 1.3) * 1.55;
+  const kneeB = 0.1 + Math.pow(Math.max(0, Math.sin(tq + Math.PI - 0.7)), 1.3) * 1.55;
   cookieBody(
-    0.15 + Math.sin(t * 2) * 0.025,           // เอนตัวไปหน้า + โยกเล็กน้อย
-    s * 1.05, sB * 1.05,                      // สะโพกสลับหน้า-หลัง
-    2.5 + sB * 0.9, 2.5 + s * 0.9,            // ไหล่ปั๊มสลับ
-    Math.abs(c) * -2.4,                       // หัวบ็อบ
+    0.21 + Math.sin(tq * 2) * 0.03,               // เอนหน้ามากขึ้นแบบวิ่งหนี
+    hipA, hipB,
+    2.45 + sB * 1.0, 2.45 + s * 1.0,              // แขนปั๊มกว้างขึ้น
+    Math.abs(c) * -2.6,
     ch,
-    { kA: 0.14 + Math.max(0, s) * 1.25,       // เข่างอตอนขาสะบัดหลัง
-      kB: 0.14 + Math.max(0, sB) * 1.25,
-      eA: 0.55 + sB * 0.3,                    // ศอกงอปั๊มตาม
-      eB: 0.55 + s * 0.3 }
+    { kA: kneeA, kB: kneeB, eA: 0.72 + sB * 0.35, eB: 0.72 + s * 0.35 }
   );
   ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 3; ctx.lineCap='round';
@@ -2678,10 +2692,10 @@ function drawCookieRun(t, ch) {
 }
 function drawCookieJump(second) {
   if (second) {
-    // ตีลังกาม้วนตัวเก็บแขนขา
+    // ตีลังกาม้วนตัว — หมุนทีละสเต็ป 10 เฟรมแบบสไปรต์
     ctx.save();
     ctx.translate(0, -40);
-    ctx.rotate(P.anim * 1.8 % TAU);
+    ctx.rotate(Math.floor((P.anim * 1.8 % TAU) / (TAU / 10)) * (TAU / 10));
     ctx.translate(0, 40);
     cookieBody(0, 1.15, -0.7, 2.5, 3.2, 0, undefined,
       { kA: 1.5, kB: 1.35, eA: 1.25, eB: 1.2 });
