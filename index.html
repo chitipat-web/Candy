@@ -748,39 +748,39 @@ CHARS.forEach(c => { if (REAL[c.id]) Object.assign(c, REAL[c.id]); });
 
 /* ---------- ปรับสี/ทรงผม/เครื่องแต่งกายทุกตัวให้ใกล้ตัวจริงยิ่งขึ้น ---------- */
 const LOOK = {
-  bright: { body: '#e8ac6a', icing: '#ffd8e8', eye: '#8a5230', deco: ['bob:#6b4423', 'bow:#ff7ba0', 'icing:#ffd8e8', 'collar:#fff4f8', 'blushdot', 'lollipop:#ff6b8d'] },
+  bright: { body: '#e8ac6a', icing: '#ffd8e8', eye: '#8a5230', deco: ['skirt:#ffd8e8', 'bob:#6b4423', 'bow:#ff7ba0', 'collar:#fff4f8', 'blushdot', 'lollipop:#ff6b8d'] },
   cream: { body: '#f0e0c8', deco: ['puff:#ffffff', 'buttons:#e8c87a'] },
   cloudc: { body: '#f2d048', eye: '#4a9fe0', deco: ['puff:#bfe4f8', 'buttons:#ffffff'] },
   bcchoco: { body: '#6a4028', deco: ['swirl:#f6e8d0', 'buttons:#f2d8b0'] },
   gclaus: { icing: '#e0453a', deco: ['santa:#e0453a', 'beard:#ffffff', 'collar:#ffffff', 'buttons:#3a3a3a'] },
   coffee: { body: '#5a3a26', deco: ['side:#d9a05e', 'collar:#ffffff', 'mug:#e8e0d0'] },
   skater: { deco: ['cap:#3a86c8', 'icing:#ffffff'] },
-  princess: { icing: '#ff9ec0', deco: ['drills:#f2d848', 'crown:#ffd24a', 'frillhem:#fff4f8', 'collar:#fff4f8', 'blushdot', 'heartwand:#ff5a8a'] },
-  knight: { body: '#c8b090', deco: ['helmet:#aab6c4', 'vest:#8a97a8', 'sword:#dfe8f2'] },
+  princess: { icing: '#ff9ec0', deco: ['dress:#ff9ec0', 'frillhem:#fff4f8', 'drills:#f2d848', 'crown:#ffd24a', 'blushdot', 'heartwand:#ff5a8a'] },
+  knight: { body: '#c8b090', deco: ['armor:#aab6c4', 'helmet:#aab6c4', 'sword:#dfe8f2'] },
   muscle: { body: '#a8683a', deco: ['band:#e0453a', 'vest:#f2ecd8', 'blushdot'] },
   pirate: { deco: ['bandana:#e0453a', 'piratehat:#2a2a34', 'patch', 'jawbeard:#5a4028', 'sword:#dfe8f2'] },
-  skatingq: { deco: ['tiara:#bfe8ff', 'long:#dff2ff', 'wand:#7ec8e8'] },
-  hero: { deco: ['heromask:#3f6fd0', 'cape:#e0453a', 'glasses', 'collar:#ffffff'] },
-  sforce: { body: '#9a7a4e' },
-  cheer: { deco: ['pony:#f2d848', 'pompom:#7ec8ff', 'stripes:#3a86c8'] },
+  skatingq: { deco: ['dress:#dff2ff', 'tiara:#bfe8ff', 'long:#f2f8ff', 'wand:#7ec8e8'] },
+  hero: { deco: ['suit:#3f6fd0', 'cape:#e0453a', 'heromask:#3f6fd0', 'glasses'] },
+  sforce: { body: '#9a7a4e', deco: ['suit:#4a5a3a', 'beret:#4a5a3a', 'facepaint:#37472c'] },
+  cheer: { deco: ['skirt:#3a86c8', 'pony:#f2d848', 'stripes:#3a86c8', 'pompom:#7ec8ff'] },
   kumiho: { body: '#fdf2ec', deco: ['foxears:#fdf2ec', 'foxtail:#fdf2ec', 'blushdot', 'lollipop:#ff9db8'] },
   devil: { body: '#e0483a', icing: '#8a1e14', eye: '#ffd24a', deco: ['deviltail:#a02818', 'horns:#a02818', 'batwings:#3a2a34', 'fangs', 'trident:#8a1e14'] },
   fairy: { body: '#cfeee0' },
   zombie: { deco: ['messy:#6a8a4a', 'stitch:#5a7a3a', 'zombieeye', 'bone:#f2ecdc'] },
-  wizard: { deco: ['wizhat:#3f5fc0', 'hatstars:#f2e060', 'bigbeard:#e8e4da', 'staff:#8a5a2e'] },
+  wizard: { deco: ['robe:#3f5fc0', 'wizhat:#3f5fc0', 'hatstars:#f2e060', 'bigbeard:#e8e4da', 'staff:#8a5a2e'] },
   rockstar: { deco: ['spiky:#f2f0ec', 'guitar:#e0453a', 'glasses', 'vest:#3a3a44'] },
   soda: { body: '#8fd8f2', deco: ['band:#f2e060', 'freckles:#dff6ff', 'icing:#dff6ff'] },
   cherry: { body: '#e05a6a', deco: ['hood:#c8303a', 'fruit:#d02e4a', 'blushdot'] },
   cheesecake: { deco: ['curl:#f2d089', 'fruit:#e0453a', 'collar:#fff2c8'] },
-  prophet: { deco: ['hood:#c8b090', 'thirdeye:#e8b03a', 'collar:#6a5a9a'] },
-  pistachio: { body: '#b8d080', deco: ['helmet:#7a9a4a', 'sword:#dfe8f2', 'cape:#f2f0e8'] },
-  alchemist: { deco: ['tophat:#4a3268', 'glasses', 'bottlebelt:#8a5ac0', 'side:#e8d048'] },
-  vampire: { body: '#ece0d8', deco: ['long:#c8283a', 'fangs', 'cape:#2a2430', 'collar:#3a3440'] },
+  prophet: { deco: ['robe:#6a5a9a', 'hood:#c8b090', 'thirdeye:#e8b03a'] },
+  pistachio: { body: '#b8d080', deco: ['armor:#7a9a4a', 'helmet:#7a9a4a', 'cape:#f2f0e8', 'sword:#dfe8f2'] },
+  alchemist: { deco: ['robe:#5a3e88', 'tophat:#4a3268', 'glasses', 'side:#e8d048', 'bottlebelt:#b89ad0'] },
+  vampire: { body: '#ece0d8', deco: ['suit:#2a2430', 'collar:#f2ecd8', 'long:#c8283a', 'fangs', 'cape:#2a2430'] },
   adventurer: { deco: ['fedora:#8a6a3e', 'vest:#6b4423', 'stubble:#8a6a3e'] },
   redpepper: { deco: ['spiky:#c81e10', 'sword:#dfe8f2', 'flamecheek:#ff6a3a'] },
-  snowsugar: { deco: ['furhood:#ffffff', 'staff:#7ec8e8', 'blushdot'] },
-  carol: { body: '#d9a05e', icing: '#2e7a3a', deco: ['spiky:#2e7a3a', 'moonpin:#ffd24a', 'dots:#e0453a'] },
-  blackberry: { icing: '#4a3a5e', deco: ['maidband:#ffffff', 'long:#4a3a5e', 'collar:#ffffff'] },
+  snowsugar: { deco: ['robe:#ffffff', 'furhood:#ffffff', 'blushdot', 'staff:#7ec8e8'] },
+  carol: { body: '#d9a05e', icing: '#2e7a3a', deco: ['dress:#2e7a3a', 'moonpin:#ffd24a', 'dots:#e0453a', 'spiky:#2e7a3a'] },
+  blackberry: { icing: '#4a3a5e', deco: ['dress:#4a3a5e', 'collar:#ffffff', 'maidband:#ffffff', 'long:#4a3a5e'] },
   pinkchoco: { deco: ['heartcheek:#ff5a8a', 'ribbon:#ff7ba0', 'bob:#e88aa8', 'wand:#ff5a8a'] },
   kiwi: { body: '#a8885a', deco: ['spiky:#7a9a3a', 'band:#3a3a44', 'freckles'] },
   apple: { body: '#f0c890', deco: ['pony:#f2d848', 'fruit:#e0453a', 'freckles', 'blushdot'] },
@@ -790,29 +790,32 @@ const LOOK = {
   creampuff: { deco: ['puff:#f2cf8e', 'wand:#e8b03a', 'glasses'] },
   gumball: { deco: ['helmet:#3a86c8', 'gumdots', 'freckles'] },
   peppermint: { body: '#eaf8f4', deco: ['cap:#ffffff', 'stripes:#3a86c8', 'collar:#3a86c8'] },
-  jujube: { body: '#a84a3a', deco: ['generalhat:#6a1e14', 'longbeard:#3a2a1a', 'spear:#8a5a2e', 'collar:#e8b03a'] },
+  jujube: { body: '#a84a3a', deco: ['armor:#8a2e1e', 'generalhat:#6a1e14', 'longbeard:#3a2a1a', 'spear:#8a5a2e'] },
   peach: { body: '#f8d0c0', deco: ['twin:#f2a8b8', 'fruit:#ff9a7a', 'blushdot', 'spear:#8a5a2e'] },
-  onion: { deco: ['hood:#f4f0fa', 'sprout:#8fbf4a', 'tear:#9ecfff'] },
+  onion: { deco: ['dress:#f4f0fa', 'hood:#f4f0fa', 'sprout:#8fbf4a', 'tear:#9ecfff'] },
   cinnamon: { deco: ['curl:#d97a2e', 'tophat:#5a3a24', 'collar:#ffffff', 'bowtie:#e0453a', 'wand:#e8b03a', 'mustache:#8a4a20'] },
-  macaron: { deco: ['beret:#e88aa8', 'vest:#c83a4a', 'collar:#ffffff', 'drum:#f0d8e8'] },
-  redbean: { body: '#7a4a3a', deco: ['hood:#f2e8d8', 'blushdot'] },
+  macaron: { deco: ['suit:#c83a4a', 'collar:#ffffff', 'beret:#e88aa8', 'drum:#f0d8e8'] },
+  redbean: { body: '#7a4a3a', deco: ['robe:#f2e8d8', 'hood:#f2e8d8', 'blushdot'] },
   herb: { body: '#e8e0b8', deco: ['spiky:#8fbf6a', 'overalls:#a8c8e0', 'blushdot', 'wateringcan:#7ec8e8'] },
-  whitechoco: { deco: ['swirl:#fffaf0', 'long:#fff4e4', 'sword:#f2c8d8'] },
+  whitechoco: { deco: ['dress:#fff4e4', 'swirl:#fffaf0', 'long:#fff8ec', 'sword:#f2c8d8'] },
   dinosour: { deco: ['spiky:#3a86c8', 'dinohood:#5a9a3a', 'fangs'] },
-  cottoncandy: { body: '#f8d8e8', deco: ['puff:#f4c8e4', 'dots:#7ec8ff', 'blushdot'] },
+  cottoncandy: { body: '#f8d8e8', deco: ['dress:#f4c8e4', 'puff:#f4c8e4', 'dots:#7ec8ff', 'blushdot'] },
   rollcake: { deco: ['curl:#8a5a34', 'staff:#8a97a8', 'buttons:#5a3a20'] },
-  rebel: { body: '#d9a86a', deco: ['spiky:#f2f0ec', 'cap:#e8c03a', 'vest:#2e3a54'] },
+  rebel: { body: '#d9a86a', deco: ['suit:#2e3a54', 'spiky:#f2f0ec', 'cap:#e8c03a'] },
   sbshortcake: { body: '#fdf2ec', deco: ['puff:#fff8f0', 'fruit:#e0453a', 'blushdot', 'collar:#fff4f4'] },
   gulab: { deco: ['drip:#ffd24a', 'collar:#e8b03a', 'ribbon:#e0453a', 'blushdot'] },
   kajukatli: { deco: ['beret:#e8e0d0', 'staff:#c8c0b0', 'collar:#c0b8a8'] },
   marshbunny: { deco: ['bunnyears:#ffe8f0', 'glasses', 'blushdot'] },
   sikhye: { deco: ['puff:#fff8ec', 'ricedots:#fff8ec', 'hanbokribbon:#e85a6a'] },
   sujeonggwa: { body: '#8a5a3a', deco: ['ears:#6a4028', 'glasses', 'hanbokribbon:#8a4a2e', 'leafpin:#8fbf4a'] },
-  pinemonk: { body: '#e8c060', icing: '#c8a040', deco: ['crown:#ffd24a', 'longbeard:#d8d8cc', 'staff:#6b4423', 'collar:#c89030'] },
+  pinemonk: { body: '#e8c060', icing: '#c8a040', deco: ['robe:#c8a040', 'crown:#ffd24a', 'longbeard:#d8d8cc', 'staff:#6b4423'] },
   tigerlily: { body: '#d9a05e', deco: ['spiky:#e8791e', 'tigerstripes:#3a2a1a', 'lilyflower:#ff8a4a', 'spear:#8a5a2e'] },
-  moonlight: { body: '#7a86d8', deco: ['long:#f2d848', 'moonpin:#f2e060', 'staff:#f2e060', 'stardust:#f2e060'] },
-  dancheong: { body: '#e86a8a', deco: ['dancheongcrown:#e0563a', 'fanitem:#3a90c0', 'long:#3a2a1a', 'collar:#3a90c0'] },
+  moonlight: { body: '#7a86d8', deco: ['robe:#5a66c0', 'long:#f2d848', 'moonpin:#f2e060', 'stardust:#f2e060', 'staff:#f2e060'] },
+  dancheong: { body: '#e86a8a', deco: ['dress:#e0563a', 'dancheongcrown:#e0563a', 'long:#3a2a1a', 'fanitem:#3a90c0'] },  bari: { deco: ['robe:#fff4f4', 'long:#f8f0ec', 'ribbon:#e86a8a', 'crown:#ffffff'] },
+  gimbap: { deco: ['armor:#2a2a2a', 'admiralhat:#2a2a2a', 'ricecollar:#f2ecd8', 'sword:#dfe8f2'] },
+  seafairy: { deco: ['dress:#7ec8e8', 'wavyhair:#4a8ad0', 'seastar:#f2e060'] },
 };
+
 CHARS.forEach(c => {
   const lk = LOOK[c.id];
   if (lk) { Object.assign(c, lk); c._dc = null; }
@@ -4169,6 +4172,72 @@ function runDecos(ch, phase, RIM) {
         ctx.fillStyle = c;
         roundRect(-13, -58, 26, 8, 4); ctx.fill();
         roundRect(-6, -54, 8, 16, 4); ctx.fill();
+      } else if (p === 'dress') {
+        // เดรสบานคลุมสะโพก-ขา (เจ้าหญิง/ราชินี ฯลฯ)
+        const DK = shade(c, -40);
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(-13, -48);
+        ctx.quadraticCurveTo(-24, -20, -27, 0);
+        ctx.quadraticCurveTo(0, 8, 27, 0);
+        ctx.quadraticCurveTo(24, -20, 13, -48);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = DK; ctx.lineWidth = 2.2;
+        ctx.beginPath(); ctx.moveTo(-26, -2); ctx.quadraticCurveTo(0, 6, 26, -2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 2;
+        for (const dx of [-12, 0, 12]) {
+          ctx.beginPath(); ctx.moveTo(dx * 0.6, -34); ctx.quadraticCurveTo(dx, -16, dx * 1.6, -3); ctx.stroke();
+        }
+      } else if (p === 'robe') {
+        // เสื้อคลุมยาว (พ่อมด/นักบวช/ผู้พยากรณ์)
+        const DK = shade(c, -40);
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(-14, -54);
+        ctx.quadraticCurveTo(-18, -24, -19, 4);
+        ctx.lineTo(19, 4);
+        ctx.quadraticCurveTo(18, -24, 14, -54);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = DK; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, -50); ctx.lineTo(0, 2); ctx.stroke();
+        ctx.fillStyle = DK;
+        roundRect(-15, -38, 30, 5.5, 2.7); ctx.fill();
+      } else if (p === 'armor') {
+        // ชุดเกราะ + บ่าไหล่ (อัศวิน/แม่ทัพ)
+        const DK = shade(c, -35);
+        ctx.fillStyle = c;
+        roundRect(-15.5, -58, 31, 22, 9); ctx.fill();
+        ctx.fillStyle = DK;
+        roundRect(-15.5, -40, 31, 5, 2.5); ctx.fill();
+        ctx.fillStyle = c;
+        ctx.beginPath(); ctx.arc(-16, -52, 6.5, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(16, -52, 6.5, 0, TAU); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.4)';
+        roundRect(-11, -56, 8, 4, 2); ctx.fill();
+      } else if (p === 'suit') {
+        // บอดี้สูทคลุมตัว+ขา (ฮีโร่/หน่วยรบ) — เหลือหัว/มือเป็นสีคุกกี้
+        ctx.fillStyle = c;
+        roundRect(-15, -58, 30, 31, 12); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, -29, 17.5, 11.5, 0, 0, TAU); ctx.fill();
+        ctx.lineWidth = 12; ctx.strokeStyle = c; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-7.5, -26); ctx.lineTo(-8, 0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(7.5, -26); ctx.lineTo(8, 0); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,.25)';
+        roundRect(-10, -54, 7, 10, 3.5); ctx.fill();
+      } else if (p === 'skirt') {
+        // กระโปรงสั้นบาน (เชียร์ลีดเดอร์/ไบรต์)
+        const DK = shade(c, -35);
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(-14, -36);
+        ctx.quadraticCurveTo(-20, -24, -23, -14);
+        ctx.quadraticCurveTo(0, -8, 23, -14);
+        ctx.quadraticCurveTo(20, -24, 14, -36);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = DK; ctx.lineWidth = 2;
+        for (const dx of [-14, -5, 4, 13]) {
+          ctx.beginPath(); ctx.moveTo(dx * 0.7, -32); ctx.lineTo(dx, -13); ctx.stroke();
+        }
       } else if (p === 'frillhem') {
         // ชายกระโปรงระบาย (เจ้าหญิง)
         ctx.fillStyle = c;
