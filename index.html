@@ -746,6 +746,78 @@ const REAL = {
 };
 CHARS.forEach(c => { if (REAL[c.id]) Object.assign(c, REAL[c.id]); });
 
+/* ---------- ปรับสี/ทรงผม/เครื่องแต่งกายทุกตัวให้ใกล้ตัวจริงยิ่งขึ้น ---------- */
+const LOOK = {
+  bright: { body: '#e8ac6a', icing: '#ffd8e8', eye: '#8a5230', deco: ['bob:#6b4423', 'bow:#ff7ba0', 'icing:#ffd8e8', 'lollipop:#ff6b8d'] },
+  cream: { body: '#f0e0c8', deco: ['puff:#ffffff', 'buttons:#e8c87a'] },
+  cloudc: { body: '#f2d048', eye: '#4a9fe0', deco: ['puff:#bfe4f8', 'buttons:#ffffff'] },
+  bcchoco: { body: '#6a4028', deco: ['swirl:#f6e8d0', 'buttons:#f2d8b0'] },
+  gclaus: { icing: '#e0453a', deco: ['santa:#e0453a', 'beard:#ffffff', 'collar:#ffffff', 'buttons:#3a3a3a'] },
+  coffee: { body: '#5a3a26', deco: ['side:#d9a05e', 'collar:#ffffff', 'mug:#e8e0d0'] },
+  skater: { deco: ['cap:#3a86c8', 'icing:#ffffff'] },
+  princess: { icing: '#ff9ec0', deco: ['crown:#ffd24a', 'long:#f2d848', 'icing:#ff9ec0', 'wand:#ffd24a'] },
+  knight: { body: '#c8b090', deco: ['helmet:#aab6c4', 'vest:#8a97a8', 'sword:#dfe8f2'] },
+  muscle: { body: '#a8683a', deco: ['band:#e0453a', 'vest:#f2ecd8', 'blushdot'] },
+  pirate: { deco: ['bandana:#e0453a', 'piratehat:#2a2a34', 'patch', 'stubble:#5a4028'] },
+  skatingq: { deco: ['tiara:#bfe8ff', 'long:#dff2ff', 'wand:#7ec8e8'] },
+  hero: { deco: ['heromask:#3f6fd0', 'cape:#e0453a', 'glasses', 'collar:#ffffff'] },
+  sforce: { body: '#9a7a4e' },
+  cheer: { deco: ['pony:#f2d848', 'pompom:#7ec8ff', 'stripes:#3a86c8'] },
+  kumiho: { body: '#fdf2ec', deco: ['foxears:#fdf2ec', 'foxtail:#fdf2ec', 'blushdot', 'lollipop:#ff9db8'] },
+  devil: { body: '#e0483a', icing: '#8a1e14', eye: '#ffd24a', deco: ['horns:#a02818', 'batwings:#3a2a34', 'fangs', 'trident:#8a1e14'] },
+  fairy: { body: '#cfeee0' },
+  wizard: { deco: ['wizhat:#3f5fc0', 'staff:#8a5a2e', 'beard:#e8e0d0'] },
+  rockstar: { deco: ['spiky:#f2f0ec', 'guitar:#e0453a', 'glasses', 'vest:#3a3a44'] },
+  soda: { body: '#8fd8f2', deco: ['band:#f2e060', 'freckles:#dff6ff', 'icing:#dff6ff'] },
+  cherry: { body: '#e05a6a', deco: ['hood:#c8303a', 'fruit:#d02e4a', 'blushdot'] },
+  cheesecake: { deco: ['curl:#f2d089', 'fruit:#e0453a', 'collar:#fff2c8'] },
+  prophet: { deco: ['hood:#c8b090', 'thirdeye:#e8b03a', 'collar:#6a5a9a'] },
+  pistachio: { body: '#b8d080', deco: ['helmet:#7a9a4a', 'sword:#dfe8f2', 'cape:#f2f0e8'] },
+  alchemist: { deco: ['tophat:#4a3268', 'glasses', 'bottlebelt:#8a5ac0', 'side:#e8d048'] },
+  vampire: { body: '#ece0d8', deco: ['long:#c8283a', 'fangs', 'cape:#2a2430', 'collar:#3a3440'] },
+  adventurer: { deco: ['fedora:#8a6a3e', 'vest:#6b4423', 'stubble:#8a6a3e'] },
+  redpepper: { deco: ['spiky:#c81e10', 'sword:#dfe8f2', 'flamecheek:#ff6a3a'] },
+  snowsugar: { deco: ['furhood:#ffffff', 'staff:#7ec8e8', 'blushdot'] },
+  carol: { body: '#d9a05e', icing: '#2e7a3a', deco: ['spiky:#2e7a3a', 'moonpin:#ffd24a', 'dots:#e0453a'] },
+  blackberry: { icing: '#4a3a5e', deco: ['maidband:#ffffff', 'long:#4a3a5e', 'collar:#ffffff'] },
+  pinkchoco: { deco: ['heartcheek:#ff5a8a', 'ribbon:#ff7ba0', 'bob:#e88aa8', 'wand:#ff5a8a'] },
+  kiwi: { body: '#a8885a', deco: ['spiky:#7a9a3a', 'band:#3a3a44', 'freckles'] },
+  apple: { body: '#f0c890', deco: ['pony:#f2d848', 'fruit:#e0453a', 'freckles', 'blushdot'] },
+  werewolf: { body: '#9a949c', deco: ['messy:#e8e4ec', 'wolfears:#b8b4bc', 'fangs'] },
+  mintchoco: { body: '#6a4a34', deco: ['spiky:#8fd8c8', 'bowtie:#2e2018', 'bow2:#8a5a2e', 'collar:#f2ecd8'] },
+  cocoa: { body: '#6a4030', deco: ['beret:#ffffff', 'scarfB:#e0453a', 'blushdot'] },
+  creampuff: { deco: ['puff:#f2cf8e', 'wand:#e8b03a', 'glasses'] },
+  gumball: { deco: ['helmet:#3a86c8', 'gumdots', 'freckles'] },
+  peppermint: { body: '#eaf8f4', deco: ['cap:#ffffff', 'stripes:#3a86c8', 'collar:#3a86c8'] },
+  jujube: { body: '#a84a3a', deco: ['generalhat:#6a1e14', 'longbeard:#3a2a1a', 'spear:#8a5a2e', 'collar:#e8b03a'] },
+  peach: { body: '#f8d0c0', deco: ['twin:#f2a8b8', 'fruit:#ff9a7a', 'blushdot', 'spear:#8a5a2e'] },
+  onion: { deco: ['hood:#f4f0fa', 'sprout:#8fbf4a', 'tear:#9ecfff'] },
+  cinnamon: { deco: ['curl:#d97a2e', 'tophat:#5a3a24', 'collar:#ffffff', 'bowtie:#e0453a', 'wand:#e8b03a', 'mustache:#8a4a20'] },
+  macaron: { deco: ['beret:#e88aa8', 'vest:#c83a4a', 'collar:#ffffff', 'drum:#f0d8e8'] },
+  redbean: { body: '#7a4a3a', deco: ['hood:#f2e8d8', 'blushdot'] },
+  herb: { body: '#e8e0b8', deco: ['spiky:#8fbf6a', 'vest:#c8d8a0', 'wateringcan:#7ec8e8'] },
+  whitechoco: { deco: ['swirl:#fffaf0', 'long:#fff4e4', 'sword:#f2c8d8'] },
+  dinosour: { deco: ['spiky:#3a86c8', 'dinohood:#5a9a3a', 'fangs'] },
+  cottoncandy: { body: '#f8d8e8', deco: ['puff:#f4c8e4', 'dots:#7ec8ff', 'blushdot'] },
+  rollcake: { deco: ['curl:#8a5a34', 'staff:#8a97a8', 'buttons:#5a3a20'] },
+  rebel: { body: '#d9a86a', deco: ['spiky:#f2f0ec', 'cap:#e8c03a', 'vest:#2e3a54'] },
+  sbshortcake: { body: '#fdf2ec', deco: ['puff:#fff8f0', 'fruit:#e0453a', 'blushdot', 'collar:#fff4f4'] },
+  gulab: { deco: ['drip:#ffd24a', 'collar:#e8b03a', 'ribbon:#e0453a', 'blushdot'] },
+  kajukatli: { deco: ['beret:#e8e0d0', 'staff:#c8c0b0', 'collar:#c0b8a8'] },
+  marshbunny: { deco: ['bunnyears:#ffe8f0', 'glasses', 'blushdot'] },
+  sikhye: { deco: ['puff:#fff8ec', 'ricedots:#fff8ec', 'hanbokribbon:#e85a6a'] },
+  sujeonggwa: { body: '#8a5a3a', deco: ['ears:#6a4028', 'glasses', 'hanbokribbon:#8a4a2e', 'leafpin:#8fbf4a'] },
+  pinemonk: { body: '#e8c060', icing: '#c8a040', deco: ['crown:#ffd24a', 'longbeard:#d8d8cc', 'staff:#6b4423', 'collar:#c89030'] },
+  tigerlily: { body: '#d9a05e', deco: ['spiky:#e8791e', 'tigerstripes:#3a2a1a', 'lilyflower:#ff8a4a', 'spear:#8a5a2e'] },
+  moonlight: { body: '#7a86d8', deco: ['long:#f2d848', 'moonpin:#f2e060', 'staff:#f2e060', 'stardust:#f2e060'] },
+  dancheong: { body: '#e86a8a', deco: ['dancheongcrown:#e0563a', 'fanitem:#3a90c0', 'long:#3a2a1a', 'collar:#3a90c0'] },
+};
+CHARS.forEach(c => {
+  const lk = LOOK[c.id];
+  if (lk) { Object.assign(c, lk); c._dc = null; }
+});
+
+
 /* ---------- ความสามารถสัตว์เลี้ยงตามเกมต้นฉบับ (สรุปย่อ) ---------- */
 const REALPET = {
   chocodrop: { fx: { k: 'bearify', v: 14 }, desc: ['พุ่งไปเปลี่ยนเยลลี่', 'เป็นหมีเยลลี่เป็นระยะ'] },
@@ -4211,6 +4283,20 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.arc(0.5, -8, 29.5, Math.PI * 0.95, Math.PI * 2.05); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.moveTo(-24, -14); ctx.lineTo(-38, -6); ctx.lineTo(-36, -16); ctx.closePath(); ctx.fill();
+    } else if (p === 'piratehat') {
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.moveTo(-34, -18);
+      ctx.quadraticCurveTo(-30, -44, 0.5, -46);
+      ctx.quadraticCurveTo(31, -44, 35, -18);
+      ctx.quadraticCurveTo(18, -26, 0.5, -26);
+      ctx.quadraticCurveTo(-17, -26, -34, -18);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0.5, -34, 4.4, 0, TAU); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-6, -30); ctx.lineTo(7, -38); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-6, -38); ctx.lineTo(7, -30); ctx.stroke();
     } else if (p === 'beret') {
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.ellipse(-4, -26, 22, 10, -0.12, 0, TAU); ctx.fill();
@@ -4432,6 +4518,30 @@ function runHeldDecos(ch, RIM) {
         ctx.beginPath(); ctx.moveTo(0, 6);
         ctx.lineTo(Math.cos(a * Math.PI) * 16, 6 + Math.sin(a * Math.PI) * 16); ctx.stroke();
       }
+      ctx.restore();
+    } else if (p === 'trident') {
+      ctx.save(); ctx.translate(27, -34); ctx.rotate(0.14);
+      line(4.6, c);
+      ctx.beginPath(); ctx.moveTo(0, 26); ctx.lineTo(0, -22); ctx.stroke();
+      line(3.4, c);
+      ctx.beginPath(); ctx.moveTo(-8, -20); ctx.quadraticCurveTo(-8, -30, -6, -32); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8, -20); ctx.quadraticCurveTo(8, -30, 6, -32); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(0, -34); ctx.stroke();
+      ctx.restore();
+    } else if (p === 'lollipop') {
+      ctx.save(); ctx.translate(27, -38); ctx.rotate(-0.3);
+      line(3.4, '#f7e6c9');
+      ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(0, -8); ctx.stroke();
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0, -15, 8.5, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      for (let aa = 0; aa < TAU * 2; aa += 0.3) {
+        const rr = aa / (TAU * 2) * 6;
+        const px = Math.cos(aa) * rr, py = -15 + Math.sin(aa) * rr;
+        aa === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
       ctx.restore();
     } else if (p === 'pompom') {
       for (const [x, y] of [[27, -38], [-24, -40]]) {
