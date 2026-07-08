@@ -139,6 +139,18 @@ const MISSIONS = [
 ];
 
 /* ============================================================
+   สมบัติ — สวมได้ 2 ชิ้น เพิ่มพลังถาวร (แบบเกมจริง)
+   ============================================================ */
+const TREASURES = [
+  { icon: '🐻', name: 'จี้หมีทองคำ',     cost: 1500, desc: ['หมีเยลลี่ให้แต้ม x2'] },
+  { icon: '💖', name: 'เข็มกลัดหัวใจ',   cost: 2200, desc: ['ชุบชีวิตเพิ่ม +1 ครั้ง'] },
+  { icon: '⏳', name: 'นาฬิกาน้ำตาล',    cost: 1800, desc: ['พลังชีวิตลดช้าลง 15%'] },
+  { icon: '💍', name: 'แหวนแม่เหล็ก',    cost: 2400, desc: ['ดูดเยลลี่ใกล้ตัวตลอดเวลา'] },
+  { icon: '👛', name: 'กระเป๋าทองคำ',    cost: 1600, desc: ['เหรียญที่ได้ +50%'] },
+  { icon: '🌠', name: 'ดาวตกน้ำตาล',     cost: 2600, desc: ['เกจสกิลชาร์จเร็วขึ้น 30%'] },
+];
+
+/* ============================================================
    ร้านค้าอัปเกรด (จ่ายด้วยเหรียญสะสม)
    ============================================================ */
 const UPGS = [
@@ -267,12 +279,18 @@ const G = {
   shake: 0, flash: 0, banner: null, bannerT: 0,
   overT: 0, newBest: false, earned: 0, rankPos: -1,
   bonusT: 0, revives: 0, fade: 0, paused: false,
+  skill: 0, scoreMulT: 0,
+  trOwned: SAVE.get('trOwned', []),
+  trEquip: SAVE.get('trEquip', []),
+  name: SAVE.get('name', ''),
+  online: null, onlineErr: false,
 };
 if (G.charIdx >= CHARS.length || !G.owned.includes(G.charIdx)) G.charIdx = 0;
 if (G.petIdx >= PETS.length || !G.petsOwned.includes(G.petIdx)) G.petIdx = 0;
 const CH = () => CHARS[G.charIdx];
 const PT = () => PETS[G.petIdx];
 const itemMul = () => 1 + G.upg.item * 0.18;
+const hasTr = i => G.trEquip.includes(i);
 
 function setState(s) { G.state = s; G.fade = 1; }
 
@@ -535,13 +553,14 @@ addEventListener('keydown', e => {
     e.preventDefault();
     if (G.state === 'menu') startGame();
     else if (G.state === 'over') { if (G.overT > 1) startGame(); }
-    else if (['select','shop','rank','pets'].includes(G.state)) setState('menu');
+    else if (['select','shop','rank','pets','treasure'].includes(G.state)) setState('menu');
     else doJump();
   }
-  if (e.code === 'Escape' && ['select','shop','rank','pets'].includes(G.state)) setState('menu');
+  if (e.code === 'Escape' && ['select','shop','rank','pets','treasure'].includes(G.state)) setState('menu');
   if ((e.code === 'KeyP' || e.code === 'Escape') && G.state === 'play') togglePause();
   if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); doSlide(true); }
   if (e.code === 'KeyM') { AudioSys.muted = !AudioSys.muted; }
+  if (e.code === 'KeyX' && G.state === 'play') useSkill();
   keys[e.code] = true;
 });
 addEventListener('keyup', e => {
@@ -569,6 +588,7 @@ function pointerDown(x, y, id) {
   if (G.state === 'play') {
     if (G.paused) { togglePause(); return; }
     if (Math.hypot(x - W / 2, y - 30) < 26) { togglePause(); return; }   // ปุ่มพักกลางบน
+    if (Math.hypot(x - W / 2, y - (H - 66)) < 44) { useSkill(); return; } // ปุ่มสกิลกลางล่าง
     if (x < W / 2) { if (id !== undefined) touches[id] = 'L'; else mouseFly = true; doJump(); }
     else { if (id !== undefined) touches[id] = 'R'; doSlide(true); }
     return;
@@ -615,7 +635,8 @@ function startGame() {
   P.y = GROUND_Y - P.h; P.vy = 0; P.onGround = true; P.jumps = 0;
   P.sliding = false; P.invT = 0; P.giantT = 0; P.magnetT = 0;
   P.boostT = 2.4 + CH().boostBonus + G.upg.boost * 0.6;
-  G.bonusT = 0; G.revives = CH().revives;
+  G.bonusT = 0; G.revives = CH().revives + (hasTr(1) ? 1 : 0);
+  G.skill = 0; G.scoreMulT = 0;
   P.dead = false; P.fallingPit = false; slideHeld = false; G.paused = false;
   G.runBears = 0; G.runStars = 0; G.maxCombo = 0; G.missionDone = false;
   jellyList = []; obstacles = []; pits = []; particles = []; floaters = []; platforms = [];
@@ -648,7 +669,7 @@ function gameOver() {
   G.score = Math.floor(G.score);
   if (G.score > G.best) { G.best = G.score; G.newBest = true; SAVE.set('best', G.best); }
   // เหรียญที่ได้ = เหรียญในด่าน + โบนัสจากคะแนน
-  G.earned = G.coins + Math.floor(G.score / 400);
+  G.earned = Math.floor((G.coins + Math.floor(G.score / 400)) * (hasTr(4) ? 1.5 : 1));
   G.bank += G.earned;
   SAVE.set('coins', G.bank);
   // บันทึกอันดับ
@@ -658,6 +679,7 @@ function gameOver() {
   G.board = G.board.slice(0, 10);
   G.rankPos = G.board.indexOf(entry);
   SAVE.set('board', G.board);
+  submitOnline();
   // เช็คภารกิจ
   const m = MISSIONS[G.missionIdx];
   if (m && m.check({ dist: G.dist, jellies: G.jellies, score: G.score, combo: G.maxCombo,
@@ -696,6 +718,101 @@ function trySelectChar(i) {
     floatText(W / 2, 100, 'เหรียญไม่พอ! ขาดอีก ' + (c.cost - G.bank).toLocaleString() + ' 🪙', '#ff8888', true);
   }
 }
+/* ---------- สกิลไม้ตายประจำตัวละคร (Magic Candy) ---------- */
+function useSkill() {
+  if (G.state !== 'play' || G.paused || P.dead || G.skill < 100) return;
+  G.skill = 0;
+  AudioSys.power();
+  G.shake = 6;
+  const id = CH().id;
+  if (id === 'brave') {
+    P.boostT = Math.max(P.boostT, 3.6);
+    banner('⚔ BRAVE STRIKE!!', '#ffd24a');
+  } else if (id === 'berry') {
+    G.hp = Math.min(G.hpMax, G.hp + 35);
+    P.invT = Math.max(P.invT, 3);
+    banner('🍓 เบอร์รีฮีล + โล่!', '#ff9db8');
+    sparkle(P.x + 28, P.y + 30, 22, '#7bff9b');
+  } else if (id === 'ninja') {
+    G.scoreMulT = 6;
+    P.magnetT = Math.max(P.magnetT, 6);
+    banner('🥷 SHADOW DASH! แต้ม x2', '#b9c6ff');
+  } else {
+    // เทวดา: อวยพรเก็บเยลลี่ทั้งจอทันที
+    let n = 0;
+    for (const j of jellyList) {
+      const jx = j.x - worldX;
+      if (!j.dead && jx > -40 && jx < W + 40 && !['potion','giant','magnet','star'].includes(j.type)) {
+        j.dead = true; collectJelly(j, jx); n++;
+      }
+    }
+    jellyList = jellyList.filter(j => !j.dead);
+    banner('👼 ANGEL BLESS! +' + n + ' เยลลี่', '#fff3b0');
+    sparkle(P.x + 28, P.y + 30, 30, '#ffe066');
+  }
+}
+
+/* ---------- สมบัติ: ซื้อ / สวม-ถอด (สูงสุด 2 ชิ้น) ---------- */
+function tryTreasure(i) {
+  const t = TREASURES[i];
+  if (!G.trOwned.includes(i)) {
+    if (G.bank >= t.cost) {
+      G.bank -= t.cost;
+      G.trOwned.push(i);
+      if (G.trEquip.length < 2) G.trEquip.push(i);
+      SAVE.set('coins', G.bank); SAVE.set('trOwned', G.trOwned); SAVE.set('trEquip', G.trEquip);
+      AudioSys.buy();
+      floatText(W / 2, 100, '🎉 ได้ ' + t.name + '!', '#ffd24a', true);
+    } else {
+      AudioSys.deny();
+      floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true);
+    }
+    return;
+  }
+  if (G.trEquip.includes(i)) {
+    G.trEquip = G.trEquip.filter(x => x !== i);
+    floatText(W / 2, 100, 'ถอด ' + t.name, '#ffe9b8', true);
+  } else if (G.trEquip.length < 2) {
+    G.trEquip.push(i);
+    AudioSys.click();
+    floatText(W / 2, 100, 'สวม ' + t.name + '!', '#7bd94a', true);
+  } else {
+    AudioSys.deny();
+    floatText(W / 2, 100, 'สวมได้สูงสุด 2 ชิ้น — ถอดชิ้นเก่าก่อน', '#ff8888', true);
+  }
+  SAVE.set('trEquip', G.trEquip);
+}
+
+/* ---------- อันดับออนไลน์ ---------- */
+function ensureName() {
+  if (!G.name) {
+    G.name = 'Cookie' + rndi(100, 999);
+    SAVE.set('name', G.name);
+  }
+  return G.name;
+}
+function submitOnline() {
+  try {
+    fetch('/api/scores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ n: ensureName(), s: G.score, c: G.charIdx }),
+    }).catch(() => {});
+  } catch (e) {}
+}
+function fetchOnline() {
+  G.online = null; G.onlineErr = false;
+  try {
+    fetch('/api/scores')
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok && d.top) G.online = d.top;
+        else { G.online = []; G.onlineErr = true; }
+      })
+      .catch(() => { G.online = []; G.onlineErr = true; });
+  } catch (e) { G.online = []; G.onlineErr = true; }
+}
+
 function trySelectPet(i) {
   const p = PETS[i];
   if (G.petsOwned.includes(i)) {
@@ -817,7 +934,7 @@ function update(dt) {
 
   /* --- HP ลดตามเวลา --- */
   if (PT().id === 'cloud') G.hp = Math.min(G.hpMax, G.hp + 1.0 * dt);   // ปุยเมฆฟื้นพลัง
-  if (G.bonusT <= 0) G.hp -= G.hpDrain * dt;
+  if (G.bonusT <= 0) G.hp -= G.hpDrain * (hasTr(2) ? 0.85 : 1) * dt;
   if (G.hp <= 0) {
     G.hp = 0;
     if (gameOver()) return;
@@ -836,6 +953,7 @@ function update(dt) {
   P.giantT = Math.max(0, P.giantT - dt);
   P.magnetT = Math.max(0, P.magnetT - dt);
   P.boostT = Math.max(0, P.boostT - dt);
+  G.scoreMulT = Math.max(0, G.scoreMulT - dt);
   if (G.bonusT > 0) {
     G.bonusT -= dt;
     // หมีเยลลี่ยักษ์รอปิดท้ายโบนัสไทม์ (แบบเกมจริง)
@@ -961,11 +1079,11 @@ function update(dt) {
     let jx = j.x - worldX;
     if (jx < -80) { j.dead = true; continue; }
     if (jx > W + 80) break;
-    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0) && !['potion','giant','magnet','star'].includes(j.type)) {
+    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0 || hasTr(3)) && !['potion','giant','magnet','star'].includes(j.type)) {
       const dx = cx - jx, dy = cy - j.y;
       const d = Math.hypot(dx, dy);
       // ช่วงโบนัสดูดรัศมีสั้นลง จะได้เห็นตัวอักษร BONUS ชัด ๆ ก่อนบินทะลุ
-      const attractR = G.bonusT > 0 ? 135 : 260;
+      const attractR = G.bonusT > 0 ? 135 : (P.magnetT > 0 || P.boostT > 0) ? 260 : 95;
       if (d < attractR) { j.x += dx / d * 620 * dt; j.y += dy / d * 620 * dt; jx = j.x - worldX; }
     }
     const r = JSIZE[j.type] / 2 + (P.giantT > 0 ? 30 : 14);
@@ -1029,8 +1147,11 @@ function collectJelly(j, jx) {
     case 'bar': case 'coin': case 'pink': case 'bear': {
       G.combo++; G.comboTimer = CH().comboT;
       const comboBonus = Math.min(G.combo, 50);
-      const pts = (JSCORE[j.type] + comboBonus) * mult;
+      let pts = (JSCORE[j.type] + comboBonus) * mult;
+      if (j.type === 'bear' && hasTr(0)) pts *= 2;          // จี้หมีทองคำ
+      if (G.scoreMulT > 0) pts *= 2;                         // สกิลนินจา
       G.score += pts; G.jellies++;
+      G.skill = Math.min(100, G.skill + 1.7 * (hasTr(5) ? 1.3 : 1));   // ชาร์จเกจสกิล
       G.maxCombo = Math.max(G.maxCombo, G.combo);
       if (j.type === 'coin') G.coins += PT().id === 'chick' ? 2 : 1;   // ลูกเจี๊ยบ x2
       if (j.type === 'bear') {
@@ -1142,6 +1263,7 @@ function draw() {
   if (G.state === 'menu') drawMenu();
   if (G.state === 'select') drawSelect();
   if (G.state === 'pets') drawPets();
+  if (G.state === 'treasure') drawTreasure();
   if (G.state === 'shop') drawShop();
   if (G.state === 'rank') drawRank();
   if (G.state === 'over') drawGameOver();
@@ -2478,6 +2600,37 @@ function drawHUD() {
   bubbleBtn(82, 'Jump', !P.onGround);
   bubbleBtn(W - 82, 'Slide', P.sliding);
 
+  // ปุ่มสกิลไม้ตายกลางล่าง (Magic Candy)
+  {
+    const sx = W / 2, sy = H - 66, r = 40;
+    const ready = G.skill >= 100;
+    ctx.save();
+    ctx.globalAlpha = ready ? 0.95 : 0.55;
+    ctx.fillStyle = 'rgba(50,25,5,.6)';
+    ctx.beginPath(); ctx.arc(sx, sy, r, 0, TAU); ctx.fill();
+    // วงเกจชาร์จ
+    ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.arc(sx, sy, r - 4, 0, TAU); ctx.stroke();
+    ctx.strokeStyle = ready ? '#ffe066' : '#7ee0ff'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(sx, sy, r - 4, -Math.PI / 2, -Math.PI / 2 + TAU * (G.skill / 100)); ctx.stroke();
+    // ไอคอนลูกกวาดสกิล
+    ctx.font = '30px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('🍭', sx, sy + 1);
+    ctx.textBaseline = 'alphabetic';
+    if (ready) {
+      const pul = 1 + Math.sin(G.time * 8) * 0.08;
+      ctx.strokeStyle = `rgba(255,224,102,${0.5 + Math.sin(G.time * 8) * 0.3})`;
+      ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.arc(sx, sy, r * pul + 4, 0, TAU); ctx.stroke();
+      ctx.font = 'bold 14px Trebuchet MS';
+      ctx.fillStyle = '#ffe066';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(60,30,0,.8)';
+      ctx.strokeText('สกิลพร้อม! (X)', sx, sy + r + 20);
+      ctx.fillText('สกิลพร้อม! (X)', sx, sy + r + 20);
+    }
+    ctx.restore();
+  }
+
   // ปุ่มพักเกมกลางบน
   ctx.save();
   ctx.globalAlpha = 0.55;
@@ -2608,11 +2761,12 @@ function drawMenu() {
   ctx.fillText(CH().name, 215, 465);
 
   // ปุ่มหลัก
-  drawBtn(W / 2 - 10, 240, 310, 64, '▶  เริ่มวิ่ง!', () => startGame(), { color: '#ffb02e', dark: '#e07b12', font: 27 });
-  drawBtn(W / 2 - 10, 322, 150, 50, '🍪 ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 17 });
-  drawBtn(W / 2 + 150, 322, 150, 50, '🐥 สัตว์เลี้ยง', () => setState('pets'), { color: '#7bd94a', dark: '#57a832', font: 17 });
-  drawBtn(W / 2 - 10, 386, 150, 50, '🛍 ร้านค้า', () => setState('shop'), { color: '#5cb8e8', dark: '#3d92c4', font: 17 });
-  drawBtn(W / 2 + 150, 386, 150, 50, '🏆 อันดับ', () => setState('rank'), { color: '#9d7ee0', dark: '#7a5cc0', font: 17 });
+  drawBtn(W / 2 - 10, 228, 310, 58, '▶  เริ่มวิ่ง!', () => startGame(), { color: '#ffb02e', dark: '#e07b12', font: 26 });
+  drawBtn(W / 2 - 10, 300, 150, 46, '🍪 ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 16 });
+  drawBtn(W / 2 + 150, 300, 150, 46, '🐥 สัตว์เลี้ยง', () => setState('pets'), { color: '#7bd94a', dark: '#57a832', font: 16 });
+  drawBtn(W / 2 - 10, 356, 150, 46, '💎 สมบัติ', () => setState('treasure'), { color: '#e8b23c', dark: '#c08d1e', font: 16 });
+  drawBtn(W / 2 + 150, 356, 150, 46, '🛍 ร้านค้า', () => setState('shop'), { color: '#5cb8e8', dark: '#3d92c4', font: 16 });
+  drawBtn(W / 2 - 10, 412, 310, 46, '🏆 ตารางอันดับ (ออนไลน์)', () => { fetchOnline(); setState('rank'); }, { color: '#9d7ee0', dark: '#7a5cc0', font: 16 });
 
   // ป้ายภารกิจปัจจุบัน
   const m = MISSIONS[G.missionIdx];
@@ -2739,6 +2893,51 @@ function drawPets() {
   drawBtn(W / 2 - 90, 476, 180, 46, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
 }
 
+/* ---------- สมบัติ ---------- */
+function drawTreasure() {
+  ctx.fillStyle = 'rgba(40,20,5,.62)';
+  ctx.fillRect(0, 0, W, H);
+  drawTitleText('สมบัติ', W / 2, 58, 38);
+  drawCoinChip(W - 20, 22, G.bank.toLocaleString());
+  ctx.font = 'bold 15px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffe9b8';
+  ctx.fillText('สวมได้สูงสุด 2 ชิ้น — กำลังสวม ' + G.trEquip.length + '/2', W / 2, 84);
+
+  const cw = 262, chh = 172, gap = 14;
+  const x0 = (W - (cw * 3 + gap * 2)) / 2;
+  TREASURES.forEach((t, i) => {
+    const x = x0 + (i % 3) * (cw + gap), y = 98 + Math.floor(i / 3) * (chh + 14);
+    const owned = G.trOwned.includes(i);
+    const equipped = G.trEquip.includes(i);
+    drawPanel(x, y, cw, chh, 16);
+    if (equipped) {
+      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 4;
+      roundRect(x + 2, y + 2, cw - 4, chh - 4, 14); ctx.stroke();
+    }
+    ctx.font = '38px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(t.icon, x + 44, y + 52);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 17px Trebuchet MS';
+    ctx.fillStyle = equipped ? '#ffd24a' : '#fff';
+    ctx.fillText(t.name, x + 84, y + 42);
+    ctx.font = '13px Trebuchet MS';
+    ctx.fillStyle = '#ffe9b8';
+    ctx.fillText(t.desc[0], x + 84, y + 66);
+    if (!owned) {
+      const afford = G.bank >= t.cost;
+      drawBtn(x + 30, y + chh - 62, cw - 60, 44, '🪙 ' + t.cost.toLocaleString(), () => tryTreasure(i),
+        afford ? { color: '#ffb02e', dark: '#e07b12', font: 18 } : { color: '#8a8178', dark: '#6e675f', font: 18 });
+    } else if (equipped) {
+      drawBtn(x + 30, y + chh - 62, cw - 60, 44, '✓ สวมอยู่ (แตะเพื่อถอด)', () => tryTreasure(i), { color: '#7bd94a', dark: '#57a832', font: 15 });
+    } else {
+      drawBtn(x + 30, y + chh - 62, cw - 60, 44, 'สวมใส่', () => tryTreasure(i), { color: '#5cb8e8', dark: '#3d92c4', font: 17 });
+    }
+  });
+
+  drawBtn(W / 2 - 90, 478, 180, 44, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
+}
+
 /* ---------- ร้านค้า ---------- */
 function drawShop() {
   ctx.fillStyle = 'rgba(40,20,5,.62)';
@@ -2785,40 +2984,66 @@ function drawShop() {
 function drawRank() {
   ctx.fillStyle = 'rgba(40,20,5,.62)';
   ctx.fillRect(0, 0, W, H);
-  drawTitleText('ตารางอันดับ Top 10', W / 2, 62, 40);
-  drawCoinChip(W - 20, 24, G.bank.toLocaleString());
+  drawTitleText('ตารางอันดับ', W / 2, 56, 36);
+  drawCoinChip(W - 20, 20, G.bank.toLocaleString());
 
-  drawPanel(130, 88, W - 260, 372, 20);
-
+  // ซ้าย: เครื่องนี้
+  drawPanel(40, 76, 430, 384, 18);
+  ctx.font = 'bold 18px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffd24a';
+  ctx.fillText('📱 เครื่องนี้', 255, 104);
   if (G.board.length === 0) {
-    ctx.font = 'bold 22px Trebuchet MS'; ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffe9b8';
-    ctx.fillText('ยังไม่มีสถิติ — ไปวิ่งกันเลย! 🏃', W / 2, 280);
+    ctx.font = '15px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+    ctx.fillText('ยังไม่มีสถิติ', 255, 250);
   } else {
-    ctx.font = 'bold 15px Trebuchet MS';
-    ctx.fillStyle = 'rgba(255,233,184,.7)';
-    ctx.textAlign = 'left';  ctx.fillText('อันดับ', 165, 120);
-    ctx.fillText('ตัวละคร', 245, 120);
-    ctx.textAlign = 'right'; ctx.fillText('คะแนน', 590, 120);
-    ctx.fillText('ระยะทาง', 700, 120);
-    ctx.fillText('วันที่', 800, 120);
     G.board.forEach((e, i) => {
-      const y = 152 + i * 30;
-      const hl = i === G.rankPos && G.state === 'rank' ? false : false;
-      ctx.font = i < 3 ? 'bold 18px Trebuchet MS' : '16px Trebuchet MS';
+      const y = 134 + i * 32;
+      ctx.font = i < 3 ? 'bold 15px Trebuchet MS' : '14px Trebuchet MS';
       ctx.fillStyle = i === 0 ? '#ffd24a' : i === 1 ? '#d8dee9' : i === 2 ? '#e8956a' : '#ffe9b8';
       ctx.textAlign = 'left';
-      ctx.fillText((i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) + '.'), 165, y);
-      ctx.fillText(CHARS[e.c] ? CHARS[e.c].name : '-', 245, y);
+      ctx.fillText((i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) + '.'), 62, y);
+      ctx.fillText(CHARS[e.c] ? CHARS[e.c].name : '-', 105, y);
       ctx.textAlign = 'right';
-      ctx.fillText(e.s.toLocaleString(), 590, y);
-      ctx.fillText(e.d.toLocaleString() + ' m', 700, y);
-      const d = new Date(e.t);
-      ctx.fillText(d.getDate() + '/' + (d.getMonth() + 1) + '/' + (d.getFullYear() + 543).toString().slice(-2), 800, y);
+      ctx.fillText(e.s.toLocaleString(), 385, y);
+      ctx.fillText(e.d + 'm', 450, y);
     });
   }
 
-  drawBtn(W / 2 - 90, 476, 180, 46, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
+  // ขวา: ออนไลน์
+  drawPanel(490, 76, 430, 384, 18);
+  ctx.font = 'bold 18px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#7ee0ff';
+  ctx.fillText('🌐 ทั่วโลก — ชื่อ: ' + (G.name || 'ยังไม่ตั้ง'), 705, 104);
+  if (G.online === null) {
+    ctx.font = '15px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+    ctx.fillText('กำลังโหลด...', 705, 250);
+  } else if (G.onlineErr || G.online.length === 0) {
+    ctx.font = '14px Trebuchet MS'; ctx.fillStyle = 'rgba(255,233,184,.85)';
+    if (G.onlineErr) {
+      ctx.fillText('โหมดออนไลน์ยังไม่เปิดใช้งาน', 705, 226);
+      ctx.fillText('(ต้องเล่นผ่านลิงก์เว็บ และเชื่อม Upstash Redis', 705, 252);
+      ctx.fillText('ใน Vercel: Storage → Upstash → Connect)', 705, 274);
+    } else {
+      ctx.fillText('ยังไม่มีใครส่งคะแนน — เป็นคนแรกเลย!', 705, 250);
+    }
+  } else {
+    G.online.slice(0, 10).forEach((e, i) => {
+      const y = 134 + i * 32;
+      ctx.font = i < 3 ? 'bold 15px Trebuchet MS' : '14px Trebuchet MS';
+      ctx.fillStyle = e.n === G.name ? '#7bd94a' : i === 0 ? '#ffd24a' : i === 1 ? '#d8dee9' : i === 2 ? '#e8956a' : '#ffe9b8';
+      ctx.textAlign = 'left';
+      ctx.fillText((i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1) + '.'), 512, y);
+      ctx.fillText(e.n, 555, y);
+      ctx.textAlign = 'right';
+      ctx.fillText(e.s.toLocaleString(), 898, y);
+    });
+  }
+
+  drawBtn(W / 2 - 230, 476, 200, 44, '✏ ตั้งชื่อผู้เล่น', () => {
+    const nm = prompt('ตั้งชื่อผู้เล่น (ไม่เกิน 12 ตัวอักษร)', G.name || '');
+    if (nm) { G.name = nm.trim().slice(0, 12); SAVE.set('name', G.name); }
+  }, { color: '#5cb8e8', dark: '#3d92c4', font: 17 });
+  drawBtn(W / 2 + 30, 476, 200, 44, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
 }
 
 /* ---------- game over ---------- */
