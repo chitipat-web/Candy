@@ -53,6 +53,40 @@ const C_OX = 100, C_OY = 145;        // จุดกำเนิด (กึ่�
 charCanvas.width = 200 * CSS;
 charCanvas.height = 190 * CSS;
 const charCtx = charCanvas.getContext('2d');
+// แคนวาสประกอบร่างขั้นสุดท้าย: ตีเส้นขอบรอบทุกชิ้น + เงาเซลเชด
+const olTmp = document.createElement('canvas');
+olTmp.width = charCanvas.width; olTmp.height = charCanvas.height;
+const olTmpCtx = olTmp.getContext('2d');
+const olOut = document.createElement('canvas');
+olOut.width = charCanvas.width; olOut.height = charCanvas.height;
+const olOutCtx = olOut.getContext('2d');
+function finishSprite() {
+  // 1) เงาดำรูปเดียวกับตัวละคร
+  olTmpCtx.setTransform(1, 0, 0, 1, 0, 0);
+  olTmpCtx.clearRect(0, 0, olTmp.width, olTmp.height);
+  olTmpCtx.drawImage(charCanvas, 0, 0);
+  olTmpCtx.globalCompositeOperation = 'source-in';
+  olTmpCtx.fillStyle = '#4a2c12';
+  olTmpCtx.fillRect(0, 0, olTmp.width, olTmp.height);
+  olTmpCtx.globalCompositeOperation = 'source-over';
+  // 2) ปั๊มเส้นขอบ 8 ทิศรอบตัว แล้ววางตัวจริงทับ
+  olOutCtx.setTransform(1, 0, 0, 1, 0, 0);
+  olOutCtx.clearRect(0, 0, olOut.width, olOut.height);
+  const d = 3.4;
+  for (const [dx, dy] of [[d,0],[-d,0],[0,d],[0,-d],[d*0.7,d*0.7],[-d*0.7,d*0.7],[d*0.7,-d*0.7],[-d*0.7,-d*0.7]])
+    olOutCtx.drawImage(olTmp, dx, dy);
+  olOutCtx.drawImage(charCanvas, 0, 0);
+  // 3) เซลเชด: เงาอุ่นด้านล่าง + แสงนวลด้านบน (คลิปตามรูปร่าง)
+  olOutCtx.globalCompositeOperation = 'source-atop';
+  const g = olOutCtx.createLinearGradient(0, 0, 0, olOut.height);
+  g.addColorStop(0, 'rgba(255,255,255,.10)');
+  g.addColorStop(0.35, 'rgba(255,255,255,0)');
+  g.addColorStop(0.62, 'rgba(120,60,20,0)');
+  g.addColorStop(1, 'rgba(120,60,20,.16)');
+  olOutCtx.fillStyle = g;
+  olOutCtx.fillRect(0, 0, olOut.width, olOut.height);
+  olOutCtx.globalCompositeOperation = 'source-over';
+}
 
 function fit() {
   const s = Math.min(innerWidth / W, innerHeight / H);
@@ -4063,6 +4097,10 @@ function ballGrad(x, y, r, c) {
 /* ============================================================
    ระบบตกแต่งตัวละคร: ผม/หมวก/หน้า/ลำตัว/ของถือ ใช้ร่วมกันทุกคุกกี้
    ============================================================ */
+const LASH_IDS = ['bright', 'princess', 'skatingq', 'cheer', 'kumiho', 'blackberry', 'pinkchoco',
+  'whitechoco', 'cottoncandy', 'cherryblossom', 'marshbunny', 'seafairy', 'moonlight', 'bari',
+  'macaron', 'peach', 'sikhye', 'onion', 'cherry', 'cheesecake', 'apple', 'fairy', 'sbshortcake',
+  'dancheong', 'carol', 'snowsugar', 'tigerlily', 'orange', 'lime', 'jalebi'];
 const DECO_ALIAS = {
   puffhair:'puff', curlhair:'curl', patchhair:'messy', spikyhair:'spiky', sidebraid:'side',
   messyhair:'messy', sidehair:'side', kiwihair:'spiky', lemonhair:'spiky', twintail:'twin',
@@ -4962,16 +5000,29 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   eye(1.5, -2.6, 6.2, 0.3);
   eye(21.5, -2.6, 5.8, -0.28);
   } else if (eyeStyle === 'round') {
-    /* ตากลมโตแบบคลาสสิก: วงตาสีเข้ม + ม่านตาสี + ประกาย */
-    for (const [ex, r] of [[1.5, 7], [21.5, 6.6]]) {
+    /* ตากลมโตแบบคลาสสิก: วงรีตั้ง + ประกายคู่ + ขนตาสำหรับสาว ๆ */
+    const lash = LASH_IDS.includes(ch.id);
+    for (const [ex, r] of [[1.5, 7.8], [21.5, 7.3]]) {
       ctx.fillStyle = RIM;
-      ctx.beginPath(); ctx.arc(ex, -3, r + 1.6, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ex, -3, r + 1.5, r + 2.6, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = EYE;
-      ctx.beginPath(); ctx.arc(ex, -3, r, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#2a1e14';
-      ctx.beginPath(); ctx.arc(ex + 1, -2, r * 0.45, 0, TAU); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,.9)';
-      ctx.beginPath(); ctx.arc(ex - r * 0.35, -5.4, r * 0.3, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ex, -3, r, r + 1.2, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#241a10';
+      ctx.beginPath(); ctx.ellipse(ex + 0.8, -1.6, r * 0.5, r * 0.62, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      ctx.beginPath(); ctx.arc(ex - r * 0.36, -6.4, r * 0.32, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.7)';
+      ctx.beginPath(); ctx.arc(ex + r * 0.3, 1.2, r * 0.16, 0, TAU); ctx.fill();
+      if (lash) {
+        ctx.strokeStyle = RIM; ctx.lineWidth = 1.9; ctx.lineCap = 'round';
+        const sgn = ex < 10 ? -1 : 1;
+        for (const [aa, ll] of [[-1.15, 4.2], [-0.75, 3.6], [-0.35, 3]]) {
+          const bx2 = ex + Math.cos(aa) * (r + 1.2) * sgn, by2 = -3 + Math.sin(aa) * (r + 2.4);
+          ctx.beginPath(); ctx.moveTo(bx2, by2);
+          ctx.lineTo(bx2 + Math.cos(aa - 0.3) * ll * sgn, by2 + Math.sin(aa - 0.3) * ll);
+          ctx.stroke();
+        }
+      }
     }
   } else if (eyeStyle === 'sharp') {
     /* ตาเรียวเฉียบ */
@@ -5068,8 +5119,9 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
 
   runHeldDecos(ch, RIM);
 
+  finishSprite();
   ctx = main;
-  ctx.drawImage(charCanvas, -C_OX, -C_OY, 200, 190);
+  ctx.drawImage(olOut, -C_OX, -C_OY, 200, 190);
 }
 
 
