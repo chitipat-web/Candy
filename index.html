@@ -100,13 +100,43 @@ function shade(col, amt) {
 }
 
 /* ---------- persistent save ---------- */
+/* ---------- โปรไฟล์ผู้เล่น: ล็อกอินก่อนเข้าเกม แยกเซฟต่อโปรไฟล์ ----------
+   โปรไฟล์แรก (id '') ใช้คีย์ cr_ เดิม → เซฟเก่าไม่หาย */
+function rawGet(k, d) {
+  try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }
+  catch (e) { return d; }
+}
+function rawSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+let PROFILES = rawGet('cr_profiles', null);
+if (!PROFILES) {
+  // ครั้งแรก: ถ้ามีเซฟเก่า สร้างโปรไฟล์ให้จากชื่อเดิม
+  const legacyName = rawGet('cr_name', null);
+  PROFILES = rawGet('cr_coins', null) !== null || legacyName
+    ? [{ id: '', name: legacyName || 'ผู้เล่น 1' }] : [];
+  rawSet('cr_profiles', PROFILES);
+}
+let ACTIVE = rawGet('cr_active', PROFILES.length ? PROFILES[0].id : null);
+if (ACTIVE !== null && !PROFILES.some(pf => pf.id === ACTIVE)) ACTIVE = PROFILES.length ? PROFILES[0].id : null;
+const profPrefix = () => 'cr_' + (ACTIVE ? ACTIVE + '_' : '');
 const SAVE = {
-  get(k, d) {
-    try { const v = localStorage.getItem('cr_' + k); return v === null ? d : JSON.parse(v); }
-    catch (e) { return d; }
-  },
-  set(k, v) { try { localStorage.setItem('cr_' + k, JSON.stringify(v)); } catch (e) {} }
+  get(k, d) { return ACTIVE === null ? d : rawGet(profPrefix() + k, d); },
+  set(k, v) { if (ACTIVE !== null) rawSet(profPrefix() + k, v); }
 };
+function loginProfile(id) {
+  if (id === ACTIVE) { setState('menu'); AudioSys.click(); return; }
+  rawSet('cr_active', id);
+  location.reload();   // โหลดเซฟของโปรไฟล์นั้นใหม่ทั้งหมด
+}
+function createProfile() {
+  if (PROFILES.length >= 4) { floatText(W / 2, 120, 'สร้างได้สูงสุด 4 โปรไฟล์', '#ff8888', true); return; }
+  const nm = prompt('ตั้งชื่อโปรไฟล์ใหม่ (ไม่เกิน 12 ตัวอักษร)', '');
+  if (!nm || !nm.trim()) return;
+  const id = 'p' + Date.now().toString(36);
+  PROFILES.push({ id, name: nm.trim().slice(0, 12) });
+  rawSet('cr_profiles', PROFILES);
+  rawSet('cr_' + id + '_name', nm.trim().slice(0, 12));
+  loginProfile(id);
+}
 
 /* ============================================================
    ตัวละคร — ความสามารถต่างกันแบบเกมจริง
@@ -876,7 +906,7 @@ const AudioSys = {
    GAME STATE
    ============================================================ */
 const G = {
-  state: 'menu',            // menu | select | shop | rank | play | over
+  state: 'login',           // login | menu | select | shop | rank | play | over
   time: 0,
   speed: 380, baseSpeed: 380, maxSpeed: 860,
   stage: 1, stageTimer: 0, stageLen: 18,
@@ -933,6 +963,10 @@ const CFX = () => CH().cfx || { k: '' };
 
 function setState(s) {
   G.state = s; G.fade = 1;
+  if (s === 'menu' && !G.name && ACTIVE !== null) {
+    const pf = PROFILES.find(q => q.id === ACTIVE);
+    if (pf) { G.name = pf.name; SAVE.set('name', G.name); }
+  }
   if (s === 'select') G.selFocus = G.charIdx;   // เปิดหน้าเลือก: โฟกัสตัวที่ใช้อยู่
   if (s === 'pets') G.petFocus = G.petIdx;
 }
@@ -2459,6 +2493,7 @@ function draw() {
   if (G.state === 'play') drawHUD();
   if (G.state === 'menu') drawMenu();
   if (G.state === 'prep') drawPrep();
+  if (G.state === 'login') drawLogin();
   if (G.state === 'select') drawSelect();
   if (G.state === 'pets') drawPets();
   if (G.state === 'treasure') drawTreasure();
@@ -5033,10 +5068,68 @@ function drawBanner() {
 /* ============================================================
    SCREENS
    ============================================================ */
+function drawLogin() {
+  ctx.fillStyle = 'rgba(40,20,5,.55)';
+  ctx.fillRect(0, 0, W, H);
+  drawTitleText('COOKIE RUN', W / 2, 92, 52);
+  ctx.font = 'bold 17px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffe9b8';
+  ctx.fillText('เลือกโปรไฟล์เพื่อเข้าเกม', W / 2, 130);
+
+  // ตัวคุกกี้ต้อนรับ
+  ctx.save();
+  ctx.translate(120, 330);
+  ctx.scale(1.1, 1.1);
+  drawCookieRun(P.anim);
+  ctx.restore();
+
+  if (PROFILES.length === 0) {
+    ctx.font = '15px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+    ctx.fillText('ยังไม่มีโปรไฟล์ — สร้างอันแรกเลย!', W / 2, 250);
+  }
+  PROFILES.forEach((pf, i) => {
+    const x = 250, y = 160 + i * 66, w = 460, h = 58;
+    drawPanel(x, y, w, h, 14);
+    const cur = pf.id === ACTIVE;
+    if (cur) {
+      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3;
+      roundRect(x + 2, y + 2, w - 4, h - 4, 12); ctx.stroke();
+    }
+    // สถิติย่อของโปรไฟล์ (อ่านตรงจาก localStorage ของโปรไฟล์นั้น)
+    const pfx = 'cr_' + (pf.id ? pf.id + '_' : '');
+    const best = rawGet(pfx + 'best', 0), coins = rawGet(pfx + 'coins', 0);
+    ctx.font = 'bold 17px Trebuchet MS'; ctx.textAlign = 'left';
+    ctx.fillStyle = cur ? '#ffd24a' : '#fff';
+    ctx.fillText('🍪 ' + pf.name, x + 20, y + 26);
+    ctx.font = '12px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+    ctx.fillText('สถิติ ' + (best | 0).toLocaleString() + ' · 🪙 ' + (coins | 0).toLocaleString() +
+      (cur ? ' · ล่าสุด' : ''), x + 20, y + 46);
+    drawBtn(x + w - 130, y + 11, 116, 36, cur ? '▶ เข้าเกม' : 'ล็อกอิน',
+      () => loginProfile(pf.id),
+      cur ? { color: '#7bd94a', dark: '#57a832', font: 14 } : { color: '#5cb8e8', dark: '#3d92c4', font: 14 });
+  });
+
+  if (PROFILES.length < 4)
+    drawBtn(W / 2 - 130, 168 + PROFILES.length * 66, 260, 46, '＋ สร้างโปรไฟล์ใหม่', createProfile,
+      { color: '#ffb02e', dark: '#e07b12', font: 16 });
+
+  ctx.font = '12px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,233,184,.7)';
+  ctx.fillText('แต่ละโปรไฟล์แยกเซฟ เหรียญ คุกกี้ และสถิติของตัวเอง', W / 2, H - 18);
+}
+
 function drawMenu() {
   ctx.fillStyle = 'rgba(40,20,5,.45)';
   ctx.fillRect(0, 0, W, H);
   if (G.dailyLast !== todayStr() && !G.dailyShow) G.dailyShow = true;
+  {
+    const pf = PROFILES.find(q => q.id === ACTIVE);
+    drawBtn(14, 14, 148, 34, '👤 ' + ((pf && pf.name) || 'โปรไฟล์').slice(0, 9) + ' ▸ออก', () => {
+      G.dailyShow = false;
+      setState('login');
+      AudioSys.click();
+    }, { color: '#a08468', dark: '#7d6448', font: 12 });
+  }
 
   // ขนมลอยตกแต่งฉากหลังเมนู
   const decor = [
