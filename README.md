@@ -43,3 +43,7 @@ python3 -m http.server 8000   # หรือเปิด index.html ตรง �
 ```
 
 สนุกกับการวิ่งนะ! 🏃💨
+
+## 🎨 เครดิตภาพ
+
+สไปรต์ตัวละครและไทล์ขนมจาก [Kenney.nl](https://kenney.nl) — แพ็ก *Platformer Characters* และ *Platformer Art: Candy* (ไลเซนส์ CC0 / สาธารณสมบัติ ใช้ได้ฟรีเชิงพาณิชย์)
