@@ -1210,23 +1210,35 @@ function drawTrail() {
 function drawPoseSheet() {
   ctx.fillStyle = '#efe0c8';
   ctx.fillRect(0, 0, W, H);
-  const poses = [
-    ['วิ่ง A', () => cookieBody(0.16, 0.95, -0.95, 2.6 + 0.7, 2.6 - 0.7, -1.5)],
-    ['วิ่ง B', () => cookieBody(0.16, -0.95, 0.95, 2.6 - 0.7, 2.6 + 0.7, 0)],
-    ['กระโดด', () => cookieBody(0.14, 1.1, -0.6, 2.0, 3.6, 0)],
+  ctx.fillStyle = '#5a3413';
+  ctx.font = 'bold 16px Trebuchet MS'; ctx.textAlign = 'center';
+  // แถวบน: วงจรวิ่ง 6 เฟรม
+  for (let i = 0; i < 6; i++) {
+    ctx.save();
+    ctx.translate(90 + i * 156, 258);
+    ctx.scale(1.55, 1.55);
+    drawCookieRun(i * TAU / 6 / 1.15);
+    ctx.restore();
+    ctx.fillText('วิ่ง ' + (i + 1), 90 + i * 156, 282);
+  }
+  // แถวล่าง: โดดขึ้น / ร่วงลง / สไลด์ / ยืน
+  const oldVy = P.vy;
+  const lower = [
+    ['โดดขึ้น', () => { P.vy = -500; drawCookieJump(false); }],
+    ['ร่วงลง', () => { P.vy = 500; drawCookieJump(false); }],
+    ['ตีลังกา', () => drawCookieJump(true)],
+    ['สไลด์', () => drawCookieSlide(0.5)],
     ['ยืน', () => cookieBody(0, 0.4, -0.4, 2.7, 3.5, 0)],
   ];
-  poses.forEach(([label, fn], i) => {
+  lower.forEach(([label, fn], i) => {
     ctx.save();
-    ctx.translate(130 + i * 240, 470);
-    ctx.scale(3.1, 3.1);
+    ctx.translate(105 + i * 190, 492);
+    ctx.scale(1.55, 1.55);
     fn();
     ctx.restore();
-    ctx.fillStyle = '#5a3413';
-    ctx.font = 'bold 20px Trebuchet MS';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, 130 + i * 240, 512);
+    ctx.fillText(label, 105 + i * 190, 516);
   });
+  P.vy = oldVy;
 }
 
 /* ---------- background ---------- */
@@ -1906,8 +1918,13 @@ function ballGrad(x, y, r, c) {
   return g;
 }
 
-function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
+function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   ch = ch || CH();
+  joints = joints || {};
+  const kA = joints.kA !== undefined ? joints.kA : 0.14;   // เข่า
+  const kB = joints.kB !== undefined ? joints.kB : 0.14;
+  const eA = joints.eA !== undefined ? joints.eA : 0.5;    // ศอก
+  const eB = joints.eB !== undefined ? joints.eB : 0.5;
   const B = ch.body, ICING = ch.icing;
   const RIM = 'rgba(150,85,25,.45)';   // ขอบนุ่มบาง ๆ แบบงาน 3D ต้นฉบับ (ไม่ใช่เส้นดำหนา)
   const EYE = ch.eye || '#2f9bf2';
@@ -1941,27 +1958,37 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
   }
 
   /* --- ขา: ท่อนป้อมปลายมน (แบบต้นฉบับ ไม่มีรองเท้า/ไม่มีขอบหยัก) --- */
-  const leg = (ang) => {
-    ctx.save();
-    ctx.translate(0, -30);
-    ctx.rotate(ang);
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = RIM; ctx.lineWidth = 13.4;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 23); ctx.stroke();
+  const limbGrad = () => {
     const lg = ctx.createLinearGradient(-6, 0, 7, 0);
     lg.addColorStop(0, shade(B, 18)); lg.addColorStop(0.55, B); lg.addColorStop(1, shade(B, -16));
-    ctx.strokeStyle = lg; ctx.lineWidth = 12;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 23); ctx.stroke();
+    return lg;
+  };
+  const seg = (len, w) => {
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = RIM; ctx.lineWidth = w + 1.4;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, len); ctx.stroke();
+    ctx.strokeStyle = limbGrad(); ctx.lineWidth = w;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, len); ctx.stroke();
+  };
+  /* ขา 2 ท่อน: สะโพก→เข่า→หน้าแข้ง→เท้า */
+  const leg = (hip, knee) => {
+    ctx.save();
+    ctx.translate(0, -30);
+    ctx.rotate(hip);
+    seg(13, 12);                    // ต้นขา
+    ctx.translate(0, 13);
+    ctx.rotate(knee);
+    seg(11, 11.4);                  // หน้าแข้ง
     // เท้าป้อมโค้ง
-    ctx.fillStyle = ballGrad(2.5, 25, 9, B);
-    ctx.beginPath(); ctx.ellipse(2.5, 25, 9, 6.6, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = ballGrad(2.5, 13, 9, B);
+    ctx.beginPath(); ctx.ellipse(2.5, 13, 9, 6.4, 0, 0, TAU); ctx.fill();
     ctx.strokeStyle = RIM; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.ellipse(2.5, 25, 9, 6.6, 0, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(2.5, 13, 9, 6.4, 0, 0, TAU); ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,.35)';
-    ctx.beginPath(); ctx.ellipse(0.2, 22.4, 3.8, 2, -0.2, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0.2, 10.6, 3.8, 2, -0.2, 0, TAU); ctx.fill();
     ctx.restore();
   };
-  leg(legA); leg(legB);
+  leg(legA, kA); leg(legB, kB);
 
   /* --- ลำตัวป้อมกลม --- */
   const bg = ctx.createLinearGradient(-15, -66, 13, -24);
@@ -2016,27 +2043,24 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
   }
 
   /* --- แขนท่อนป้อมปลายมน --- */
-  const arm = (ang) => {
+  const arm = (shoulder, elbow) => {
     ctx.save();
     ctx.translate(0, -57);
-    ctx.rotate(ang);
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = RIM; ctx.lineWidth = 11.4;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 20); ctx.stroke();
-    const ag = ctx.createLinearGradient(-5, 0, 6, 0);
-    ag.addColorStop(0, shade(B, 18)); ag.addColorStop(0.55, B); ag.addColorStop(1, shade(B, -16));
-    ctx.strokeStyle = ag; ctx.lineWidth = 10;
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 20); ctx.stroke();
+    ctx.rotate(shoulder);
+    seg(11, 10);                    // ต้นแขน
+    ctx.translate(0, 11);
+    ctx.rotate(elbow);
+    seg(9, 9.4);                    // ปลายแขน
     // ปลายมือมน
-    ctx.fillStyle = ballGrad(0, 23, 7, B);
-    ctx.beginPath(); ctx.arc(0, 23, 7, 0, TAU); ctx.fill();
+    ctx.fillStyle = ballGrad(0, 12, 6.8, B);
+    ctx.beginPath(); ctx.arc(0, 12, 6.8, 0, TAU); ctx.fill();
     ctx.strokeStyle = RIM; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(0, 23, 7, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 12, 6.8, 0, TAU); ctx.stroke();
     ctx.fillStyle = 'rgba(255,255,255,.3)';
-    ctx.beginPath(); ctx.arc(-2, 20.8, 2.6, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(-2, 9.8, 2.5, 0, TAU); ctx.fill();
     ctx.restore();
   };
-  arm(armA); arm(armB);
+  arm(armA, eA); arm(armB, eB);
 
   /* --- หัวเปลือยสีทองอบ (ไม่มีแผ่นครีมคลุม) --- */
   ctx.save();
@@ -2203,8 +2227,23 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
 
 
 function drawCookieRun(t, ch) {
-  const c = Math.sin(t), s = Math.sin(t + Math.PI);
-  cookieBody(0.10, c * 0.9, s * 0.9, 2.6 + s * 0.7, 2.6 + c * 0.7, Math.abs(Math.cos(t)) * -2, ch);
+  t *= 1.15;                                  // จังหวะก้าวเร็วขึ้นเล็กน้อย
+  const s = Math.sin(t), c = Math.cos(t);
+  const sB = Math.sin(t + Math.PI);
+  ctx.save();
+  ctx.translate(0, -Math.abs(c) * 3);         // ตัวเด้งขึ้นลงตามก้าว
+  cookieBody(
+    0.15 + Math.sin(t * 2) * 0.025,           // เอนตัวไปหน้า + โยกเล็กน้อย
+    s * 1.05, sB * 1.05,                      // สะโพกสลับหน้า-หลัง
+    2.5 + sB * 0.9, 2.5 + s * 0.9,            // ไหล่ปั๊มสลับ
+    Math.abs(c) * -2.4,                       // หัวบ็อบ
+    ch,
+    { kA: 0.14 + Math.max(0, s) * 1.25,       // เข่างอตอนขาสะบัดหลัง
+      kB: 0.14 + Math.max(0, sB) * 1.25,
+      eA: 0.55 + sB * 0.3,                    // ศอกงอปั๊มตาม
+      eB: 0.55 + s * 0.3 }
+  );
+  ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 3; ctx.lineCap='round';
   for (let i = 0; i < 3; i++) {
     const yy = -30 - i * 18, ln = 14 + ((t * 7 + i * 2) % 3) * 5;
@@ -2213,23 +2252,36 @@ function drawCookieRun(t, ch) {
 }
 function drawCookieJump(second) {
   if (second) {
+    // ตีลังกาม้วนตัวเก็บแขนขา
     ctx.save();
     ctx.translate(0, -40);
     ctx.rotate(P.anim * 1.8 % TAU);
     ctx.translate(0, 40);
-    cookieBody(0, 0.9, -0.9, 2.2, 3.4, 0);
+    cookieBody(0, 1.15, -0.7, 2.5, 3.2, 0, undefined,
+      { kA: 1.5, kB: 1.35, eA: 1.25, eB: 1.2 });
     ctx.restore();
+  } else if (P.vy < 0) {
+    // พุ่งขึ้น: เข่าหน้ายกพับ ขาหลังเหยียดถีบ แขนสะบัดขึ้น
+    cookieBody(0.17, -0.75, 1.05, 1.9, 3.55, 1,
+      undefined,
+      { kA: 1.35, kB: 0.25, eA: 0.9, eB: 0.35 });
   } else {
-    cookieBody(0.14, P.vy < 0 ? 1.1 : 0.4, P.vy < 0 ? -0.6 : -1.1, 2.0, 3.6, 0);
+    // ร่วงลง: ขาถ่างเตรียมรับพื้น แขนกางทรงตัว
+    cookieBody(0.1, 0.55, -0.8, 2.15, 3.35, -1,
+      undefined,
+      { kA: 0.5, kB: 0.75, eA: 0.45, eB: 0.6 });
   }
 }
 function drawCookieSlide(t) {
+  // สไลด์เท้านำ ตัวเอนราบ แขนหลังกวาดพื้น
   ctx.save();
-  ctx.rotate(-Math.PI / 2 + 0.28);
-  ctx.translate(16, 6);
-  cookieBody(0, 0.5 + Math.sin(t*2)*0.1, -0.3, 2.8, 3.2, 0);
+  ctx.rotate(-1.05);
+  ctx.translate(20, 9);
+  cookieBody(0, -1.15, -0.7 + Math.sin(t * 2) * 0.08, 2.9, 1.35, 2,
+    undefined,
+    { kA: 0.35, kB: 0.85, eA: 0.5, eB: 1.15 });
   ctx.restore();
-  if (Math.random() < 0.5) puff(P.x + 10, GROUND_Y, 1);
+  if (Math.random() < 0.75) puff(P.x + rnd(0, 24), GROUND_Y, 1);
 }
 
 /* ---------- particles & floaters ---------- */
