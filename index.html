@@ -116,6 +116,24 @@ const SAVE = {
    4 ตัวแรกคงตำแหน่งเดิมเพื่อความเข้ากันได้กับเซฟเก่า
    ============================================================ */
 const GRADES = { C:'#9aa7b0', B:'#5cb85c', A:'#4a9fe0', S:'#b06ae0', SS:'#e8b03a', L:'#e0563a', E:'#3ac0a0' };
+
+/* ============================================================
+   EPISODE — 5 แผนที่ ปลดล็อกด้วยสถิติระยะทาง แต่ละตอนมีธีม/คอร์ส/ความยากต่างกัน
+   ============================================================ */
+const EPISODES = [
+  { id: 'oven',    name: 'หนีจากเตาอบ!',   icon: '🔥', seed: 424242, unlock: 0,
+    tint: null,                    ground: ['#c98d4e', '#a96f37', '#7a4a20'], spd: 0,  drain: 0 },
+  { id: 'jungle',  name: 'ป่าดึกดำบรรพ์',  icon: '🌴', seed: 111003, unlock: 500,
+    tint: 'rgba(40,120,55,.26)',   ground: ['#7da24e', '#5d8237', '#3f5a20'], spd: 25, drain: 0.2 },
+  { id: 'dragon',  name: 'หุบเขามังกร',    icon: '🐉', seed: 222004, unlock: 1200,
+    tint: 'rgba(185,62,30,.24)',   ground: ['#c9704e', '#a95637', '#7a3520'], spd: 50, drain: 0.4 },
+  { id: 'wizard',  name: 'นครแห่งพ่อมด',   icon: '🔮', seed: 333005, unlock: 2000,
+    tint: 'rgba(88,58,165,.3)',    ground: ['#8d7ac9', '#6f5ba9', '#4a3a7a'], spd: 75, drain: 0.55 },
+  { id: 'dessert', name: 'สวรรค์ขนมหวาน',  icon: '🍰', seed: 444006, unlock: 3000,
+    tint: 'rgba(255,140,190,.2)',  ground: ['#e89cb8', '#c97d9a', '#9a4a6a'], spd: 100, drain: 0.7 },
+];
+const EP = () => EPISODES[G.episode] || EPISODES[0];
+const epUnlocked = i => G.distBest >= EPISODES[i].unlock;
 function abDesc(o) {
   const d = [];
   if (o.jumps > 2) d.push('กระโดดกลางอากาศ ' + o.jumps + ' ชั้น');
@@ -784,6 +802,8 @@ const G = {
   best: Math.floor(+(SAVE.get('best', 0)) || 0),
   bank: Math.floor(+(SAVE.get('coins', 0)) || 0),
   charIdx: SAVE.get('char', 0),
+  relayIdx: SAVE.get('relay', -1), relayUsed: false, mainCharIdx: -1,
+  episode: SAVE.get('ep', 0), distBest: SAVE.get('distBest', 0),
   owned: SAVE.get('owned', [0]),
   petIdx: SAVE.get('pet', 0),
   petsOwned: SAVE.get('petsOwned', [0]),
@@ -1256,7 +1276,8 @@ function startGame(mode, boosts) {
   G.continueUsed = false;
   G.floorNow = 1; G.floorT = 0;
   // คอร์สตายตัวต่อโหมด — เล่นซ้ำเจอด่านเดิม ฝึกให้เก่งขึ้นได้แบบเกมจริง
-  courseRng = mulberry32(G.mode === 'coins' ? 777001 : G.mode === 'tower' ? 555002 : 424242);
+  if (G.mode === 'normal' && !epUnlocked(G.episode)) G.episode = 0;
+  courseRng = mulberry32(G.mode === 'coins' ? 777001 : G.mode === 'tower' ? 555002 : EP().seed);
   setState('play');
   G.time = G.time; G.dist = 0; G.score = 0; G.coins = 0; G.jellies = 0;
   G.combo = 0; G.comboTimer = 0;
@@ -1265,11 +1286,12 @@ function startGame(mode, boosts) {
   G.combi = PT().id === CH().mate;   // คู่ซี้คุกกี้-สัตว์เลี้ยง = แต้ม +15%
   G.formT = 0; G.cfxT = 0;
   G.obSmashLeft = CFX().k === 'obSmash' ? CFX().v : 0;
+  G.relayUsed = false; G.mainCharIdx = -1;
   G.petFxT = 0;
   G.hp = G.hpMax;
   G.stage = 1; G.stageTimer = 0;
-  G.hpDrain = 3.2;
-  G.speed = G.baseSpeed; G.newBest = false; G.rankPos = -1;
+  G.hpDrain = 3.2 + (G.mode === 'normal' ? EP().drain : 0);
+  G.speed = G.baseSpeed + (G.mode === 'normal' ? EP().spd : 0); G.newBest = false; G.rankPos = -1;
   P.y = GROUND_Y - P.h; P.vy = 0; P.onGround = true; P.jumps = 0;
   P.sliding = false; P.invT = 0; P.giantT = 0; P.magnetT = 0;
   P.boostT = (2.4 + CH().boostBonus + (PFX().k === 'boost' ? PFX().v : 0) + G.upg.boost * 0.6) * (G.runBoost.fast ? 2 : 1);
@@ -1283,10 +1305,10 @@ function startGame(mode, boosts) {
   Pet.x = 60; Pet.y = 280;
   worldX = 0; spawnX = W + 100;
   skyPrev = 0; skyCur = 0; skyT = 1;
-  ovenAmt = 1;                     // เริ่มเกม = อยู่ในเตาอบ
+  ovenAmt = (G.mode === 'normal' && G.episode > 0) ? 0 : 1;   // ตอนแรกเท่านั้นที่เริ่มในเตาอบ
   if (G.mode === 'coins') banner('🏴‍☠️ เกาะโจรสลัด: กวาดเหรียญให้มากที่สุด!', '#ffd24a');
   else if (G.mode === 'tower') { banner('🧊 หอคอยน้ำแข็ง — ชั้นที่ 1!', '#8fd3ff'); skyPrev = 3; skyCur = 3; }
-  else banner('EPISODE 1: หนีจากเตาอบ! GO!!', '#ffdd44');
+  else banner('EPISODE ' + (G.episode + 1) + ': ' + EP().name + ' GO!!', '#ffdd44');
   AudioSys.startMusic();
 }
 
@@ -1305,6 +1327,26 @@ function gameOver() {
     banner('✨ ชุบชีวิต! REVIVE! ✨', '#ffd24a');
     AudioSys.power();
     sparkle(P.x + P.w / 2, P.y + P.h / 2, 26, '#ffd24a');
+    return false;
+  }
+  // RELAY: คุกกี้ตัวสำรองวิ่งต่อจากจุดที่ล้ม (แบบเกมจริง)
+  if (G.relayIdx >= 0 && !G.relayUsed && G.relayIdx !== G.charIdx && G.owned.includes(G.relayIdx)) {
+    G.relayUsed = true;
+    G.mainCharIdx = G.charIdx;
+    G.charIdx = G.relayIdx;
+    // รีเซ็ตสถานะความสามารถของตัวใหม่
+    G.formT = 0; G.cfxT = 0;
+    G.obSmashLeft = CFX().k === 'obSmash' ? CFX().v : 0;
+    G.combi = PT().id === CH().mate;
+    G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12 + (G.runBoost.energy ? 40 : 0)
+            + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0);
+    G.hp = G.hpMax;
+    P.invT = 3; P.dead = false; P.fallingPit = false;
+    P.y = Math.min(P.y, GROUND_Y - P.h - 120); P.vy = 0;
+    G.flash = 0; G.shake = 8;
+    banner('🏃 RELAY!! ' + CH().name + ' รับไม้ต่อ!', '#7bd94a');
+    AudioSys.power();
+    sparkle(P.x + P.w / 2, P.y + P.h / 2, 30, '#7bd94a');
     return false;
   }
   // เสนอ Continue ด้วยคริสตัล (ครั้งเดียวต่อรอบ แบบเกมจริง)
@@ -1333,6 +1375,8 @@ function doContinue() {
 }
 
 function settleGameOver() {
+  if (G.mainCharIdx >= 0) { G.charIdx = G.mainCharIdx; G.mainCharIdx = -1; }   // คืนตัวหลักหลังจบรอบ
+  if (G.dist > G.distBest) { G.distBest = Math.floor(G.dist); SAVE.set('distBest', G.distBest); }
   setState('over'); G.overT = 0;
   P.dead = true;
   puff(P.x + 28, P.y + P.h - 6, 16, '#a97b45');
@@ -1657,7 +1701,7 @@ function update(dt) {
     if (b.x < -40) { b.x = W + rnd(10, 60); b.y = rnd(30, 430); }
   }
   // ฉากเตาอบค่อย ๆ เปลี่ยนเป็นโลกภายนอกเมื่อถึงด่าน 3
-  const ovTarget = (G.state === 'play' || G.state === 'over') && G.stage < 3 && G.mode !== 'tower' ? 1 : 0;
+  const ovTarget = (G.state === 'play' || G.state === 'over') && G.stage < 3 && G.mode !== 'tower' && !(G.mode === 'normal' && G.episode > 0) ? 1 : 0;
   ovenAmt += (ovTarget - ovenAmt) * Math.min(1, 1.3 * dt);
   if (ovTarget === 1 && ovenAmt > 0.99) ovenAmt = 1;
   P.squash += (0 - P.squash) * Math.min(1, 10 * dt);
@@ -2329,6 +2373,10 @@ function drawSky() {
   g.addColorStop(1, skyBlend('bot'));
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
+  if (G.mode === 'normal' && EP().tint && ovenAmt < 0.5) {
+    ctx.fillStyle = EP().tint;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   const night = skyBlend('night');
 
@@ -2416,11 +2464,56 @@ function drawBackHills() {
     ctx.lineTo(x + 500, 460); ctx.lineTo(x, 460);
     ctx.fill();
   }
-  // ต้นอมยิ้ม
+  // ของประดับริมทางตามตอน
   const off2 = -(worldX * 0.45) % 640;
+  const epi = G.mode === 'normal' ? EP().id : 'oven';
   for (let x = off2 - 640; x < W + 640; x += 320) {
-    drawLollipop(x + 60, 442, 1, ((x / 320 | 0) % 2) === 0);
+    const alt = ((x / 320 | 0) % 2) === 0;
+    if (epi === 'jungle') drawJungleTree(x + 60, 442, alt);
+    else if (epi === 'dragon') drawRockSpike(x + 60, 442, alt);
+    else if (epi === 'wizard') drawWizTower(x + 60, 442, alt);
+    else drawLollipop(x + 60, 442, 1, alt);
   }
+}
+/* ต้นไม้ป่าดึกดำบรรพ์ */
+function drawJungleTree(x, groundY, alt) {
+  ctx.save();
+  ctx.translate(x, groundY);
+  ctx.fillStyle = '#6b4423';
+  ctx.fillRect(-6, -110, 12, 110);
+  ctx.fillStyle = alt ? '#3f8a3f' : '#2e7a34';
+  for (const [dx, dy, r] of [[-22, -112, 22], [0, -132, 27], [22, -110, 22], [0, -104, 24]])
+    { ctx.beginPath(); ctx.arc(dx, dy, r, 0, TAU); ctx.fill(); }
+  ctx.fillStyle = 'rgba(255,255,255,.18)';
+  ctx.beginPath(); ctx.arc(-8, -136, 12, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+/* แท่งหินหุบเขามังกร */
+function drawRockSpike(x, groundY, alt) {
+  ctx.save();
+  ctx.translate(x, groundY);
+  ctx.fillStyle = alt ? '#8a4a34' : '#7a3f2c';
+  ctx.beginPath();
+  ctx.moveTo(-26, 0); ctx.lineTo(-10, -128); ctx.lineTo(-2, -70);
+  ctx.lineTo(8, -150); ctx.lineTo(26, 0);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = 'rgba(255,140,60,.35)';
+  ctx.beginPath(); ctx.moveTo(8, -150); ctx.lineTo(14, -80); ctx.lineTo(2, -84); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+/* หอคอยนครพ่อมด */
+function drawWizTower(x, groundY, alt) {
+  ctx.save();
+  ctx.translate(x, groundY);
+  ctx.fillStyle = alt ? '#5a4a8a' : '#4a3a7a';
+  ctx.fillRect(-14, -118, 28, 118);
+  ctx.beginPath(); ctx.moveTo(-20, -118); ctx.lineTo(0, -158); ctx.lineTo(20, -118); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffe066';
+  ctx.beginPath(); ctx.arc(0, -96, 5, 0, TAU); ctx.fill();
+  ctx.globalAlpha = 0.5 + Math.sin(G.time * 3 + x) * 0.3;
+  ctx.beginPath(); ctx.arc(0, -164, 3.4, 0, TAU); ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 function drawCastle(x, baseY) {
   // เงาปราสาทไอศกรีม (ใช้ fillStyle ที่ตั้งไว้แล้ว)
@@ -2453,10 +2546,11 @@ function drawLollipop(x, groundY, s, alt) {
 }
 
 function drawGroundAndPits() {
+  const gc = G.mode === 'normal' ? EP().ground : ['#c98d4e', '#a96f37', '#7a4a20'];
   const g = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-  g.addColorStop(0, '#c98d4e');
-  g.addColorStop(0.15, '#a96f37');
-  g.addColorStop(1, '#7a4a20');
+  g.addColorStop(0, gc[0]);
+  g.addColorStop(0.15, gc[1]);
+  g.addColorStop(1, gc[2]);
   ctx.fillStyle = g;
   ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
 
@@ -4865,6 +4959,36 @@ function drawPrep() {
   ctx.font = '13px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
   ctx.fillText(PT().name + '  Lv.' + petLvNow(), 150, 394);
 
+  // ---- คู่วิ่งผลัด (Relay) แบบเกมจริง: ล้มแล้วตัวสำรองวิ่งต่อ ----
+  drawPanel(28, 408, 250, 96, 12);
+  ctx.font = 'bold 13.5px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#7bd94a';
+  ctx.fillText('🏃 คู่วิ่งผลัด (RELAY)', 152, 428);
+  const relayOK = G.relayIdx >= 0 && G.relayIdx !== G.charIdx && G.owned.includes(G.relayIdx);
+  if (relayOK) {
+    ctx.drawImage(cookiePortrait(G.relayIdx), 40, 428, 56, 64);
+    ctx.font = 'bold 12.5px Trebuchet MS'; ctx.fillStyle = '#fff';
+    let rn = CHARS[G.relayIdx].name.replace('คุกกี้', '');
+    if (rn.length > 12) rn = rn.slice(0, 11) + '…';
+    ctx.fillText(rn, 168, 452);
+    ctx.font = '11px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+    ctx.fillText('ล้มเมื่อไหร่ รับไม้ต่อทันที', 168, 470);
+  } else {
+    ctx.font = '12px Trebuchet MS'; ctx.fillStyle = '#c8b8a0';
+    ctx.fillText('ไม่ใช้ตัวสำรอง', 152, 460);
+  }
+  const relayCycle = dir => {
+    const owned = CHARS.map((c2, i2) => i2).filter(i2 => G.owned.includes(i2) && i2 !== G.charIdx);
+    if (!owned.length) return;
+    const opts = [-1, ...owned];
+    let at = opts.indexOf(G.relayIdx); if (at < 0) at = 0;
+    G.relayIdx = opts[(at + dir + opts.length) % opts.length];
+    SAVE.set('relay', G.relayIdx);
+    AudioSys.click();
+  };
+  drawBtn(34, 466, 34, 30, '‹', () => relayCycle(-1), { color: '#a08468', dark: '#7d6448', font: 16 });
+  drawBtn(238, 466, 34, 30, '›', () => relayCycle(1), { color: '#a08468', dark: '#7d6448', font: 16 });
+
   // การ์ดบูสต์ 2x2
   ctx.font = 'bold 15px Trebuchet MS';
   ctx.fillStyle = '#ffe9b8'; ctx.textAlign = 'center';
@@ -4900,8 +5024,31 @@ function drawPrep() {
   ctx.fillStyle = total > G.bank ? '#ff8888' : '#ffe9b8';
   ctx.fillText('รวมค่าบูสต์: 🪙 ' + total.toLocaleString(), 610, 376);
 
-  drawBtn(W / 2 - 40, 400, 340, 58, '🏁 GO!!', prepGo, { color: '#ffb02e', dark: '#e07b12', font: 26 });
-  drawBtn(W / 2 - 40, 472, 340, 42, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448', font: 16 });
+  // ---- เลือกตอน (EPISODE) — ปลดล็อกด้วยสถิติระยะทาง ----
+  ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffe9b8';
+  ctx.fillText('เลือกตอน (สถิติไกลสุด ' + G.distBest.toLocaleString() + ' m):', 310, 404);
+  EPISODES.forEach((ep2, i) => {
+    const bx = 310 + i * 118, by2 = 412, bw = 110, bh = 40;
+    const un = epUnlocked(i);
+    const cur = G.episode === i;
+    drawBtn(bx, by2, bw, bh,
+      (un ? ep2.icon + ' ' : '🔒 ') + 'EP' + (i + 1),
+      () => {
+        if (!un) { AudioSys.deny(); floatText(W / 2, 100, 'ต้องวิ่งให้ถึง ' + ep2.unlock.toLocaleString() + ' m ก่อน!', '#ff8888', true); return; }
+        G.episode = i; SAVE.set('ep', i); AudioSys.click();
+        floatText(W / 2, 100, 'EPISODE ' + (i + 1) + ': ' + ep2.name, '#ffd24a', true);
+      },
+      cur && un ? { color: '#7bd94a', dark: '#57a832', font: 13 }
+        : un ? { color: '#5cb8e8', dark: '#3d92c4', font: 13 }
+        : { color: '#8a8178', dark: '#6e675f', font: 13 });
+  });
+  ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#c8e8ff';
+  ctx.fillText('▶ EP' + (G.episode + 1) + ' ' + EP().name + (G.episode > 0 ? ' (เร็ว+' + EP().spd + ' พลังลดไวขึ้น)' : ''), 310, 472);
+
+  drawBtn(W / 2 + 30, 480, 270, 44, '🏁 GO!!', prepGo, { color: '#ffb02e', dark: '#e07b12', font: 22 });
+  drawBtn(W - 176, 480, 150, 44, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448', font: 15 });
 }
 
 /* ---------- เลือกตัวละคร ---------- */
