@@ -447,6 +447,184 @@ const PETS = [
   PE('kingdrop', 'คิงช็อกโกดรอป', 'L', 30000, 'drop', ['#4a2e1a', '#ffd24a'], { k: 'score', v: 1.12 }, 10),
   PE('beanduo', 'ถั่วแฝดดูโอ', 'E', 20000, 'drop', ['#a05a4a', '#8fbf6a'], { k: 'jelly', v: 4 }, 11),
 ];
+/* ============================================================
+   ความสามารถตามเกมต้นฉบับ (สรุปย่อภาษาไทย) + คู่ซี้ Combi ตามเกมจริง
+   cfx = กลไกพิเศษ: spawnSp เสกเยลลี่ / destroyIv ทำลายสิ่งกีดขวาง /
+         coinIv เสกเหรียญ / transform แปลงร่างอมตะ (trig: potion/revive)
+   ============================================================ */
+const REAL = {
+  brave: { desc: ['วิ่ง กระโดด สองชั้น สไลด์', 'ครบเครื่องแบบต้นฉบับ'], mate: 'chocodrop' },
+  bright: { desc: ['รับแต้มโบนัสเพิ่ม', 'สายเก็บเลเวล'], mate: 'cheesedrop', ptMul: 1.05 },
+  berry: { desc: ['BONUS TIME นานขึ้น', '(สกิลจริงของต้นฉบับ)'], mate: 'flowercopter', btPlus: 1.4 },
+  cream: { desc: ['พลังชีวิตลดช้าลง 17%'], mate: 'cozyyarn', drainMul: 0.83 },
+  cloudc: { desc: ['ไอเทม Power Jelly', 'อยู่นานขึ้น 35%'], mate: 'cottoncloud', itemMul: 1.35 },
+  bcchoco: { desc: ['เหรียญที่ได้ +15%'], mate: 'dustuni', coinMul: 1.15 },
+  gclaus: { desc: ['เหรียญ +20% และแต้ม +5%'], mate: 'stocking', coinMul: 1.2, ptMul: 1.05 },
+  coffee: { desc: ['ยาเพิ่มพลังฟื้นพลัง', 'มากขึ้น 29%'], mate: 'mocha', cfx: { k: 'potionPlus', v: 0.29 } },
+  skater: { desc: ['วิ่งเร็วขึ้นกว่าปกติ'], mate: 'dicebros', cfx: { k: 'spdPlus', v: 0.08 } },
+  princess: { desc: ['ชนสิ่งกีดขวาง', 'เจ็บลดลงครึ่งหนึ่ง'], mate: 'locket', cfx: { k: 'hitGuard', v: 0.5 } },
+  knight: { desc: ['เก็บ Blast Jelly แล้ว', 'พุ่งแรงและนานขึ้น'], mate: 'dragontail', cfx: { k: 'blastPlus', v: 1.2 } },
+  muscle: { desc: ['ทนทาน: ดาเมจชน', 'ลดลงอย่างมาก'], mate: 'dumbbell', cfx: { k: 'hitGuard', v: 0.35 } },
+  zombie: { desc: ['ฟื้นคืนชีพซ้ำได้', 'หลายครั้ง (ต้นฉบับสูงสุด 8)'], mate: 'braingum', revives: 4 },
+  angel: { desc: ['สนามแม่เหล็กดูดเยลลี่', 'รอบตัวตลอดเวลา'], mate: 'celestar', magnet: true },
+  ninja: { desc: ['โดดกลางอากาศต่อเนื่อง', '(ต้นฉบับสูงสุด 10 ชั้น)'], mate: 'littleghost', jumps: 5 },
+  pirate: { desc: ['พลังหมดแล้วฟื้นเป็น', 'โจรสลัดผีพร้อมพลังเต็ม'], mate: 'gigglebomb', revives: 2, cfx: { k: 'reviveHp', v: 60 } },
+  skatingq: { desc: ['แต้มพิเศษจากการโดด 2 ชั้น', 'และ BONUS TIME'], mate: 'snowflower', btPlus: 1, cfx: { k: 'jumpPts', v: 150 } },
+  hero: { desc: ['แปลงร่างซูเปอร์ฮีโร่', 'บินอมตะเป็นระยะ'], mate: 'jellyco', cfx: { k: 'transform', iv: 22, dur: 5, tag: '🦸 HERO MODE' } },
+  sforce: { desc: ['ยิงลูกกวาดดาว', 'ทำลายสิ่งกีดขวาง'], mate: 'awol', cfx: { k: 'destroyIv', iv: 8, tag: '🌟 ยิง!' } },
+  cheer: { desc: ['ทีมเชียร์บุกทำลายสิ่งกีดขวาง', 'พร้อมโปรยเหรียญ'], mate: 'glitter', cfx: { k: 'destroyIv', iv: 10, coins: 3, tag: '📣 เชียร์!' } },
+  kumiho: { desc: ['แปลงร่างจิ้งจอกเก้าหาง', 'เก็บแต้มพิเศษ'], mate: 'foxbead', cfx: { k: 'transform', iv: 20, dur: 4, tag: '🦊 เก้าหาง' } },
+  devil: { desc: ['แปลงร่างซูเปอร์เดวิล', 'กลืนกินทุกอย่าง'], mate: 'flamebat', cfx: { k: 'transform', iv: 24, dur: 5, tag: '😈 SUPER DEVIL' } },
+  fairy: { desc: ['ออร่าแม่เหล็ก', 'พร้อมเกราะกันชน'], mate: 'flowerpod', magnet: true, cfx: { k: 'hitGuard', v: 0.6 } },
+  wizard: { desc: ['ร่ายเวทเป็นระยะ ทำลาย', 'สิ่งกีดขวาง+เสกเยลลี่'], mate: 'wizbook', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🔮 เวทมนตร์' } },
+  rockstar: { desc: ['สไลด์ปล่อยโน้ตเยลลี่', 'เก็บเป็นแต้มพิเศษ'], mate: 'spotfan', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: 'โน้ตเยลลี่' } },
+  soda: { desc: ['ดื่มยาแล้วโต้คลื่นโซดา', 'สิ่งกีดขวางถูกซัดหาย'], mate: 'lemonslice', cfx: { k: 'transform', trig: 'potion', dur: 5, tag: '🏄 SODA SURF' } },
+  cherry: { desc: ['ขว้างเชอร์รีบอมบ์ทำลาย', 'สิ่งกีดขวาง+เกิดเยลลี่'], mate: 'rocketfc', cfx: { k: 'destroyIv', iv: 8, jelly: 1, tag: '🍒 บอมบ์!' } },
+  cheesecake: { desc: ['ปาร์ตี้พลุเหรียญ', 'เป็นระยะ'], mate: 'cheesecat', cfx: { k: 'coinIv', iv: 9, n: 5, tag: '🎆 พลุเหรียญ' } },
+  prophet: { desc: ['คำพยากรณ์เป็นจริงเสมอ:', 'กล่องปริศนาให้รางวัลโต'], mate: 'purplecandle', cfx: { k: 'boxLuck', v: 1.6 } },
+  pistachio: { desc: ['พุ่งดัชอมตะความเร็วสูง', 'เป็นระยะ'], mate: 'firefly', cfx: { k: 'transform', iv: 18, dur: 3, tag: '⚡ DASH' } },
+  alchemist: { desc: ['เกจแปรธาตุเต็มแล้ว', 'ยิงเยลลี่พิเศษ'], mate: 'jellyscale', cfx: { k: 'spawnSp', iv: 9, n: 3, tag: 'แปรธาตุ' } },
+  vampire: { desc: ['แปลงร่างค้างคาวน้ำองุ่น', 'อมตะและดูดพลังคืน'], mate: 'oakbarrel', cfx: { k: 'transform', iv: 22, dur: 5, tag: '🦇 JUICE BAT' } },
+  adventurer: { desc: ['เปิดประตูลับ', 'พบเหรียญกองโต'], mate: 'backpacky', cfx: { k: 'coinIv', iv: 11, n: 6, tag: '🚪 ประตูลับ' } },
+  redpepper: { desc: ['ชนสิ่งกีดขวางแล้วทุบแตก', 'แทนการเจ็บ (จำกัดครั้ง)'], mate: 'punchbag', revives: 2, cfx: { k: 'obSmash', v: 3 } },
+  snowsugar: { desc: ['เรียกสโนว์โคนทำลาย', 'สิ่งกีดขวาง+เยลลี่หิมะ'], mate: 'snowglobe', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '❄ สโนว์โคน' } },
+  carol: { desc: ['ร้องเพลงศักดิ์สิทธิ์', 'เสกเหรียญ+ฟื้นพลัง'], mate: 'yulelog', drainMul: 0.95, cfx: { k: 'coinIv', iv: 9, n: 4, tag: '🎵 เพลงแครอล' } },
+  blackberry: { desc: ['วิญญาณรับใช้เสก', 'แบล็กเบอร์รีเยลลี่เป็นระยะ'], mate: 'ghostbutler', cfx: { k: 'spawnSp', iv: 7, n: 3, tag: 'วิญญาณ' } },
+  pinkchoco: { desc: ['ยิงฮาร์ตบีมทำลาย', 'สิ่งกีดขวาง+บงบงเยลลี่'], mate: 'pinkcandy', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '💗 ฮาร์ตบีม' } },
+  kiwi: { desc: ['ซิ่งมอเตอร์ไซค์พุ่งทะลุ', 'เป็นระยะ'], mate: 'kiwibird', cfx: { k: 'transform', iv: 20, dur: 4, tag: '🏍 ซิ่ง!' } },
+  apple: { desc: ['เสกฟองเยลลี่ตัวอักษร', 'เป็นระยะ'], mate: 'applerabbit', cfx: { k: 'spawnSp', iv: 9, n: 3, tag: 'ฟองแอปเปิล' } },
+  werewolf: { desc: ['แปลงร่างหมาป่าอมตะ', 'ยิ่งพลังต่ำยิ่งแปลงถี่'], mate: 'furpup', cfx: { k: 'transform', iv: 20, dur: 5, low: 1, tag: '🐺 หมาป่า' } },
+  mintchoco: { desc: ['สีไวโอลินเสกเหรียญ', 'เป็นระยะ'], mate: 'doremi', cfx: { k: 'coinIv', iv: 7, n: 3, tag: '🎻 ไวโอลิน' } },
+  cocoa: { desc: ['ดื่มยาแล้วขี่ถ้วยโกโก้', 'บินอมตะ'], mate: 'marshham', cfx: { k: 'transform', trig: 'potion', dur: 5, tag: '☕ ถ้วยโกโก้' } },
+  creampuff: { desc: ['ร่ายมนตร์เสกเยลลี่', 'สุ่มเวทใหญ่'], mate: 'owlcorn', skillFast: 1.3, cfx: { k: 'spawnSp', iv: 9, n: 3, tag: 'เวทพัฟ' } },
+  cherryblossom: { desc: ['โปรยเยลลี่ซากุระ', 'ระหว่างโบยบิน'], mate: 'teacup', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌸 ซากุระ' } },
+  gumball: { desc: ['ยิงกัมบอลทำลาย', 'สิ่งกีดขวางเก็บแต้ม'], mate: 'minijackson', cfx: { k: 'destroyIv', iv: 8, tag: '🔫 กัมบอล' } },
+  lemon: { desc: ['เกราะไฟฟ้า: ดูดเยลลี่', 'และพลังลดช้าลง'], mate: 'electrolemon', magnet: true, drainMul: 0.95, jellyMul: 1.1 },
+  orange: { desc: ['ลูกเทนนิสเด้งทำลาย', 'สิ่งกีดขวาง'], mate: 'orangemouse', cfx: { k: 'destroyIv', iv: 9, tag: '🎾 สแมช!' } },
+  lime: { desc: ['ปาบอลชายหาดสร้างไลม์', 'ทำลายสิ่งกีดขวาง'], mate: 'limeguard', cfx: { k: 'destroyIv', iv: 10, jelly: 1, tag: '🏐 ไลม์!' } },
+  peppermint: { desc: ['เรียกวาฬเปปเปอร์มินต์', 'สร้างเยลลี่ฟองทะเล'], mate: 'boatman', cfx: { k: 'spawnSp', iv: 9, n: 4, tag: '🐋 วาฬ' } },
+  jujube: { desc: ['ควบม้าพุทราแดง', 'ฟันทำลายสิ่งกีดขวาง'], mate: 'hotteacup', cfx: { k: 'destroyIv', iv: 8, tag: '🐎 ฟัน!' } },
+  peach: { desc: ['บุกป่าไผ่สู้นักฆ่าไผ่', 'เก็บแต้มต่อเนื่อง'], mate: 'pandadump', cfx: { k: 'spawnSp', iv: 10, n: 4, tag: '🎋 ป่าไผ่' } },
+  onion: { desc: ['เข้าบ้านผีสิงทะลุ', 'สิ่งกีดขวางได้'], mate: 'onionfish', cfx: { k: 'transform', iv: 20, dur: 4, tag: '👻 บ้านผีสิง' } },
+  cinnamon: { desc: ['เล่นมายากลไพ่เสกเยลลี่', '+เวทคืนชีพ 1 ครั้ง'], mate: 'cinnabunny', revives: 2, cfx: { k: 'spawnSp', iv: 9, n: 3, tag: '🃏 มายากล' } },
+  macaron: { desc: ['ขบวนพาเหรดมาการอง', 'ทำลายสิ่งกีดขวาง+เยลลี่'], mate: 'castanets', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🥁 พาเหรด' } },
+  redbean: { desc: ['ขี่เลื่อนเพนกวิน', 'พุ่งเป็นระยะ'], mate: 'sweetseal', cfx: { k: 'transform', iv: 22, dur: 4, tag: '🐧 เลื่อนเพนกวิน' } },
+  herb: { desc: ['เยลลี่สายฝน-แสงแดด', 'ผลิบานเป็นระยะ'], mate: 'herbpot', drainMul: 0.9, cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌱 ผลิบาน' } },
+  whitechoco: { desc: ['ลุกจากสไลด์ฟาดทำลาย', 'สิ่งกีดขวางรอบตัว'], mate: 'watchref', cfx: { k: 'destroyIv', iv: 9, tag: '🤺 ฟาด!' } },
+  dinosour: { desc: ['วิ่งกับเจลลี่ไดโนเสาร์', 'กระโดดปลูกเยลลี่'], mate: 'dinoegg', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🦕 ไดโนฟุต' } },
+  cottoncandy: { desc: ['BONUS TIME พิเศษนานขึ้น', '+เยลลี่หัวใจจดหมายรัก'], mate: 'ccbird', btPlus: 2.2, cfx: { k: 'spawnSp', iv: 10, n: 3, tag: '💌 จดหมายรัก' } },
+  rollcake: { desc: ['ค้อนโรลเค้กทุบทำลาย', 'สิ่งกีดขวาง+เยลลี่'], mate: 'lightbros', cfx: { k: 'destroyIv', iv: 8, jelly: 1, tag: '🔨 ทุบ!' } },
+  banana: { desc: ['แปลงร่างลิงลอดห่วง', 'เก็บเหรียญ'], mate: 'savlion', coinMul: 1.1, cfx: { k: 'transform', iv: 20, dur: 4, tag: '🐒 ลิงกล้วย' } },
+  pancake: { desc: ['บินเก็บเยลลี่เมล็ด', 'ทานตะวันเป็นระยะ'], mate: 'frisbee', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌻 บินโฉบ' } },
+  rebel: { desc: ['โดดหลายชั้นแล้วสไลด์', 'ลงพื้นได้ทันที'], mate: 'windy', jumps: 3 },
+  moonrabbit: { desc: ['แปลงร่างกระต่ายโมจิยักษ์', 'กระทืบพื้นอมตะ'], mate: 'moonmortar', cfx: { k: 'transform', iv: 20, dur: 4, tag: '🐰 โมจิยักษ์' } },
+  sbshortcake: { desc: ['เสกเยลลี่ขนมหมาน้อย', 'แล้ววิ่งสี่ขาสุดแรง'], mate: 'cakehound', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🍰 ขนมหมา' } },
+  gulab: { desc: ['เปิดเทศกาลเต้นรำ', 'โปรยเหรียญ+เยลลี่'], mate: 'tabla', cfx: { k: 'coinIv', iv: 9, n: 4, tag: '🎉 เทศกาล' } },
+  kajukatli: { desc: ['ขว้างหอกทำลายสิ่งกีดขวาง', 'เกิดเยลลี่เพชร'], mate: 'whitedrop', cfx: { k: 'destroyIv', iv: 8, jelly: 1, tag: '🔱 หอก!' } },
+  marshbunny: { desc: ['อุโมงค์กระต่ายฟื้นพลัง', '+โปรยเหรียญ'], mate: 'marshham', hpBonus: 10, cfx: { k: 'coinIv', iv: 10, n: 3, tag: '🕳 อุโมงค์' } },
+  cucumber: { desc: ['เหวี่ยงเบ็ดทุบสิ่งกีดขวาง', 'ตกเยลลี่ปลา'], mate: 'garlic', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🎣 ตกปลา' } },
+  sikhye: { desc: ['เกจเต็มแล้วสร้างบ้าน', 'หมากเยลลี่เก็บแต้ม'], mate: 'sweetseal', cfx: { k: 'spawnSp', iv: 9, n: 4, tag: '⚪ หมากล้อม' } },
+  sujeonggwa: { desc: ['เกจเต็มแล้วสร้างบ้าน', 'หมากเยลลี่เก็บแต้ม'], mate: 'cinnabunny', cfx: { k: 'spawnSp', iv: 9, n: 4, tag: '⚫ หมากล้อม' } },
+  bari: { desc: ['เยลลี่ดอกไม้สามสี', 'เต็มเกจแล้วเดินทางวิญญาณ'], mate: 'flowerpod', revives: 2, cfx: { k: 'spawnSp', iv: 7, n: 4, tag: '🌺 ดอกไม้' } },
+  gimbap: { desc: ['กองทัพคิมบับบุกทำลาย', 'สิ่งกีดขวาง+เยลลี่'], mate: 'boatman', cfx: { k: 'destroyIv', iv: 7, jelly: 1, tag: '⚓ กองทัพ' } },
+  pinemonk: { desc: ['คลี่คัมภีร์เสกเยลลี่ใบสน', 'ขับไล่ภูตผี'], mate: 'herbpot', drainMul: 0.85, cfx: { k: 'spawnSp', iv: 7, n: 4, tag: '📿 คัมภีร์' } },
+  tigerlily: { desc: ['เปลี่ยนสิ่งกีดขวางเป็นหญ้า', 'พุ่งหอกเกิดเยลลี่+ยา'], mate: 'savlion', cfx: { k: 'destroyIv', iv: 7, jelly: 1, tag: '🐯 หอกลิลี' } },
+  firespirit: { desc: ['ฟื้นคืนชีพเป็นวิญญาณเพลิง', 'อมตะเผาทุกอย่าง'], mate: 'flamebat', revives: 2, cfx: { k: 'transform', trig: 'revive', dur: 6, tag: '🔥 FIRE SPIRIT' } },
+  moonlight: { desc: ['หลับฝันดูดเยลลี่ทั้งจอ', '+เสกเยลลี่ผงดาว'], mate: 'moonmortar', magnet: true, cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌙 ผงดาว' } },
+  seafairy: { desc: ['เรียกคลื่นยักษ์ถล่ม', 'สิ่งกีดขวาง+คริสตัลทะเล'], mate: 'wavedrop', cfx: { k: 'destroyIv', iv: 7, jelly: 1, tag: '🌊 คลื่นยักษ์' } },
+  windarcher: { desc: ['ง้างธนูยิงวิญญาณร้าย', 'ครบแล้วพุ่งลมกรด'], mate: 'windy', cfx: { k: 'transform', iv: 18, dur: 4, tag: '🏹 WIND DASH' } },
+  dancheong: { desc: ['ระบำพัดดันชอง', 'เสกเยลลี่ห้าสี'], mate: 'kingdrop', cfx: { k: 'spawnSp', iv: 8, n: 4, tag: '🎏 ระบำพัด' } },
+};
+CHARS.forEach(c => { if (REAL[c.id]) Object.assign(c, REAL[c.id]); });
+
+/* ---------- ความสามารถสัตว์เลี้ยงตามเกมต้นฉบับ (สรุปย่อ) ---------- */
+const REALPET = {
+  chocodrop: { fx: { k: 'bearify', v: 14 }, desc: ['พุ่งไปเปลี่ยนเยลลี่', 'เป็นหมีเยลลี่เป็นระยะ'] },
+  cottoncloud: { fx: { k: 'bt', v: 1.0 }, desc: ['ตัวโตขึ้นใน BONUS TIME', 'ช่วยเก็บแต้มเพิ่ม'] },
+  bubble: { fx: { k: 'bearify', v: 18 }, desc: ['เป่า Bear Jelly Party', 'เปลี่ยนเยลลี่เป็นหมี'] },
+  cheesedrop: { fx: { k: 'magnet', v: 14 }, desc: ['เก็บเยลลี่ที่พลาด', 'ให้อัตโนมัติ'] },
+  stocking: { fx: { k: 'spd', v: 0.05 }, desc: ['วิ่งเร็วขึ้น 5%'] },
+  liker: { fx: { k: 'coinrain', v: 9 }, desc: ['เสกเหรียญเงิน', 'เป็นระยะ'] },
+  dumbbell: { fx: { k: 'give', v: 16, it: 'giant' }, desc: ['เสกไอเทมโหมดยักษ์', 'เป็นระยะ'] },
+  mocha: { fx: { k: 'give', v: 14, it: 'letter' }, desc: ['เสกเยลลี่ตัวอักษร', 'BONUSTIME ให้'] },
+  cozyyarn: { fx: { k: 'give', v: 15, it: 'letter' }, desc: ['เสกเยลลี่พาเข้า', 'BONUS TIME'] },
+  garlic: { fx: { k: 'give', v: 16, it: 'blast' }, desc: ['เสก Blast Jelly', 'พุ่งทะลุทุกอย่าง'] },
+  beat: { fx: { k: 'give', v: 16, it: 'magnet' }, desc: ['เสกไอเทมแม่เหล็ก', 'เป็นระยะ'] },
+  merryhat: { fx: { k: 'coinrain', v: 8 }, desc: ['เสกเหรียญเงิน', 'ค่า 5 เหรียญ'] },
+  dustuni: { fx: { k: 'coinrain', v: 10 }, desc: ['เสกเหรียญทอง', 'ค่า 10 เหรียญ'] },
+  flowercopter: { fx: { k: 'bt', v: 1.2 }, desc: ['เร่งพลัง BONUS TIME', 'ให้คุ้มขึ้น'] },
+  celestar: { fx: { k: 'revive', v: 1 }, desc: ['ชุบชีวิตคุกกี้', 'เพิ่ม 1 ครั้ง'] },
+  braingum: { fx: { k: 'drain', v: 0.92 }, desc: ['พลังชีวิตลดช้าลง 8%'] },
+  dragontail: { fx: { k: 'destroy', v: 10 }, desc: ['วิญญาณมังกรทำลาย', 'สิ่งกีดขวาง'] },
+  dicebros: { fx: { k: 'give', v: 15, it: 'rand' }, desc: ['ทอยเต๋าเสกไอเทม', 'พลังแบบสุ่ม'] },
+  lantern: { fx: { k: 'give', v: 14, it: 'rand' }, desc: ['แจกของขวัญสุ่ม', 'เหนือกว่าใครเพื่อน'] },
+  locket: { fx: { k: 'give', v: 13, it: 'potion' }, desc: ['เสกยาเพิ่มพลังจิ๋ว', 'เป็นระยะ'] },
+  gigglebomb: { fx: { k: 'destroy', v: 9, c: 3 }, desc: ['ระเบิดสิ่งกีดขวาง', 'กลายเป็นเหรียญ'] },
+  littleghost: { fx: { k: 'lift', v: 2 }, desc: ['ช่วยดึงขึ้นเมื่อ', 'ตกหลุม (จำกัดครั้ง)'] },
+  snowflower: { fx: { k: 'lift', v: 2 }, desc: ['สร้างสะพานน้ำแข็ง', 'ข้ามหลุมให้'] },
+  jellyco: { fx: { k: 'destroy', v: 9 }, desc: ['ยิงมิสไซล์เจลลีโค', 'ทำลายสิ่งกีดขวาง'] },
+  awol: { fx: { k: 'give', v: 16, it: 'giant' }, desc: ['ทำขนมที่ทำให้ตัวโต', 'พร้อมฟื้นพลังนิดหน่อย'] },
+  glitter: { fx: { k: 'give', v: 26, it: 'star' }, desc: ['โปรยดาวเยลลี่', 'และเหรียญ'] },
+  luckypouch: { fx: { k: 'coinrain', v: 6 }, desc: ['เสกเหรียญให้', 'สม่ำเสมอ'] },
+  foxbead: { fx: { k: 'give', v: 17, it: 'giant' }, desc: ['เสกลูกแก้วยักษ์', 'โตแล้วพุ่งไปข้างหน้า'] },
+  flamebat: { fx: { k: 'regen', v: 1.2 }, desc: ['จับวิญญาณเยลลี่', 'มาเติมพลังให้'] },
+  golddrop: { fx: { k: 'coinrain', v: 12 }, desc: ['เสกเหรียญทองยักษ์', 'ค่ามหาศาล'] },
+  flowerpod: { fx: { k: 'give', v: 20, it: 'letter' }, desc: ['เสกเยลลี่พา', 'เข้า BONUS TIME'] },
+  wizbook: { fx: { k: 'score', v: 1.06 }, desc: ['แต้มพิเศษยิ่งวิ่งเร็ว', 'ยิ่งได้มาก'] },
+  spotfan: { fx: { k: 'magnet', v: 20 }, desc: ['สปอตไลต์ดูดเยลลี่', 'และช่วยประคอง'] },
+  lemonslice: { fx: { k: 'give', v: 15, it: 'potion' }, desc: ['เสกโซดามะนาว', 'ฟื้นพลัง'] },
+  rocketfc: { fx: { k: 'lift', v: 2 }, desc: ['จุดพลุดันขึ้นจากหลุม', '(จำกัดครั้ง)'] },
+  cheesecat: { fx: { k: 'coinrain', v: 10 }, desc: ['ผลิตเหรียญแมว', 'ครั้งละมาก ๆ'] },
+  purplecandle: { fx: { k: 'jelly', v: 8 }, desc: ['จุดไฟเผยเยลลี่', 'ที่ซ่อนอยู่'] },
+  firefly: { fx: { k: 'give', v: 15, it: 'potion' }, desc: ['เสกยาฟื้นพลัง', '+พุ่ง Blast'] },
+  jellyscale: { fx: { k: 'pts', v: 6 }, desc: ['แปลงเหรียญ', 'เป็นแต้มพิเศษ'] },
+  coinscale: { fx: { k: 'coinrain', v: 8 }, desc: ['แปลงแต้ม', 'เป็นเหรียญ'] },
+  oakbarrel: { fx: { k: 'give', v: 15, it: 'potion' }, desc: ['หมักน้ำองุ่นเป็นยา', 'ฟื้นพลัง+พุ่ง'] },
+  backpacky: { fx: { k: 'jelly', v: 7 }, desc: ['หยิบเยลลี่ทุกชนิด', 'จากเป้มาแจก'] },
+  punchbag: { fx: { k: 'give', v: 17, it: 'giant' }, desc: ['เสกยายักษ์', 'มีเหรียญข้างใน'] },
+  snowglobe: { fx: { k: 'give', v: 14, it: 'potion' }, desc: ['เสกยาบินได้', 'พร้อมเยลลี่หิมะ'] },
+  yulelog: { fx: { k: 'give', v: 15, it: 'letter' }, desc: ['เค้กยักษ์แจกอักษร', 'ที่ยังขาด'] },
+  ghostbutler: { fx: { k: 'jelly', v: 7 }, desc: ['จัดเรียงเยลลี่', 'อย่างประณีต'] },
+  pinkcandy: { fx: { k: 'give', v: 18, it: 'bear' }, desc: ['ดาวตกหมีรอยัล', 'ตกลงมาเป็นระยะ'] },
+  kiwibird: { fx: { k: 'give', v: 17, it: 'giant' }, desc: ['เสกเยลลี่ยักษ์', 'รสกีวี'] },
+  applerabbit: { fx: { k: 'regen', v: 1.3 }, desc: ['ดูแลฟื้นพลัง', 'ให้ตลอดทาง'] },
+  furpup: { fx: { k: 'give', v: 14, it: 'potion' }, desc: ['คาบยาเพิ่มพลัง', 'มาให้เป็นระยะ'] },
+  doremi: { fx: { k: 'give', v: 16, it: 'potion' }, desc: ['แปลงเหรียญเป็น', 'ยาพลุดาว'] },
+  fasolasi: { fx: { k: 'coinrain', v: 9 }, desc: ['เสกเหรียญ Royal', 'Blast เป็นระยะ'] },
+  marshham: { fx: { k: 'jelly', v: 8 }, desc: ['วิ่งไปข้างหน้าเสก', 'มาร์ชแมลโลว์โกโก้'] },
+  owlcorn: { fx: { k: 'give', v: 18, it: 'bear' }, desc: ['เสกยาปาร์ตี้', 'หมีเยลลี่ล้วน'] },
+  teacup: { fx: { k: 'give', v: 15, it: 'letter' }, desc: ['ชงยาตัวอักษร', 'ที่ยังไม่มีให้'] },
+  minijackson: { fx: { k: 'destroy', v: 8 }, desc: ['ยิงเลเซอร์ระบายสี', '+เยลลี่กัมบอล'] },
+  electrolemon: { fx: { k: 'bearify', v: 15 }, desc: ['ปล่อย Bear Party', 'Blast เป็นระยะ'] },
+  orangemouse: { fx: { k: 'give', v: 16, it: 'blast' }, desc: ['เสก Blast Jelly', '+แต้มความเร็ว'] },
+  whitedrop: { fx: { k: 'lift', v: 1 }, desc: ['เหรียญทองขาวยักษ์', '+ดึงขึ้นจากหลุม 1 ครั้ง'] },
+  limeguard: { fx: { k: 'lift', v: 3 }, desc: ['ไลฟ์การ์ดช่วยชีวิต', 'จากหลุม 3 ครั้ง'] },
+  boatman: { fx: { k: 'destroy', v: 9 }, desc: ['ยิงฟองทะเลทำลาย', 'สิ่งกีดขวาง'] },
+  hotteacup: { fx: { k: 'drain', v: 0.9 }, desc: ['ไออุ่นทำให้พลัง', 'ลดช้าลง'] },
+  pandadump: { fx: { k: 'jelly', v: 8 }, desc: ['เสกเกี๊ยวเยลลี่', 'ชนสิ่งกีดขวางแตก'] },
+  onionfish: { fx: { k: 'jelly', v: 8 }, desc: ['พ่นน้ำตาเสก', 'เยลลี่หยดน้ำตา'] },
+  wavedrop: { fx: { k: 'bearify', v: 18 }, desc: ['ยาปาร์ตี้หมีน้ำแข็ง', 'ทุก ๆ ระยะ'] },
+  cinnabunny: { fx: { k: 'destroy', v: 9 }, desc: ['ปาซินนามอนบอมบ์', '+เสกเยลลี่กระต่าย'] },
+  castanets: { fx: { k: 'give', v: 15, it: 'rand' }, desc: ['ตีจังหวะเสกเยลลี่', '+ไอเทมพลัง'] },
+  sweetseal: { fx: { k: 'pts', v: 5 }, desc: ['ม้วนตัวเก็บแต้ม', 'เมื่อเก็บเยลลี่ครบ'] },
+  herbpot: { fx: { k: 'destroy', v: 9 }, desc: ['รดน้ำปลูกดอกไม้', 'ทะลุสิ่งกีดขวาง'] },
+  watchref: { fx: { k: 'give', v: 15, it: 'magnet' }, desc: ['เสกไอเทมแม่เหล็ก', '+Blast เป็นระยะ'] },
+  dinoegg: { fx: { k: 'give', v: 16, it: 'giant' }, desc: ['เสกลูกกวาดไดโน', 'โหมดยักษ์'] },
+  ccbird: { fx: { k: 'give', v: 14, it: 'letter' }, desc: ['ส่งจดหมายแจกอักษร', 'ที่ยังขาดให้'] },
+  lightbros: { fx: { k: 'drain', v: 0.92 }, desc: ['ส่องไฟนำทาง พลัง', 'ลดช้าลง'] },
+  savlion: { fx: { k: 'destroy', v: 9, c: 3 }, desc: ['ยิงหน้ากล้วยทำลาย', 'สิ่งกีดขวาง+เหรียญ'] },
+  frisbee: { fx: { k: 'destroy', v: 9 }, desc: ['ปาจานแพนเค้ก', 'ทำลายสิ่งกีดขวาง'] },
+  windy: { fx: { k: 'magnet', v: 22 }, desc: ['บินนำเก็บเยลลี่', 'ข้างหน้าให้'] },
+  moonmortar: { fx: { k: 'jelly', v: 7 }, desc: ['ตำเยลลี่เป็นโมจิ', 'พระจันทร์เต็มดวง'] },
+  cakehound: { fx: { k: 'give', v: 15, it: 'potion' }, desc: ['เสกยาสตรอว์เบอร์รี', '+แต้มความเร็ว'] },
+  tabla: { fx: { k: 'destroy', v: 8 }, desc: ['ตีกลองทำลายทุก', 'สิ่งกีดขวางรอบตัว'] },
+  sugarswan: { fx: { k: 'bt', v: 1.6 }, desc: ['พา BONUS TIME', 'อยู่นานขึ้น'] },
+  megaphone: { fx: { k: 'combo', v: 0.9 }, desc: ['ตะโกนเชียร์ให้คอมโบ', 'ค้างนานขึ้น'] },
+  kingdrop: { fx: { k: 'destroy', v: 7, c: 4 }, desc: ['ราชาช็อกโก บดขยี้', 'ทุกอย่าง+โปรยของ'] },
+  beanduo: { fx: { k: 'lift', v: 2 }, desc: ['ถั่วแฝดดึงขึ้นจากหลุม', '+เสกเยลลี่ถั่ว'] },
+};
+PETS.forEach(pp => { const r = REALPET[pp.id]; if (r) Object.assign(pp, r); });
+
 const PET_BY_ID = {}; PETS.forEach(p => PET_BY_ID[p.id] = p);
 
 /* ============================================================
@@ -642,6 +820,7 @@ const lvMul = () => 1 + 0.03 * ((G.charLv[G.charIdx] || 1) - 1);   // โบน�
 const petLvNow = () => G.petLv[G.petIdx] || 1;
 const petFxMul = () => 1 + (petLvNow() - 1) * 0.12;   // สเกลพลังสัตว์เลี้ยงตามเลเวล
 const PFX = () => PT().fx || { k: '', v: 0 };
+const CFX = () => CH().cfx || { k: '' };
 
 function setState(s) {
   G.state = s; G.fade = 1;
@@ -983,6 +1162,11 @@ function doJump() {
   } else if (P.jumps >= 1 && P.jumps < CH().jumps) {
     P.vy = JUMP2_V;
     P.jumps++;
+    if (CFX().k === 'jumpPts') {
+      const jp = Math.round(CFX().v * lvMul());
+      G.score += jp;
+      floatText(P.x + 30, P.y - 16, '+' + jp + ' ✨', '#aee4ff');
+    }
     AudioSys.jump2();
     puff(P.x, P.y + P.h, 8, '#fff');
   }
@@ -1079,6 +1263,8 @@ function startGame(mode, boosts) {
   G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12 + (G.runBoost.energy ? 40 : 0)
           + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0);
   G.combi = PT().id === CH().mate;   // คู่ซี้คุกกี้-สัตว์เลี้ยง = แต้ม +15%
+  G.formT = 0; G.cfxT = 0;
+  G.obSmashLeft = CFX().k === 'obSmash' ? CFX().v : 0;
   G.petFxT = 0;
   G.hp = G.hpMax;
   G.stage = 1; G.stageTimer = 0;
@@ -1087,7 +1273,8 @@ function startGame(mode, boosts) {
   P.y = GROUND_Y - P.h; P.vy = 0; P.onGround = true; P.jumps = 0;
   P.sliding = false; P.invT = 0; P.giantT = 0; P.magnetT = 0;
   P.boostT = (2.4 + CH().boostBonus + (PFX().k === 'boost' ? PFX().v : 0) + G.upg.boost * 0.6) * (G.runBoost.fast ? 2 : 1);
-  G.bonusT = 0; G.revives = CH().revives + (hasTr(1) ? 1 : 0);
+  G.bonusT = 0; G.revives = CH().revives + (hasTr(1) ? 1 : 0) + (PFX().k === 'revive' ? 1 : 0);
+  G.liftLeft = PFX().k === 'lift' ? Math.round(PFX().v * petFxMul()) : 0;
   G.skill = 0; G.scoreMulT = 0;
   P.dead = false; P.fallingPit = false; slideHeld = false; G.paused = false;
   G.runBears = 0; G.runStars = 0; G.maxCombo = 0; G.missionDone = false;
@@ -1107,6 +1294,11 @@ function gameOver() {
   if (G.state !== 'play') return true;
   if (G.revives > 0) {
     G.revives--;
+    if (CFX().trig === 'revive') {
+      G.formT = CFX().dur;
+      banner((CFX().tag || '🔥') + ' คืนชีพพร้อมพลัง! อมตะ ' + CFX().dur + ' วิ!', '#ff9d2e');
+    }
+    if (CFX().k === 'reviveHp') G.hp = Math.min(G.hpMax, G.hp + CFX().v);
     G.hp = G.hpMax * 0.6;
     P.invT = 3;
     G.flash = 0;
@@ -1152,7 +1344,7 @@ function settleGameOver() {
   // เปิดกล่องปริศนา: เหรียญ + โอกาสได้คริสตัล 20%
   G.boxCoins = 0; G.boxGems = 0;
   for (let i = 0; i < G.runBoxes; i++) {
-    G.boxCoins += rndi(60, 250);
+    G.boxCoins += Math.round(rndi(60, 250) * (CFX().k === 'boxLuck' ? CFX().v : 1));
     if (Math.random() < 0.2) G.boxGems++;
   }
   if (G.boxGems > 0) { G.crystals += G.boxGems; SAVE.set('crystals', G.crystals); }
@@ -1419,11 +1611,22 @@ function floatText(x, y, text, c = '#fff', big = false) {
 /* ============================================================
    UPDATE
    ============================================================ */
-const isInvincible = () => P.invT > 0 || P.giantT > 0 || P.boostT > 0 || G.bonusT > 0;
-const canSmash = () => P.giantT > 0 || P.boostT > 0;
+const isInvincible = () => P.invT > 0 || P.giantT > 0 || P.boostT > 0 || G.bonusT > 0 || G.formT > 0;
+const canSmash = () => P.giantT > 0 || P.boostT > 0 || G.formT > 0;
 
 function hurt(amount) {
   if (isInvincible() || P.dead) return;
+  const cf = CFX();
+  if (cf.k === 'obSmash' && (G.obSmashLeft || 0) > 0) {
+    // พริกแดง: ชนแล้วทุบสิ่งกีดขวางแตกแทนการเจ็บ (จำกัดครั้ง)
+    G.obSmashLeft--;
+    G.shake = 8;
+    sparkle(P.x + P.w / 2, P.y + P.h / 2, 18, '#ff9d2e');
+    floatText(P.x, P.y - 20, '💢 ทุบแตก! (เหลือ ' + G.obSmashLeft + ')', '#ff9d2e', true);
+    P.invT = Math.max(P.invT, 0.8);
+    return;
+  }
+  if (cf.k === 'hitGuard') amount *= cf.v;   // เจ้าหญิง/กล้ามโต/แฟรี่: ลดดาเมจชน
   G.hp -= amount;
   G.combo = 0;
   P.invT = 2.0;
@@ -1492,11 +1695,52 @@ function update(dt) {
   }
 
   /* --- HP ลดตามเวลา --- */
+  /* ---- ความสามารถพิเศษประจำคุกกี้ (ตามเกมต้นฉบับ) ---- */
+  const cf = CFX();
+  G.formT = Math.max(0, (G.formT || 0) - dt);
+  if (['spawnSp', 'destroyIv', 'coinIv', 'transform'].includes(cf.k) && cf.trig === undefined) {
+    G.cfxT = (G.cfxT || 0) + dt;
+    let iv = cf.iv * (1 - ((G.charLv[G.charIdx] || 1) - 1) * 0.04);
+    if (cf.k === 'transform' && cf.low) iv *= 0.45 + 0.55 * (G.hp / G.hpMax);   // แปลงถี่ขึ้นเมื่อพลังต่ำ (มนุษย์หมาป่า)
+    if (G.cfxT >= iv) {
+      G.cfxT = 0;
+      if (cf.k === 'spawnSp') {
+        // สร้างเยลลี่พิเศษข้างหน้าให้เก็บ (สกิลสายเสกเยลลี่)
+        for (let q = 0; q < (cf.n || 3); q++)
+          jellyList.push({ x: worldX + P.x + 380 + q * 44, y: GROUND_Y - 70 - Math.sin(q * 0.9) * 34, type: 'pink', t: 0, dead: false });
+        sparkle(P.x + 60, P.y + 20, 10, '#ff9db8');
+        floatText(P.x + 40, P.y - 24, '✨ ' + (cf.tag || 'เยลลี่พิเศษ') + '!', '#ff9db8');
+      } else if (cf.k === 'destroyIv') {
+        const o = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 20; });
+        if (o) {
+          obstacles.splice(obstacles.indexOf(o), 1);
+          const ox = o.x - worldX;
+          const pts2 = Math.round(300 * lvMul());
+          G.score += pts2;
+          sparkle(ox, GROUND_Y - 26, 20, '#ffd24a');
+          floatText(ox, GROUND_Y - 66, (cf.tag || '💥') + ' +' + pts2, '#ffd24a', true);
+          if (cf.jelly) for (let q = 0; q < 2; q++)
+            jellyList.push({ x: o.x + q * 40, y: GROUND_Y - 60, type: 'pink', t: 0, dead: false });
+          if (cf.coins) { G.coins += cf.coins; floatText(ox, GROUND_Y - 90, '🪙 +' + cf.coins, '#ffd24a'); }
+        }
+      } else if (cf.k === 'coinIv') {
+        G.coins += cf.n;
+        AudioSys.jelly(10);
+        sparkle(P.x + 50, P.y, 12, '#ffd700');
+        floatText(P.x + 40, P.y - 24, (cf.tag || '🪙') + ' +' + cf.n, '#ffd24a', true);
+      } else {
+        G.formT = cf.dur;
+        G.shake = 6; AudioSys.power();
+        banner((cf.tag || '✨ แปลงร่าง!') + ' อมตะ ' + cf.dur + ' วิ!', '#ffd24a');
+      }
+    }
+  }
+
   /* ---- เอฟเฟกต์สัตว์เลี้ยง (ทุกชนิด สเกลตามเลเวล) ---- */
   const pf = PFX();
   if (pf.k === 'regen') G.hp = Math.min(G.hpMax, G.hp + pf.v * petFxMul() * dt);
   if (pf.k === 'skill') G.skill = Math.min(100, G.skill + pf.v * petFxMul() * dt);
-  if (pf.k === 'jelly' || pf.k === 'pts' || pf.k === 'destroy' || pf.k === 'coinrain') {
+  if (['jelly', 'pts', 'destroy', 'coinrain', 'give', 'bearify'].includes(pf.k)) {
     G.petFxT = (G.petFxT || 0) + dt;
     const iv = Math.max(3, pf.v * (1 - (petLvNow() - 1) * 0.05));
     if (G.petFxT >= iv) {
@@ -1512,11 +1756,32 @@ function update(dt) {
         const n = 3 + Math.floor(petLvNow() / 3);
         G.coins += n; floatText(Pet.x, Pet.y - 20, '🪙 +' + n, '#ffd24a');
         AudioSys.jelly(8);
+      } else if (pf.k === 'give') {
+        // แจกไอเทม/อักษร/ดาว/หมี ตามสกิลจริงของสัตว์เลี้ยง
+        const it = pf.it === 'rand' ? ['potion', 'giant', 'magnet'][rndi(0, 2)] : pf.it;
+        const jj = { x: worldX + P.x + 430, y: GROUND_Y - 96, type: it, t: 0, dead: false };
+        if (it === 'letter') {
+          if (G.btProgress < 9) jj.ch = 'BONUSTIME'[G.btProgress]; else jj.type = 'pink';
+        }
+        jellyList.push(jj);
+        sparkle(Pet.x + 14, Pet.y, 8, '#ffe066');
+        floatText(Pet.x, Pet.y - 20, '🎁 ' + PT().name + '!', '#ffe066');
+      } else if (pf.k === 'bearify') {
+        // เปลี่ยนเยลลี่ธรรมดาข้างหน้าเป็นหมีเยลลี่ (Bear Jelly Party)
+        let nb = 0;
+        for (const j2 of jellyList) {
+          const jx2 = j2.x - worldX;
+          if (!j2.dead && j2.type === 'bar' && jx2 > P.x + 60 && jx2 < W && nb < 4) {
+            j2.type = 'bear'; j2.v = undefined; nb++;
+          }
+        }
+        if (nb) { sparkle(Pet.x + 14, Pet.y, 10, '#ffb347'); floatText(Pet.x, Pet.y - 20, '🐻 BEAR PARTY x' + nb, '#ffb347', true); }
       } else {
         const o = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 30; });
         if (o) {
           obstacles.splice(obstacles.indexOf(o), 1);
           const ox = o.x - worldX;
+          if (pf.c) { G.coins += pf.c; floatText(ox, GROUND_Y - 86, '🪙 +' + pf.c, '#ffd24a'); }
           sparkle(ox, GROUND_Y - 26, 20, '#ff9d2e');
           floatText(ox, GROUND_Y - 60, '💥 เพื่อนซี้เคลียร์ทาง!', '#ff9d2e', true);
         }
@@ -1529,7 +1794,7 @@ function update(dt) {
     if (gameOver()) return;
   }
 
-  const spdMul = (P.giantT > 0 ? 1.12 : 1) * (P.boostT > 0 ? 2.1 : 1) * (G.bonusT > 0 ? 1.35 : 1);
+  const spdMul = (P.giantT > 0 ? 1.12 : 1) * (P.boostT > 0 ? 2.1 : 1) * (G.bonusT > 0 ? 1.35 : 1) * (G.formT > 0 ? 1.12 : 1) * (1 + (CFX().k === 'spdPlus' ? CFX().v : 0)) * (1 + (PFX().k === 'spd' ? PFX().v : 0));
   const move = G.speed * dt * spdMul;
   worldX += move;
   G.dist += move / 40;
@@ -1739,6 +2004,15 @@ function update(dt) {
 }
 
 function hurtFromPit() {
+  if (PFX().k === 'lift' && (G.liftLeft || 0) > 0) {
+    // สัตว์เลี้ยงช่วยดึงขึ้นจากหลุม (สกิลจริง เช่น ผีน้อย/สะพานน้ำแข็ง)
+    G.liftLeft--;
+    P.vy = -900; P.fallingPit = false; P.invT = Math.max(P.invT, 1.2);
+    sparkle(P.x + 20, P.y + 40, 16, '#aee4ff');
+    floatText(P.x, P.y - 20, '🕊 ' + PT().name + ' ช่วยไว้! (เหลือ ' + G.liftLeft + ')', '#aee4ff', true);
+    AudioSys.potion();
+    return;
+  }
   G.hp -= (20 + G.stage * 2) * CH().pitGuard;
   G.combo = 0;
   G.shake = 14; G.flash = 0.6;
@@ -1793,7 +2067,11 @@ function collectJelly(j, jx) {
       break;
     }
     case 'potion':
-      G.hp = Math.min(G.hpMax, G.hp + 30);
+      G.hp = Math.min(G.hpMax, G.hp + 30 * (1 + (CFX().k === 'potionPlus' ? CFX().v : 0)));
+      if (CFX().trig === 'potion') {
+        G.formT = CFX().dur;
+        banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#7ecbff');
+      }
       AudioSys.potion();
       sparkle(jx, j.y, 16, '#7bff9b');
       floatText(jx, j.y - 30, '+HP พลังคืนมา!', '#7bff9b', true);
@@ -1833,7 +2111,7 @@ function collectJelly(j, jx) {
       break;
     }
     case 'blast':
-      P.boostT = Math.max(P.boostT, 2.4);
+      P.boostT = Math.max(P.boostT, 2.4 + (CFX().k === 'blastPlus' ? CFX().v : 0));
       AudioSys.power();
       sparkle(jx, j.y, 18, '#ff9d2e');
       banner('🚀 BLAST!!', '#ff9d2e');
