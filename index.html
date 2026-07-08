@@ -127,6 +127,74 @@ function loginProfile(id) {
   rawSet('cr_active', id);
   location.reload();   // โหลดเซฟของโปรไฟล์นั้นใหม่ทั้งหมด
 }
+/* ---------- บัญชีคลาวด์: ล็อกอินอีเมล (Gmail) + PIN ซิงก์เซฟข้ามเครื่อง ---------- */
+const cloudSession = () => rawGet('cr_cloud', null);
+function cloudApi(body) {
+  return fetch('/api/account', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  }).then(r => r.json());
+}
+function collectSaveData() {
+  const pre = profPrefix();
+  const out = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(pre)) continue;
+    if (['cr_profiles', 'cr_active', 'cr_cloud'].includes(k)) continue;
+    if (pre === 'cr_' && /^cr_p[0-9a-z]+_/.test(k)) continue;   // legacy: ข้ามคีย์ของโปรไฟล์อื่น
+    out[k.slice(pre.length)] = rawGet(k, null);
+  }
+  return out;
+}
+let cloudBusy = false;
+function cloudSave(silent) {
+  const cs = cloudSession();
+  if (!cs || ACTIVE === null || cloudBusy) return;
+  const pf = PROFILES.find(q => q.id === ACTIVE);
+  if (!pf || pf.email !== cs.email) return;   // ซิงก์เฉพาะโปรไฟล์ที่ผูกอีเมลนี้
+  cloudBusy = true;
+  cloudApi({ action: 'save', email: cs.email, pin: cs.pin, data: collectSaveData() })
+    .then(r => {
+      cloudBusy = false;
+      if (!silent) floatText(W / 2, 110, r.ok ? '☁️ ซิงก์เซฟขึ้นคลาวด์แล้ว!' : '☁️ ซิงก์ไม่สำเร็จ', r.ok ? '#7ec8ff' : '#ff8888', true);
+    })
+    .catch(() => { cloudBusy = false; });
+}
+function cloudLogin() {
+  const prev = cloudSession() || {};
+  const email = prompt('อีเมล (Gmail) ของคุณ:', prev.email || '');
+  if (!email || !email.includes('@')) return;
+  const pin = prompt('PIN ของบัญชี (ตัวเลข 4 หลักขึ้นไป — ครั้งแรก = ตั้งใหม่):', '');
+  if (!pin || pin.trim().length < 4) { alert('PIN ต้องยาวอย่างน้อย 4 ตัว'); return; }
+  const em = email.trim().toLowerCase();
+  cloudApi({ action: 'login', email: em, pin: pin.trim() }).then(r => {
+    if (!r.ok) {
+      alert(r.reason === 'wrong-pin' ? 'PIN ไม่ถูกต้อง!' :
+            r.reason === 'bad-email' ? 'รูปแบบอีเมลไม่ถูกต้อง' :
+            'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้');
+      return;
+    }
+    rawSet('cr_cloud', { email: em, pin: pin.trim() });
+    let pf = PROFILES.find(q => q.email === em);
+    if (!pf) {
+      if (PROFILES.length >= 4) { alert('โปรไฟล์เต็ม (สูงสุด 4)'); return; }
+      pf = { id: 'p' + Date.now().toString(36), name: em.split('@')[0].slice(0, 12), email: em };
+      PROFILES.push(pf);
+      rawSet('cr_profiles', PROFILES);
+      rawSet('cr_' + pf.id + '_name', pf.name);
+    }
+    if (r.data && Object.keys(r.data).length) {
+      // มีเซฟบนคลาวด์ → ดึงมาทับเซฟของโปรไฟล์นี้
+      const pre = 'cr_' + (pf.id ? pf.id + '_' : '');
+      Object.keys(r.data).forEach(k => rawSet(pre + k, r.data[k]));
+    }
+    rawSet('cr_active', pf.id);
+    location.reload();
+  }).catch(() => alert('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้'));
+}
+
 function createProfile() {
   if (PROFILES.length >= 4) { floatText(W / 2, 120, 'สร้างได้สูงสุด 4 โปรไฟล์', '#ff8888', true); return; }
   const nm = prompt('ตั้งชื่อโปรไฟล์ใหม่ (ไม่เกิน 12 ตัวอักษร)', '');
@@ -1548,6 +1616,7 @@ function settleGameOver() {
     banner(LEAGUES[lt].icon + ' เลื่อนขั้นลีก ' + LEAGUES[lt].name + '! +' + gain + '💎', '#ffd24a');
   }
   checkMedals();
+  cloudSave(true);   // ซิงก์เซฟขึ้นคลาวด์อัตโนมัติ (ถ้าล็อกอินอีเมลอยู่)
   setState('over'); G.overT = 0;
   P.dead = true;
   puff(P.x + 28, P.y + P.h - 6, 16, '#a97b45');
@@ -5100,7 +5169,7 @@ function drawLogin() {
     const best = rawGet(pfx + 'best', 0), coins = rawGet(pfx + 'coins', 0);
     ctx.font = 'bold 17px Trebuchet MS'; ctx.textAlign = 'left';
     ctx.fillStyle = cur ? '#ffd24a' : '#fff';
-    ctx.fillText('🍪 ' + pf.name, x + 20, y + 26);
+    ctx.fillText((pf.email ? '☁️ ' : '🍪 ') + pf.name, x + 20, y + 26);
     ctx.font = '12px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
     ctx.fillText('สถิติ ' + (best | 0).toLocaleString() + ' · 🪙 ' + (coins | 0).toLocaleString() +
       (cur ? ' · ล่าสุด' : ''), x + 20, y + 46);
@@ -5109,9 +5178,12 @@ function drawLogin() {
       cur ? { color: '#7bd94a', dark: '#57a832', font: 14 } : { color: '#5cb8e8', dark: '#3d92c4', font: 14 });
   });
 
+  const byC = 168 + PROFILES.length * 66;
   if (PROFILES.length < 4)
-    drawBtn(W / 2 - 130, 168 + PROFILES.length * 66, 260, 46, '＋ สร้างโปรไฟล์ใหม่', createProfile,
-      { color: '#ffb02e', dark: '#e07b12', font: 16 });
+    drawBtn(W / 2 - 240, byC, 230, 46, '＋ โปรไฟล์ในเครื่อง', createProfile,
+      { color: '#ffb02e', dark: '#e07b12', font: 15 });
+  drawBtn(W / 2 + 10, byC, 230, 46, '📧 ล็อกอินด้วย Gmail', cloudLogin,
+    { color: '#5cb8e8', dark: '#3d92c4', font: 15 });
 
   ctx.font = '12px Trebuchet MS'; ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,233,184,.7)';
@@ -5129,6 +5201,9 @@ function drawMenu() {
       setState('login');
       AudioSys.click();
     }, { color: '#a08468', dark: '#7d6448', font: 12 });
+    const cs = cloudSession();
+    if (cs && pf && pf.email === cs.email)
+      drawBtn(14, 54, 148, 30, '☁️ ซิงก์เซฟ', () => cloudSave(false), { color: '#5cb8e8', dark: '#3d92c4', font: 12 });
   }
 
   // ขนมลอยตกแต่งฉากหลังเมนู
