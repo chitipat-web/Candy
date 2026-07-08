@@ -555,9 +555,9 @@ const REAL = {
   skatingq: { desc: ['แต้มพิเศษจากการโดด 2 ชั้น', 'และ BONUS TIME'], mate: 'snowflower', btPlus: 1, cfx: { k: 'jumpPts', v: 150 } },
   hero: { desc: ['แปลงร่างซูเปอร์ฮีโร่', 'บินอมตะเป็นระยะ'], mate: 'jellyco', cfx: { k: 'transform', iv: 22, dur: 5, tag: '🦸 HERO MODE' } },
   sforce: { desc: ['ยิงลูกกวาดดาว', 'ทำลายสิ่งกีดขวาง'], mate: 'awol', cfx: { k: 'destroyIv', iv: 8, tag: '🌟 ยิง!' } },
-  cheer: { desc: ['ทีมเชียร์บุกทำลายสิ่งกีดขวาง', 'พร้อมโปรยเหรียญ'], mate: 'glitter', cfx: { k: 'destroyIv', iv: 10, coins: 3, tag: '📣 เชียร์!' } },
-  kumiho: { desc: ['แปลงร่างจิ้งจอกเก้าหาง', 'เก็บแต้มพิเศษ'], mate: 'foxbead', cfx: { k: 'transform', iv: 20, dur: 4, tag: '🦊 เก้าหาง' } },
-  devil: { desc: ['แปลงร่างซูเปอร์เดวิล', 'กลืนกินทุกอย่าง'], mate: 'flamebat', cfx: { k: 'transform', iv: 24, dur: 5, tag: '😈 SUPER DEVIL' } },
+  cheer: { desc: ['โดดครบ 16 ครั้ง ทีมเชียร์บุก', 'ทำลายสิ่งกีดขวาง+โปรยเหรียญ'], mate: 'glitter', cfx: { k: 'squad', n: 16 } },
+  kumiho: { desc: ['โดด 2 ชั้นครบ 9 ครั้ง', 'แปลงร่างจิ้งจอกเก้าหาง'], mate: 'foxbead', cfx: { k: 'transform', trig: 'djump', n: 9, dur: 4, tag: '🦊 เก้าหาง' } },
+  devil: { desc: ['เก็บเยลลี่ครบ 22 ชิ้น', 'แปลงร่างซูเปอร์เดวิล'], mate: 'flamebat', cfx: { k: 'transform', trig: 'jelly', n: 22, dur: 5, tag: '😈 SUPER DEVIL' } },
   fairy: { desc: ['ออร่าแม่เหล็ก', 'พร้อมเกราะกันชน'], mate: 'flowerpod', magnet: true, cfx: { k: 'hitGuard', v: 0.6 } },
   wizard: { desc: ['ร่ายเวทเป็นระยะ ทำลาย', 'สิ่งกีดขวาง+เสกเยลลี่'], mate: 'wizbook', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🔮 เวทมนตร์' } },
   rockstar: { desc: ['สไลด์ปล่อยโน้ตเยลลี่', 'เก็บเป็นแต้มพิเศษ'], mate: 'spotfan', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: 'โน้ตเยลลี่' } },
@@ -571,13 +571,13 @@ const REAL = {
   adventurer: { desc: ['เปิดประตูลับ', 'พบเหรียญกองโต'], mate: 'backpacky', cfx: { k: 'coinIv', iv: 11, n: 6, tag: '🚪 ประตูลับ' } },
   redpepper: { desc: ['ชนสิ่งกีดขวางแล้วทุบแตก', 'แทนการเจ็บ (จำกัดครั้ง)'], mate: 'punchbag', revives: 2, cfx: { k: 'obSmash', v: 3 } },
   snowsugar: { desc: ['เรียกสโนว์โคนทำลาย', 'สิ่งกีดขวาง+เยลลี่หิมะ'], mate: 'snowglobe', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '❄ สโนว์โคน' } },
-  carol: { desc: ['ร้องเพลงศักดิ์สิทธิ์', 'เสกเหรียญ+ฟื้นพลัง'], mate: 'yulelog', drainMul: 0.95, cfx: { k: 'coinIv', iv: 9, n: 4, tag: '🎵 เพลงแครอล' } },
+  carol: { desc: ['วนเพลง 3 บท: ชีวิต /', 'เปลี่ยนร่าง / ความอุดม'], mate: 'yulelog', cfx: { k: 'songs', iv: 9 } },
   blackberry: { desc: ['วิญญาณรับใช้เสก', 'แบล็กเบอร์รีเยลลี่เป็นระยะ'], mate: 'ghostbutler', cfx: { k: 'spawnSp', iv: 7, n: 3, tag: 'วิญญาณ' } },
   pinkchoco: { desc: ['ยิงฮาร์ตบีมทำลาย', 'สิ่งกีดขวาง+บงบงเยลลี่'], mate: 'pinkcandy', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '💗 ฮาร์ตบีม' } },
   kiwi: { desc: ['ซิ่งมอเตอร์ไซค์พุ่งทะลุ', 'เป็นระยะ'], mate: 'kiwibird', cfx: { k: 'transform', iv: 20, dur: 4, tag: '🏍 ซิ่ง!' } },
-  apple: { desc: ['เสกฟองเยลลี่ตัวอักษร', 'เป็นระยะ'], mate: 'applerabbit', cfx: { k: 'spawnSp', iv: 9, n: 3, tag: 'ฟองแอปเปิล' } },
+  apple: { desc: ['เสกฟองเยลลี่ตัวอักษร', 'BONUSTIME จริง ๆ'], mate: 'applerabbit', cfx: { k: 'spawnSp', iv: 9, n: 2, lt: 1, tag: '🍎 ฟองอักษร' } },
   werewolf: { desc: ['แปลงร่างหมาป่าอมตะ', 'ยิ่งพลังต่ำยิ่งแปลงถี่'], mate: 'furpup', cfx: { k: 'transform', iv: 20, dur: 5, low: 1, tag: '🐺 หมาป่า' } },
-  mintchoco: { desc: ['สีไวโอลินเสกเหรียญ', 'เป็นระยะ'], mate: 'doremi', cfx: { k: 'coinIv', iv: 7, n: 3, tag: '🎻 ไวโอลิน' } },
+  mintchoco: { desc: ['ยิ่งวิ่งไม่ชนนาน', 'ยิ่งสีไวโอลินได้เหรียญ'], mate: 'doremi', cfx: { k: 'streak', iv: 3 } },
   cocoa: { desc: ['ดื่มยาแล้วขี่ถ้วยโกโก้', 'บินอมตะ'], mate: 'marshham', cfx: { k: 'transform', trig: 'potion', dur: 5, tag: '☕ ถ้วยโกโก้' } },
   creampuff: { desc: ['ร่ายมนตร์เสกเยลลี่', 'สุ่มเวทใหญ่'], mate: 'owlcorn', skillFast: 1.3, cfx: { k: 'spawnSp', iv: 9, n: 3, tag: 'เวทพัฟ' } },
   cherryblossom: { desc: ['โปรยเยลลี่ซากุระ', 'ระหว่างโบยบิน'], mate: 'teacup', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌸 ซากุระ' } },
@@ -599,7 +599,7 @@ const REAL = {
   rollcake: { desc: ['ค้อนโรลเค้กทุบทำลาย', 'สิ่งกีดขวาง+เยลลี่'], mate: 'lightbros', cfx: { k: 'destroyIv', iv: 8, jelly: 1, tag: '🔨 ทุบ!' } },
   banana: { desc: ['แปลงร่างลิงลอดห่วง', 'เก็บเหรียญ'], mate: 'savlion', coinMul: 1.1, cfx: { k: 'transform', iv: 20, dur: 4, tag: '🐒 ลิงกล้วย' } },
   pancake: { desc: ['บินเก็บเยลลี่เมล็ด', 'ทานตะวันเป็นระยะ'], mate: 'frisbee', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌻 บินโฉบ' } },
-  rebel: { desc: ['โดดหลายชั้นแล้วสไลด์', 'ลงพื้นได้ทันที'], mate: 'windy', jumps: 3 },
+  rebel: { desc: ['กดสไลด์กลางอากาศ', 'ดิ่งลงพื้นทันที (สกิลจริง)'], mate: 'windy', jumps: 3, cfx: { k: 'slamLand' } },
   moonrabbit: { desc: ['แปลงร่างกระต่ายโมจิยักษ์', 'กระทืบพื้นอมตะ'], mate: 'moonmortar', cfx: { k: 'transform', iv: 20, dur: 4, tag: '🐰 โมจิยักษ์' } },
   sbshortcake: { desc: ['เสกเยลลี่ขนมหมาน้อย', 'แล้ววิ่งสี่ขาสุดแรง'], mate: 'cakehound', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🍰 ขนมหมา' } },
   gulab: { desc: ['เปิดเทศกาลเต้นรำ', 'โปรยเหรียญ+เยลลี่'], mate: 'tabla', cfx: { k: 'coinIv', iv: 9, n: 4, tag: '🎉 เทศกาล' } },
@@ -1261,6 +1261,23 @@ let slideHeld = false;
 function doSlide(on) { slideHeld = on; }
 
 function doJump() {
+  if (G.state === 'play' && CFX().k === 'squad') {
+    G.cfxCount = (G.cfxCount || 0) + 1;
+    if (G.cfxCount >= CFX().n) {
+      G.cfxCount = 0;
+      let nd = 0;
+      for (let i = obstacles.length - 1; i >= 0 && nd < 3; i--) {
+        const ox = obstacles[i].x - worldX;
+        if (ox > P.x + 30 && ox < W + 40) {
+          sparkle(ox, GROUND_Y - 26, 16, '#ff8ab0');
+          obstacles.splice(i, 1); nd++;
+        }
+      }
+      G.coins += 5; G.score += Math.round(250 * lvMul()) * nd;
+      banner('📣 ทีมเชียร์บุก! ทำลาย ' + nd + ' + 5🪙', '#ff8ab0');
+      AudioSys.power();
+    }
+  }
   if (G.state !== 'play') return;
   if (P.dead || P.fallingPit || G.bonusT > 0) return;
   if (P.sliding) {
@@ -1276,6 +1293,16 @@ function doJump() {
   } else if (P.jumps >= 1 && P.jumps < CH().jumps) {
     P.vy = JUMP2_V;
     P.jumps++;
+    // สกิลนับจำนวนโดด 2 ชั้น (จิ้งจอกเก้าหาง: ครบแล้วแปลงร่าง)
+    if (CFX().trig === 'djump') {
+      G.cfxCount = (G.cfxCount || 0) + 1;
+      if (G.cfxCount >= CFX().n) {
+        G.cfxCount = 0;
+        G.formT = CFX().dur;
+        G.shake = 6; AudioSys.power();
+        banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#ffd24a');
+      }
+    }
     if (CFX().k === 'jumpPts') {
       const jp = Math.round(CFX().v * lvMul());
       G.score += jp;
@@ -1381,6 +1408,7 @@ function startGame(mode, boosts) {
   G.formT = 0; G.cfxT = 0;
   G.obSmashLeft = CFX().k === 'obSmash' ? CFX().v : 0;
   G.relayUsed = false; G.mainCharIdx = -1;
+  G.cfxCount = 0; G.noHitT = 0; G.songIdx = 0;
   G.petFxT = 0;
   G.hp = G.hpMax;
   G.stage = 1; G.stageTimer = 0;
@@ -1769,6 +1797,7 @@ const canSmash = () => P.giantT > 0 || P.boostT > 0 || G.formT > 0;
 
 function hurt(amount) {
   if (isInvincible() || P.dead) return;
+  G.noHitT = 0;   // รีเซ็ตสตรีคไม่โดนชน (มินต์ช็อกโก)
   const cf = CFX();
   if (cf.k === 'obSmash' && (G.obSmashLeft || 0) > 0) {
     // พริกแดง: ชนแล้วทุบสิ่งกีดขวางแตกแทนการเจ็บ (จำกัดครั้ง)
@@ -1850,8 +1879,11 @@ function update(dt) {
   /* --- HP ลดตามเวลา --- */
   /* ---- ความสามารถพิเศษประจำคุกกี้ (ตามเกมต้นฉบับ) ---- */
   const cf = CFX();
+  G.noHitT = (G.noHitT || 0) + dt;
+  if (cf.k === 'slamLand' && slideHeld && !P.onGround && G.bonusT <= 0 && !P.fallingPit)
+    P.vy = Math.max(P.vy, 1500);   // กบฏ: กดสไลด์กลางอากาศ = ดิ่งลงพื้นทันที
   G.formT = Math.max(0, (G.formT || 0) - dt);
-  if (['spawnSp', 'destroyIv', 'coinIv', 'transform'].includes(cf.k) && cf.trig === undefined) {
+  if (['spawnSp', 'destroyIv', 'coinIv', 'transform', 'songs', 'streak'].includes(cf.k) && cf.trig === undefined) {
     G.cfxT = (G.cfxT || 0) + dt;
     let iv = cf.iv * (1 - ((G.charLv[G.charIdx] || 1) - 1) * 0.04);
     if (cf.k === 'transform' && cf.low) iv *= 0.45 + 0.55 * (G.hp / G.hpMax);   // แปลงถี่ขึ้นเมื่อพลังต่ำ (มนุษย์หมาป่า)
@@ -1859,6 +1891,9 @@ function update(dt) {
       G.cfxT = 0;
       if (cf.k === 'spawnSp') {
         // สร้างเยลลี่พิเศษข้างหน้าให้เก็บ (สกิลสายเสกเยลลี่)
+        if (cf.lt && G.btProgress < 9)
+          jellyList.push({ x: worldX + P.x + 360, y: GROUND_Y - 120,
+                           type: 'letter', ch: 'BONUSTIME'[G.btProgress], t: 0, dead: false });
         for (let q = 0; q < (cf.n || 3); q++)
           jellyList.push({ x: worldX + P.x + 380 + q * 44, y: GROUND_Y - 70 - Math.sin(q * 0.9) * 34, type: 'pink', t: 0, dead: false });
         sparkle(P.x + 60, P.y + 20, 10, '#ff9db8');
@@ -1881,6 +1916,34 @@ function update(dt) {
         AudioSys.jelly(10);
         sparkle(P.x + 50, P.y, 12, '#ffd700');
         floatText(P.x + 40, P.y - 24, (cf.tag || '🪙') + ' +' + cf.n, '#ffd24a', true);
+      } else if (cf.k === 'songs') {
+        // แคโรล: วนเพลง 3 แบบ ชีวิต/เปลี่ยนสิ่งกีดขวางเป็นเยลลี่/เหรียญ
+        G.songIdx = ((G.songIdx || 0) + 1) % 3;
+        if (G.songIdx === 0) {
+          G.hp = Math.min(G.hpMax, G.hp + 12);
+          banner('🎵 เพลงแห่งชีวิต +HP', '#7bff9b');
+        } else if (G.songIdx === 1) {
+          const o = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 20; });
+          if (o) {
+            obstacles.splice(obstacles.indexOf(o), 1);
+            for (let q = 0; q < 2; q++)
+              jellyList.push({ x: o.x + q * 40, y: GROUND_Y - 60, type: 'pink', t: 0, dead: false });
+            sparkle(o.x - worldX, GROUND_Y - 26, 14, '#8fd8c8');
+          }
+          banner('🎵 เพลงแห่งการเปลี่ยนแปลง', '#8fd8c8');
+        } else {
+          G.coins += 4;
+          banner('🎵 เพลงแห่งความอุดม +4🪙', '#ffd24a');
+        }
+        AudioSys.jelly(14);
+      } else if (cf.k === 'streak') {
+        // มินต์ช็อกโก: ไม่ชนต่อเนื่อง = สีไวโอลินเสกเหรียญ (ชนแล้วสตรีคขาด)
+        if (G.noHitT > 6) {
+          G.coins += 3;
+          G.score += Math.round(100 * lvMul());
+          sparkle(P.x + 40, P.y + 10, 8, '#8fd8c8');
+          floatText(P.x + 30, P.y - 20, '🎻 สตรีค +3🪙', '#8fd8c8');
+        }
       } else {
         G.formT = cf.dur;
         G.shake = 6; AudioSys.power();
@@ -2183,6 +2246,7 @@ function update(dt) {
 }
 
 function hurtFromPit() {
+  G.noHitT = 0;
   if (PFX().k === 'lift' && (G.liftLeft || 0) > 0) {
     // สัตว์เลี้ยงช่วยดึงขึ้นจากหลุม (สกิลจริง เช่น ผีน้อย/สะพานน้ำแข็ง)
     G.liftLeft--;
@@ -2210,6 +2274,15 @@ function collectJelly(j, jx) {
   switch (j.type) {
     case 'bar': case 'coin': case 'pink': case 'bear': {
       G.combo++; G.comboTimer = CH().comboT + (PFX().k === 'combo' ? PFX().v * petFxMul() : 0) + trV('combo');
+      if (CFX().trig === 'jelly') {
+        G.cfxCount = (G.cfxCount || 0) + 1;
+        if (G.cfxCount >= CFX().n) {
+          G.cfxCount = 0;
+          G.formT = CFX().dur;
+          G.shake = 6; AudioSys.power();
+          banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#ffd24a');
+        }
+      }
       const comboBonus = Math.min(G.combo, 50);
       let base = JSCORE[j.type];
       if (j.type === 'bear') base = j.v === 'b' ? 5000 : j.v === 'p' ? 2500 : 1000;   // หมี 3 ระดับ
