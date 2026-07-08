@@ -281,6 +281,7 @@ const P = {
   invT: 0, giantT: 0, magnetT: 0, boostT: 0,
   anim: 0, dead: false, fallingPit: false,
   squash: 0,      // squash & stretch (บวก = ย่อ, ลบ = ยืด)
+  stumbleT: 0,    // เซถลาตอนโดนชน
 };
 const Pet = { x: 90, y: 300, wing: 0 };
 const GROUND_Y = 442;
@@ -434,7 +435,29 @@ const PATTERNS = [
 ];
 
 const bonusPathY = wx => 250 + Math.sin(wx * 0.004) * 105;
+
+/* ตัวอักษรเยลลี่ "BONUS" — ซิกเนเจอร์ของเกมจริง */
+const LETTERS = {
+  B: ['1110','1001','1110','1001','1110'],
+  O: ['0110','1001','1001','1001','0110'],
+  N: ['1001','1101','1011','1001','1001'],
+  U: ['1001','1001','1001','1001','0110'],
+  S: ['0111','1000','0110','0001','1110'],
+};
+let bonusLetterQueue = [];
+let bonusBearSpawned = false;
+
 function spawnBonusPattern() {
+  // ช่วงแรกของโบนัส: สะกดคำว่า BONUS ด้วยเยลลี่
+  if (bonusLetterQueue.length) {
+    const map = LETTERS[bonusLetterQueue.shift()];
+    const x = spawnX;
+    for (let r = 0; r < 5; r++)
+      for (let c = 0; c < 4; c++)
+        if (map[r][c] === '1') J(x + c * 27, 176 + r * 27, 'bar');
+    spawnX = x + 4 * 27 + 46;
+    return;
+  }
   const x = spawnX;
   for (let i = 0; i < 12; i++) {
     const wx = x + i * 50;
@@ -606,6 +629,8 @@ function gameOver() {
   }
   setState('over'); G.overT = 0;
   P.dead = true;
+  puff(P.x + 28, P.y + P.h - 6, 16, '#a97b45');   // เศษคุกกี้กระจาย
+  sparkle(P.x + 28, P.y + 30, 8, '#ffce2e');
   AudioSys.stopMusic();
   AudioSys.over();
   G.score = Math.floor(G.score);
@@ -713,6 +738,7 @@ function hurt(amount) {
   G.hp -= amount;
   G.combo = 0;
   P.invT = 2.0;
+  P.stumbleT = 0.5;
   G.shake = 12; G.flash = 0.5;
   AudioSys.crash();
   sparkle(P.x + P.w / 2, P.y + P.h / 2, 14, '#ff6b6b');
@@ -737,6 +763,7 @@ function update(dt) {
     if (b.x < -40) { b.x = W + rnd(10, 60); b.y = rnd(30, 430); }
   }
   P.squash += (0 - P.squash) * Math.min(1, 10 * dt);
+  P.stumbleT = Math.max(0, P.stumbleT - dt);
   for (const t of trail) {
     t.t += dt;
     t.x -= (G.state === 'play' ? G.speed * 1.1 : 60) * dt;
@@ -785,11 +812,21 @@ function update(dt) {
   P.boostT = Math.max(0, P.boostT - dt);
   if (G.bonusT > 0) {
     G.bonusT -= dt;
-    if (G.bonusT <= 0) { G.bonusT = 0; P.invT = Math.max(P.invT, 1.5); }
+    // หมีเยลลี่ยักษ์รอปิดท้ายโบนัสไทม์ (แบบเกมจริง)
+    if (G.bonusT <= 1.1 && !bonusBearSpawned) {
+      bonusBearSpawned = true;
+      const wx = worldX + W + 60;
+      J(wx, bonusPathY(wx), 'bear');
+    }
+    if (G.bonusT <= 0) { G.bonusT = 0; bonusLetterQueue = []; P.invT = Math.max(P.invT, 1.5); }
   }
   G.comboTimer -= dt;
   if (G.comboTimer <= 0) G.combo = 0;
   P.anim += dt * (8 + G.speed / 90);
+
+  // ฝุ่นแป้งฟุ้งใต้เท้าตอนวิ่ง
+  if (P.onGround && !P.sliding && Math.random() < 0.25)
+    puff(P.x + rnd(0, 18), GROUND_Y - 3, 1, '#c59a63');
 
   // สายรุ้งตามหลังช่วงพลังพิเศษ
   if (P.boostT > 0 || G.bonusT > 0 || P.giantT > 0) {
@@ -889,7 +926,9 @@ function update(dt) {
     if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0) && !['potion','giant','magnet','star'].includes(j.type)) {
       const dx = cx - jx, dy = cy - j.y;
       const d = Math.hypot(dx, dy);
-      if (d < 260) { j.x += dx / d * 620 * dt; j.y += dy / d * 620 * dt; jx = j.x - worldX; }
+      // ช่วงโบนัสดูดรัศมีสั้นลง จะได้เห็นตัวอักษร BONUS ชัด ๆ ก่อนบินทะลุ
+      const attractR = G.bonusT > 0 ? 135 : 260;
+      if (d < attractR) { j.x += dx / d * 620 * dt; j.y += dy / d * 620 * dt; jx = j.x - worldX; }
     }
     const r = JSIZE[j.type] / 2 + (P.giantT > 0 ? 30 : 14);
     if (Math.abs(jx - cx) < r + pw / 2 - 8 && Math.abs(j.y - cy) < r + ph / 2 - 4) {
@@ -992,6 +1031,8 @@ function collectJelly(j, jx) {
       break;
     case 'star':
       G.runStars++;
+      bonusLetterQueue = ['B','O','N','U','S'];
+      bonusBearSpawned = false;
       G.bonusT = 6.5 + G.upg.bonus * 0.7;
       AudioSys.bear();
       sparkle(jx, j.y, 28, '#ffe066');
@@ -1024,6 +1065,7 @@ function draw() {
   drawBackHills();
   drawBokeh();
   drawGroundAndPits();
+  drawOven();
   drawPlatforms();
   drawTrail();
   drawJellies();
@@ -1284,6 +1326,58 @@ function drawGroundAndPits() {
     ctx.fillRect(px - 4, GROUND_Y, 6, 18);
     ctx.fillRect(px + p.w - 2, GROUND_Y, 6, 18);
   }
+}
+
+/* ---------- เตาอบตอนเริ่มเกม: คุกกี้หนีออกมาจากตรงนี้! ---------- */
+function drawOven() {
+  if (G.state !== 'play' && G.state !== 'over') return;
+  const sx = -20 - worldX;
+  if (sx < -360) return;
+  ctx.save();
+  ctx.translate(sx, GROUND_Y);
+  // ตัวเตา
+  ctx.fillStyle = '#4a2c16';
+  roundRect(0, -292, 296, 292, 26); ctx.fill();
+  ctx.fillStyle = '#5f3a1e';
+  roundRect(10, -282, 276, 272, 20); ctx.fill();
+  // ปล่องควัน
+  ctx.fillStyle = '#4a2c16';
+  roundRect(210, -344, 46, 60, 8); ctx.fill();
+  // ควันลอย
+  for (let i = 0; i < 3; i++) {
+    const t = (G.time * 0.5 + i * 0.33) % 1;
+    ctx.fillStyle = `rgba(240,230,215,${(1 - t) * 0.4})`;
+    ctx.beginPath();
+    ctx.arc(233 + Math.sin(t * 5) * 10, -350 - t * 70, 10 + t * 14, 0, TAU);
+    ctx.fill();
+  }
+  // ช่องเตาเปิด เรืองแสงส้มข้างใน
+  const gg = ctx.createLinearGradient(0, -210, 0, -20);
+  gg.addColorStop(0, '#2a1206');
+  gg.addColorStop(0.55, '#7a2f0a');
+  gg.addColorStop(1, '#e8792a');
+  ctx.fillStyle = gg;
+  ctx.beginPath();
+  ctx.moveTo(48, -20);
+  ctx.lineTo(48, -170);
+  ctx.arc(148, -170, 100, Math.PI, 0);
+  ctx.lineTo(248, -20);
+  ctx.closePath(); ctx.fill();
+  // แสงไฟลุกวูบวาบ
+  ctx.fillStyle = `rgba(255,170,60,${0.25 + Math.sin(G.time * 9) * 0.12})`;
+  ctx.beginPath(); ctx.ellipse(148, -60, 80, 36, 0, 0, TAU); ctx.fill();
+  // บานประตูเหวี่ยงเปิด
+  ctx.fillStyle = '#3a2210';
+  roundRect(-44, -200, 40, 186, 10); ctx.fill();
+  ctx.fillStyle = '#57351c';
+  roundRect(-38, -192, 28, 170, 8); ctx.fill();
+  ctx.fillStyle = '#c9a15f';
+  ctx.beginPath(); ctx.arc(-24, -108, 6, 0, TAU); ctx.fill();  // ลูกบิด
+  // ขาเตา
+  ctx.fillStyle = '#33200f';
+  roundRect(18, -6, 34, 14, 5); ctx.fill();
+  roundRect(244, -6, 34, 14, 5); ctx.fill();
+  ctx.restore();
 }
 
 function drawPlatforms() {
@@ -1608,9 +1702,19 @@ function drawPlayer() {
   }
 
   const run = P.anim;
-  if (P.sliding) drawCookieSlide(run);
-  else if (!P.onGround) drawCookieJump(P.jumps >= 2);
-  else drawCookieRun(run);
+  if (P.dead) {
+    // ล้มคว่ำหมุนตัวตอนพลังหมด (แบบเกมจริง)
+    const t = clamp(G.overT * 1.5, 0, 1);
+    ctx.translate(0, -Math.sin(Math.min(t, 1) * Math.PI) * 26);
+    ctx.rotate(Math.min(t * 2.4, Math.PI / 2));
+    cookieBody(0, 0.8, -0.5, 3.3, 2.3, 0);
+  } else {
+    if (P.stumbleT > 0)
+      ctx.rotate(Math.sin(G.time * 36) * 0.14 * (P.stumbleT / 0.5));
+    if (P.sliding) drawCookieSlide(run);
+    else if (!P.onGround) drawCookieJump(P.jumps >= 2);
+    else drawCookieRun(run);
+  }
 
   if (P.magnetT > 0) {
     ctx.strokeStyle = 'rgba(126,203,255,.7)';
@@ -1699,54 +1803,68 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch) {
   };
   arm(armA); arm(armB);
 
-  // หัว
+  // หัว (โตแบบคาแรกเตอร์เกมจริง)
   ctx.save();
-  ctx.translate(0, -76 + headBob);
+  ctx.translate(0, -80 + headBob);
   ctx.fillStyle = B;
-  ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.fill();
-  ctx.strokeStyle = OUTL; ctx.lineWidth = 2.6;
-  ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 0, 27, 0, TAU); ctx.fill();
+  ctx.strokeStyle = OUTL; ctx.lineWidth = 2.8;
+  ctx.beginPath(); ctx.arc(0, 0, 27, 0, TAU); ctx.stroke();
   // ไฮไลต์แก้มขวาบน
   ctx.fillStyle = 'rgba(255,255,255,.15)';
-  ctx.beginPath(); ctx.arc(9, -9, 9, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(10, -10, 10, 0, TAU); ctx.fill();
   ctx.fillStyle = ICING;
   ctx.beginPath();
-  ctx.arc(0, -4, 24, Math.PI * 1.05, Math.PI * 1.95);
-  ctx.quadraticCurveTo(14, -20, 6, -12);
-  ctx.quadraticCurveTo(2, -22, -4, -12);
-  ctx.quadraticCurveTo(-10, -22, -16, -10);
+  ctx.arc(0, -4, 27, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.quadraticCurveTo(16, -22, 7, -13);
+  ctx.quadraticCurveTo(2, -25, -5, -13);
+  ctx.quadraticCurveTo(-11, -25, -18, -11);
   ctx.closePath(); ctx.fill();
 
   // เครื่องประดับหัวตามตัวละคร
   if (ch.id === 'berry') {
     ctx.fillStyle = '#5cb85c';
     for (const a of [-0.5, 0, 0.5]) {
-      ctx.save(); ctx.translate(0, -20); ctx.rotate(a);
+      ctx.save(); ctx.translate(0, -23); ctx.rotate(a);
       ctx.beginPath(); ctx.ellipse(0, -6, 5, 10, 0, 0, TAU); ctx.fill();
       ctx.restore();
     }
   } else if (ch.id === 'ninja') {
     ctx.fillStyle = '#e0453a';
-    roundRect(-24, -10, 48, 9, 4); ctx.fill();
+    roundRect(-27, -11, 54, 10, 5); ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(-22, -4); ctx.lineTo(-40, 4); ctx.lineTo(-36, 10); ctx.lineTo(-22, 2);
+    ctx.moveTo(-25, -5); ctx.lineTo(-44, 4); ctx.lineTo(-40, 10); ctx.lineTo(-25, 2);
     ctx.fill();
   } else if (ch.id === 'angel') {
     ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.ellipse(0, -32, 15, 5, 0, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, -35, 17, 5.5, 0, 0, TAU); ctx.stroke();
   }
 
+  // ตาโตรีแบบเกมจริง + ประกายตา 2 จุด
   ctx.fillStyle = ch.id === 'ninja' ? '#2a3040' : '#3a2410';
-  ctx.beginPath(); ctx.ellipse(4, -1, 3.4, 4.4, 0, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(16, -1, 3.4, 4.4, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(4, -1, 4.3, 5.8, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(17, -1, 4.3, 5.8, 0, 0, TAU); ctx.fill();
   ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(5, -2.5, 1.2, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(17, -2.5, 1.2, 0, TAU); ctx.fill();
-  ctx.strokeStyle = DARK; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.arc(10, 5, 6, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  ctx.beginPath(); ctx.arc(5.4, -3.2, 1.7, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(18.4, -3.2, 1.7, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(2.8, 0.6, 0.9, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(15.8, 0.6, 0.9, 0, TAU); ctx.fill();
+  // ปากยิ้มกว้างอ้าปาก + ลิ้น (ซิกเนเจอร์คุกกี้รัน)
+  ctx.fillStyle = '#5f2c14';
+  ctx.beginPath();
+  ctx.arc(11, 6, 8, 0.04 * Math.PI, 0.96 * Math.PI);
+  ctx.closePath(); ctx.fill();
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(11, 6, 8, 0.04 * Math.PI, 0.96 * Math.PI);
+  ctx.closePath(); ctx.clip();
+  ctx.fillStyle = '#ff8f86';
+  ctx.beginPath(); ctx.ellipse(11, 13.4, 6.2, 4, 0, 0, TAU); ctx.fill();
+  ctx.restore();
+  // แก้มชมพู
   ctx.fillStyle = ch.cheek;
-  ctx.beginPath(); ctx.arc(-3, 6, 3.6, 0, TAU); ctx.fill();
-  ctx.beginPath(); ctx.arc(20, 6, 3.2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(-6, 7, 4.4, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(24, 7, 4, 0, TAU); ctx.fill();
   ctx.restore();
 
   ctx.restore();
