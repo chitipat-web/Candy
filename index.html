@@ -121,6 +121,22 @@ const GRADES = { C:'#9aa7b0', B:'#5cb85c', A:'#4a9fe0', S:'#b06ae0', SS:'#e8b03a
    EPISODE — 5 แผนที่ ปลดล็อกด้วยสถิติระยะทาง แต่ละตอนมีธีม/คอร์ส/ความยากต่างกัน
    ============================================================ */
 /* ลีกจัดอันดับตามสถิติคะแนนสูงสุด + เหรียญตราความสำเร็จสะสม */
+/* วัตถุดิบอบขนม: ดรอประหว่างวิ่ง เก็บครบชุดแล้ว "อบ" รับรางวัลในครัวคุกกี้ */
+const INGRS = [
+  { icon: '🌾', name: 'แป้งสาลี', c: '#f2e0c0' },
+  { icon: '🧂', name: 'น้ำตาล', c: '#ffffff' },
+  { icon: '🧈', name: 'เนย', c: '#ffd24a' },
+  { icon: '🥛', name: 'นม', c: '#f8f4ec' },
+  { icon: '🍫', name: 'ช็อกโกแลต', c: '#6a3f28' },
+];
+/* เช็กอินรายวัน 7 วันวน */
+const DAILY = [
+  { t: '300🪙', coins: 300 }, { t: '500🪙', coins: 500 }, { t: '1💎', gems: 1 },
+  { t: '800🪙', coins: 800 }, { t: '2💎', gems: 2 }, { t: '1,200🪙', coins: 1200 },
+  { t: '3💎+1,500🪙', coins: 1500, gems: 3 },
+];
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+
 const LEAGUES = [
   { name: 'บรอนซ์',   icon: '🥉', min: 0 },
   { name: 'ซิลเวอร์',  icon: '🥈', min: 20000 },
@@ -748,7 +764,8 @@ const TREASURES = [
   { icon: '🔔', name: 'กระดิ่งเรียกโชค',   cost: 4600, fx: { k: 'letter', v: 1 }, desc: 'อักษร BONUSTIME โผล่บ่อยขึ้น' },
 ];
 /* รวมค่าผลของสมบัติที่สวมอยู่ */
-const trV = k => G.trEquip.reduce((sum, i) => sum + (TREASURES[i] && TREASURES[i].fx.k === k ? TREASURES[i].fx.v : 0), 0);
+const trStarMul = i => 1 + (G.trStar[i] || 0) * 0.5;   // วิวัฒนาการสมบัติ: ผลแรงขึ้นครึ่งเท่าต่อดาว
+const trV = k => G.trEquip.reduce((sum, i) => sum + (TREASURES[i] && TREASURES[i].fx.k === k ? TREASURES[i].fx.v * trStarMul(i) : 0), 0);
 
 /* ============================================================
    ร้านค้าอัปเกรด (จ่ายด้วยเหรียญสะสม)
@@ -873,6 +890,9 @@ const G = {
   episode: SAVE.get('ep', 0), distBest: SAVE.get('distBest', 0),
   stats: SAVE.get('stats', { runs: 0, dist: 0, bears: 0, jellies: 0, coins: 0, bt: 0, maxCombo: 0 }),
   medals: SAVE.get('medals', []), leagueClaim: SAVE.get('leagueClaim', 0),
+  ingr: SAVE.get('ingr', [0, 0, 0, 0, 0]), cooked: SAVE.get('cooked', 0),
+  dailyDay: SAVE.get('dailyDay', 0), dailyLast: SAVE.get('dailyLast', ''), dailyShow: false,
+  trStar: SAVE.get('trStar', {}),
   owned: SAVE.get('owned', [0]),
   petIdx: SAVE.get('pet', 0),
   petsOwned: SAVE.get('petsOwned', [0]),
@@ -995,7 +1015,7 @@ const J = (x, y, type) => jellyList.push({ x, y, type, t: rnd(0, TAU), dead: fal
 const OB = (x, type) => obstacles.push({ x, type, dead: false });
 
 const JSIZE = { bar: 22, pink: 26, coin: 24, bear: 46, potion: 30, giant: 32, magnet: 32, star: 32,
-                letter: 26, confetti: 16, blast: 30, box: 32 };
+                letter: 26, confetti: 16, blast: 30, box: 32, ingr: 26 };
 const BT_WORD = 'BONUSTIME';
 const JSCORE = { bar: 10, pink: 50, coin: 20, bear: 1000, letter: 300, confetti: 150 };
 
@@ -1214,6 +1234,11 @@ function spawnPattern() {
       .concat(hard >= 3 ? [7,8,11] : []);
     w = PATTERNS[pool[rndi(0, pool.length - 1)]](x);
     // ตัวอักษร BONUSTIME ตัวถัดไปโปรยไว้กลางทาง (แบบเกมจริง)
+    // วัตถุดิบอบขนม (ดรอปหายาก)
+    if (G.mode === 'normal' && rnd(0, 1) < 0.055) {
+      jellyList.push({ x: x + rnd(80, Math.max(120, w - 60)), y: GROUND_Y - rnd(90, 190),
+                       type: 'ingr', kind: rndi(0, 4), t: rnd(0, TAU), dead: false });
+    }
     if (G.btProgress < 9 && rnd(0, 1) < 0.24 * (1 + trV('letter') * 0.6)) {
       const lj = { x: x + rnd(60, Math.max(80, w - 60)), y: GROUND_Y - rnd(120, 205),
                    type: 'letter', ch: BT_WORD[G.btProgress], t: rnd(0, TAU), dead: false };
@@ -1574,7 +1599,7 @@ function useSkill() {
     let n = 0;
     for (const j of jellyList) {
       const jx = j.x - worldX;
-      if (!j.dead && jx > -40 && jx < W + 40 && !['potion','giant','magnet','star','blast','box','letter'].includes(j.type)) {
+      if (!j.dead && jx > -40 && jx < W + 40 && !['potion','giant','magnet','star','blast','box','letter','ingr'].includes(j.type)) {
         j.dead = true; collectJelly(j, jx); n++;
       }
     }
@@ -2083,7 +2108,7 @@ function update(dt) {
     let jx = j.x - worldX;
     if (jx < -80) { j.dead = true; continue; }
     if (jx > W + 80) break;
-    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0 || trV('magnet') > 0 || CH().magnet) && !['potion','giant','magnet','star','blast','box','letter'].includes(j.type)) {
+    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0 || trV('magnet') > 0 || CH().magnet) && !['potion','giant','magnet','star','blast','box','letter','ingr'].includes(j.type)) {
       const dx = cx - jx, dy = cy - j.y;
       const d = Math.hypot(dx, dy);
       // ช่วงโบนัสดูดรัศมีสั้นลง จะได้เห็นตัวอักษร BONUS ชัด ๆ ก่อนบินทะลุ
@@ -2224,6 +2249,15 @@ function collectJelly(j, jx) {
       for (let i = 0; i < 16; i++)
         jellyList.push({ x: worldX + jx + rnd(70, 480), y: rnd(130, GROUND_Y - 60),
                          type: 'confetti', t: rnd(0, TAU), dead: false });
+      break;
+    }
+    case 'ingr': {
+      G.ingr[j.kind] = (G.ingr[j.kind] || 0) + 1;
+      SAVE.set('ingr', G.ingr);
+      G.score += 200;
+      AudioSys.potion();
+      sparkle(jx, j.y, 12, INGRS[j.kind].c);
+      floatText(jx, j.y - 26, INGRS[j.kind].icon + ' ' + INGRS[j.kind].name + '!', '#ffe9b8', true);
       break;
     }
     case 'letter': {
@@ -3459,6 +3493,20 @@ function drawJellies() {
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 17px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(j.ch, 0, 1.5);
+        ctx.textBaseline = 'alphabetic';
+        break;
+      }
+      case 'ingr': {
+        // ถุงวัตถุดิบอบขนม
+        ctx.rotate(Math.sin(G.time * 2.6 + j.t) * 0.12);
+        ctx.fillStyle = 'rgba(255,233,184,.25)';
+        ctx.beginPath(); ctx.arc(0, 0, 19, 0, TAU); ctx.fill();
+        ctx.fillStyle = INGRS[j.kind].c;
+        roundRect(-12, -12, 24, 24, 9); ctx.fill();
+        ctx.strokeStyle = 'rgba(90,52,19,.55)'; ctx.lineWidth = 2.4;
+        roundRect(-12, -12, 24, 24, 9); ctx.stroke();
+        ctx.font = '15px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(INGRS[j.kind].icon, 0, 1);
         ctx.textBaseline = 'alphabetic';
         break;
       }
@@ -4888,6 +4936,7 @@ function drawBanner() {
 function drawMenu() {
   ctx.fillStyle = 'rgba(40,20,5,.45)';
   ctx.fillRect(0, 0, W, H);
+  if (G.dailyLast !== todayStr() && !G.dailyShow) G.dailyShow = true;
 
   // ขนมลอยตกแต่งฉากหลังเมนู
   const decor = [
@@ -5009,6 +5058,52 @@ function drawMenu() {
   const help = 'SPACE/แตะซ้าย = โดด 2 ครั้ง = ตีลังกา  ·  ↓/กดขวาค้าง = สไลด์  ·  M = เสียง';
   ctx.strokeText(help, W / 2, 526);
   ctx.fillText(help, W / 2, 526);
+
+  /* ---------- เช็กอินรายวัน 7 วัน ---------- */
+  if (G.dailyShow) {
+    ctx.fillStyle = 'rgba(20,10,2,.72)';
+    ctx.fillRect(0, 0, W, H);
+    drawPanel(180, 120, 600, 300, 20);
+    drawTitleText('🎁 เช็กอินรายวัน', W / 2, 168, 28);
+    const claimed = G.dailyLast === todayStr();
+    const day = G.dailyDay % 7;
+    DAILY.forEach((d, i) => {
+      const x = 210 + i * 78, y = 195;
+      const got = i < day || (claimed && i === day);
+      drawPanel(x, y, 70, 96, 10);
+      if (i === day && !claimed) {
+        ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3;
+        roundRect(x + 2, y + 2, 66, 92, 8); ctx.stroke();
+      }
+      ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffe9b8';
+      ctx.fillText('วัน ' + (i + 1), x + 35, y + 20);
+      ctx.font = '22px Trebuchet MS';
+      ctx.globalAlpha = got ? 0.45 : 1;
+      ctx.fillText(d.gems ? '💎' : '🪙', x + 35, y + 52);
+      ctx.globalAlpha = 1;
+      ctx.font = 'bold 10.5px Trebuchet MS';
+      ctx.fillStyle = got ? '#7bd94a' : '#ffd24a';
+      ctx.fillText(got ? '✓ รับแล้ว' : d.t, x + 35, y + 78);
+    });
+    if (!claimed) {
+      drawBtn(W / 2 - 130, 340, 260, 48, '🎁 รับรางวัลวันที่ ' + (day + 1), () => {
+        const d = DAILY[day];
+        if (d.coins) G.bank += d.coins;
+        if (d.gems) G.crystals += d.gems;
+        G.dailyLast = todayStr(); G.dailyDay = (G.dailyDay + 1);
+        SAVE.set('coins', G.bank); SAVE.set('crystals', G.crystals);
+        SAVE.set('dailyLast', G.dailyLast); SAVE.set('dailyDay', G.dailyDay);
+        AudioSys.buy();
+        floatText(W / 2, 120, '🎁 ได้ ' + d.t + '!', '#ffd24a', true);
+        G.dailyShow = false;
+      }, { color: '#ffb02e', dark: '#e07b12', font: 17 });
+    } else {
+      drawBtn(W / 2 - 130, 340, 260, 48, 'วันนี้รับแล้ว — พรุ่งนี้มาใหม่!', () => { G.dailyShow = false; }, { disabled: true, font: 14 });
+    }
+    drawBtn(W / 2 - 70, 396, 140, 34, 'ปิด', () => { G.dailyShow = false; }, { color: '#a08468', dark: '#7d6448', font: 14 });
+  }
+
 }
 
 /* ---------- เตรียมพร้อมก่อนวิ่ง: เลือกบูสต์ใช้ครั้งเดียว ---------- */
@@ -5401,6 +5496,29 @@ function drawTreasure() {
     ctx.fillStyle = equipped ? '#7bd94a' : owned ? '#aee4ff' : '#ffd24a';
     ctx.fillText(equipped ? '✓ สวมอยู่' : owned ? 'แตะเพื่อสวม' : '🪙 ' + t.cost.toLocaleString(), x + cw / 2, y + chh - 8);
     drawBtn(x, y, cw, chh, '', () => tryTreasure(i), { invisible: true });
+    // วิวัฒนาการสมบัติ: ⭐ สูงสุด 3 ดาว ผล +50% ต่อดาว
+    if (owned) {
+      const st = G.trStar[i] || 0;
+      ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffd24a';
+      ctx.fillText('⭐'.repeat(st), x + 6, y + 16);
+      ctx.textAlign = 'center';
+      if (st < 3) {
+        const evCost = t.cost * (st + 1) * 2;
+        drawBtn(x + cw - 42, y + 4, 38, 20, '⭐+', () => {
+          if (G.bank >= evCost) {
+            G.bank -= evCost;
+            G.trStar[i] = st + 1;
+            SAVE.set('coins', G.bank); SAVE.set('trStar', G.trStar);
+            AudioSys.buy();
+            floatText(W / 2, 100, '⭐ ' + t.name + ' วิวัฒนาการขั้น ' + (st + 1) + '! (ผล +' + ((st + 1) * 50) + '%)', '#ffd24a', true);
+          } else {
+            AudioSys.deny();
+            floatText(W / 2, 100, 'วิวัฒนาการต้องใช้ 🪙 ' + evCost.toLocaleString(), '#ff8888', true);
+          }
+        }, { color: '#b06ae0', dark: '#8a4ac0', font: 10 });
+      }
+    }
   });
 
   drawBtn(W / 2 - 90, 488, 180, 42, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
@@ -5445,7 +5563,36 @@ function drawShop() {
     }
   });
 
-  drawBtn(W / 2 - 90, 476, 180, 46, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
+  /* ---------- ครัวคุกกี้: อบขนมจากวัตถุดิบที่เก็บระหว่างวิ่ง ---------- */
+  drawPanel(174, 468, 478, 60, 14);
+  ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffd24a';
+  ctx.fillText('🍳 ครัวคุกกี้', 190, 492);
+  ctx.font = '11px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+  ctx.fillText('อบแล้ว ' + G.cooked, 190, 510);
+  INGRS.forEach((ing, i) => {
+    ctx.font = '15px Trebuchet MS'; ctx.textAlign = 'left';
+    const has = G.ingr[i] || 0;
+    ctx.globalAlpha = has >= 3 ? 1 : 0.6;
+    ctx.fillText(ing.icon, 292 + i * 70, 498);
+    ctx.globalAlpha = 1;
+    ctx.font = 'bold 12px Trebuchet MS';
+    ctx.fillStyle = has >= 3 ? '#7bd94a' : '#ffe9b8';
+    ctx.fillText(Math.min(has, 99) + '/3', 314 + i * 70, 498);
+    ctx.fillStyle = '#ffd24a';
+  });
+  const canCook = INGRS.every((_, i) => (G.ingr[i] || 0) >= 3);
+  drawBtn(664, 478, 150, 42, '🔥 อบขนม!', () => {
+    if (!canCook) { AudioSys.deny(); floatText(W / 2, 100, 'ต้องมีวัตถุดิบครบอย่างละ 3 ชิ้น (เก็บ 🌾🧂🧈🥛🍫 ระหว่างวิ่ง)', '#ff8888', true); return; }
+    INGRS.forEach((_, i) => { G.ingr[i] -= 3; });
+    G.cooked++; G.bank += 800; G.crystals += 2;
+    SAVE.set('ingr', G.ingr); SAVE.set('cooked', G.cooked);
+    SAVE.set('coins', G.bank); SAVE.set('crystals', G.crystals);
+    AudioSys.buy();
+    banner('🍪 อบขนมสำเร็จ! +800🪙 +2💎', '#ffd24a');
+  }, canCook ? { color: '#e8b23c', dark: '#c08d1e', font: 15 } : { color: '#8a8178', dark: '#6e675f', font: 15 });
+
+  drawBtn(20, 478, 140, 42, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448', font: 15 });
 }
 
 /* ---------- ตารางอันดับ ---------- */
