@@ -111,36 +111,343 @@ const SAVE = {
 /* ============================================================
    ตัวละคร — ความสามารถต่างกันแบบเกมจริง
    ============================================================ */
+/* ============================================================
+   คุกกี้ทั้งหมดของ Cookie Run Classic (เกรด C/B/A/S/SS/L)
+   4 ตัวแรกคงตำแหน่งเดิมเพื่อความเข้ากันได้กับเซฟเก่า
+   ============================================================ */
+const GRADES = { C:'#9aa7b0', B:'#5cb85c', A:'#4a9fe0', S:'#b06ae0', SS:'#e8b03a', L:'#e0563a', E:'#3ac0a0' };
+function abDesc(o) {
+  const d = [];
+  if (o.jumps > 2) d.push('กระโดดกลางอากาศ ' + o.jumps + ' ชั้น');
+  if (o.hpBonus) d.push('พลังชีวิต +' + o.hpBonus);
+  if (o.revives > 1) d.push('ชุบชีวิต ' + o.revives + ' ครั้ง');
+  if (o.boostBonus) d.push('Rocket Start +' + o.boostBonus + ' วิ');
+  if (o.comboT > 1.2) d.push('คอมโบค้างนานขึ้น');
+  if (o.pitGuard < 1) d.push('ตกหลุมเจ็บลดครึ่ง');
+  if (o.ptMul) d.push('แต้มทุกชนิด +' + Math.round((o.ptMul - 1) * 100) + '%');
+  if (o.jellyMul) d.push('แต้มเยลลี่ +' + Math.round((o.jellyMul - 1) * 100) + '%');
+  if (o.coinMul) d.push('เหรียญ +' + Math.round((o.coinMul - 1) * 100) + '%');
+  if (o.drainMul) d.push('พลังลดช้าลง ' + Math.round((1 - o.drainMul) * 100) + '%');
+  if (o.btPlus) d.push('BONUS TIME +' + o.btPlus + ' วิ');
+  if (o.itemMul) d.push('ไอเทมอยู่นาน +' + Math.round((o.itemMul - 1) * 100) + '%');
+  if (o.skillFast) d.push('สกิลชาร์จเร็ว +' + Math.round((o.skillFast - 1) * 100) + '%');
+  if (o.magnet) d.push('ดูดเยลลี่ใกล้ตัวตลอดเวลา');
+  if (!d.length) d.push('สมดุลทุกด้าน');
+  return d.slice(0, 2);
+}
+function CK(id, name, grade, cost, col, deco, ex) {
+  const o = Object.assign({
+    id, name, grade, cost,
+    body: col[0], icing: col[1] || '#fff8f0', button: col[2] || '#e0453a',
+    cheek: 'rgba(242,120,145,.5)', eye: col[3] || '#4a76c9',
+    jumps: 2, hpBonus: 0, revives: 1, boostBonus: 0, comboT: 1.2, pitGuard: 1,
+    deco: deco || [], eyeS: 'round', sk: 'strike', mate: null,
+  }, ex || {});
+  o.desc = o.desc || abDesc(o);
+  return o;
+}
 const CHARS = [
-  { id: 'brave', name: 'คุกกี้กล้าหาญ', cost: 0,
+  Object.assign({ id: 'brave', name: 'คุกกี้ผู้กล้า', cost: 0,
     desc: ['สมดุลทุกด้าน', 'เพื่อนคู่ใจนักวิ่ง'],
     body: '#d78e4b', icing: '#fff8f0', button: '#e0453a', cheek: 'rgba(242,120,145,.6)', eye: '#1e78d2',
     jumps: 2, hpBonus: 0, revives: 1, boostBonus: 0, comboT: 1.2, pitGuard: 1 },
-  { id: 'berry', name: 'คุกกี้สตรอว์เบอร์รี', cost: 1500,
+    { grade: 'C', deco: null, eyeS: 'fierce', sk: 'strike', mate: 'chocodrop' }),
+  Object.assign({ id: 'berry', name: 'คุกกี้สตรอว์เบอร์รี', cost: 1500,
     desc: ['พลังชีวิต +25', 'ตกหลุมเจ็บลดครึ่ง'],
     body: '#e06a8a', icing: '#ffeef3', button: '#7bd94a', cheek: 'rgba(255,255,255,.45)', eye: '#d94f7e',
     jumps: 2, hpBonus: 25, revives: 1, boostBonus: 0, comboT: 1.2, pitGuard: 0.5 },
-  { id: 'ninja', name: 'คุกกี้นินจา', cost: 4000,
+    { grade: 'B', deco: null, eyeS: 'round', sk: 'heal', mate: 'cozyyarn' }),
+  Object.assign({ id: 'ninja', name: 'คุกกี้นินจา', cost: 9000,
     desc: ['กระโดดกลางอากาศ 3 ชั้น', 'คอมโบค้างนานขึ้น'],
     body: '#5a6478', icing: '#d8dee9', button: '#e0453a', cheek: 'rgba(120,160,255,.35)', eye: '#44506b',
     jumps: 3, hpBonus: 0, revives: 1, boostBonus: 0, comboT: 2.0, pitGuard: 1 },
-  { id: 'angel', name: 'คุกกี้เทวดา', cost: 8000,
+    { grade: 'S', deco: null, eyeS: 'fierce', sk: 'dash', mate: 'littleghost' }),
+  Object.assign({ id: 'angel', name: 'คุกกี้เทวดา', cost: 9000,
     desc: ['ชุบชีวิต 2 ครั้ง', 'Rocket Start +1.2 วิ'],
     body: '#e8c987', icing: '#ffffff', button: '#7ecbff', cheek: 'rgba(255,180,120,.45)', eye: '#e8a825',
     jumps: 2, hpBonus: 0, revives: 2, boostBonus: 1.2, comboT: 1.2, pitGuard: 1 },
+    { grade: 'S', deco: null, eyeS: 'round', sk: 'bless', mate: 'sugarswan' }),
+  /* ----- C ----- */
+  CK('bright', 'จิงเจอร์ไบรต์', 'C', 500, ['#e0a05e', '#fff8f0', '#ff7ba0', '#d2691e'],
+    ['bow:#ff7ba0', 'icing:#fff8f0'], { ptMul: 1.03, sk: 'heal', mate: 'cheesedrop' }),
+  /* ----- B ----- */
+  CK('cream', 'คุกกี้ครีม', 'B', 1800, ['#e8cfa0', '#ffffff', '#ffd24a', '#b8862e'],
+    ['swirl:#ffffff', 'icing:#ffffff'], { drainMul: 0.92, sk: 'heal', mate: 'mocha' }),
+  CK('cloudc', 'คุกกี้เมฆ', 'B', 2200, ['#dfe8f2', '#ffffff', '#9db8d8', '#7aa0c8'],
+    ['puffhair:#ffffff', 'buttons:#bcd4ea'], { pitGuard: 0.5, sk: 'bless', mate: 'cottoncloud' }),
+  CK('bcchoco', 'คุกกี้บัตเตอร์ครีมช็อกโก', 'B', 2500, ['#8a5a34', '#f2e2c8', '#e8b03a', '#6b4423'],
+    ['swirl:#f2e2c8', 'buttons:#5a3a20'], { jellyMul: 1.08, sk: 'strike', mate: 'dustuni' }),
+  /* ----- A ----- */
+  CK('gclaus', 'จิงเจอร์คลอส', 'A', 4000, ['#d78e4b', '#fff8f0', '#e0453a', '#1e78d2'],
+    ['santa:#e0453a', 'beard:#ffffff', 'buttons:#e0453a'], { coinMul: 1.15, sk: 'bless', mate: 'stocking' }),
+  CK('coffee', 'คุกกี้กาแฟ', 'A', 4500, ['#6b4a2f', '#e8d8c0', '#3a2a1a', '#4a3018'],
+    ['curlhair:#3a2a1a', 'steam:#e8d8c0'], { skillFast: 1.25, eyeS: 'sharp', sk: 'dash', mate: 'mocha' }),
+  CK('skater', 'คุกกี้สเก็ตเตอร์', 'A', 5000, ['#d99a55', '#4ac0c8', '#2e8a92', '#2e6a72'],
+    ['cap:#4ac0c8', 'band:#ffffff'], { boostBonus: 0.8, sk: 'dash', mate: 'beat' }),
+  CK('princess', 'คุกกี้เจ้าหญิง', 'A', 5500, ['#f0c890', '#ffb8d0', '#ffd24a', '#d2588a'],
+    ['crown:#ffd24a', 'longhair:#f2d848', 'icing:#ffd8e8'], { coinMul: 1.18, sk: 'bless', mate: 'locket' }),
+  CK('knight', 'คุกกี้อัศวิน', 'A', 5500, ['#c8955a', '#c9d2dc', '#8a97a8', '#4a5a78'],
+    ['helmet:#c9d2dc', 'sword:#dfe8f2'], { hpBonus: 20, sk: 'strike', mate: 'watchref' }),
+  CK('muscle', 'คุกกี้กล้ามโต', 'A', 6000, ['#d9955a', '#ffe0b8', '#e0453a', '#8a5020'],
+    ['band:#e0453a', 'blushdot'], { hpBonus: 30, pitGuard: 0.7, sk: 'strike', mate: 'dumbbell' }),
+  CK('zombie', 'คุกกี้ซอมบี้', 'A', 4000, ['#8faf6a', '#d8e8c0', '#5a7a3a', '#3f5f28'],
+    ['stitch:#5a7a3a', 'patchhair:#6a8a4a'], { revives: 2, drainMul: 1.06, sk: 'heal', mate: 'braingum' }),
+  /* ----- S ----- */
+  CK('pirate', 'คุกกี้โจรสลัด', 'S', 9000, ['#c08a50', '#3a3a4a', '#e0453a', '#2e2e3e'],
+    ['bandana:#e0453a', 'patch', 'stubble:#5a4028'], { coinMul: 1.3, eyeS: 'fierce', sk: 'gold', mate: 'boatman' }),
+  CK('skatingq', 'ราชินีสเก็ตน้ำแข็ง', 'S', 10000, ['#e8f2fa', '#bfe0f2', '#7ec8e8', '#4a9fd0'],
+    ['tiara:#bfe8ff', 'longhair:#dff2ff'], { comboT: 1.8, boostBonus: 0.6, sk: 'dash', mate: 'snowglobe' }),
+  CK('hero', 'คุกกี้ฮีโร่', 'S', 11000, ['#d9a45e', '#3f6fd0', '#e0453a', '#2e4fa0'],
+    ['heromask:#3f6fd0', 'cape:#e0453a'], { boostBonus: 1.5, hpBonus: 10, sk: 'strike', mate: 'rocketfc' }),
+  CK('sforce', 'คุกกี้หน่วยรบพิเศษ', 'S', 11000, ['#b89060', '#4a5a3a', '#2e3a24', '#37472c'],
+    ['beret:#4a5a3a', 'facepaint:#37472c'], { ptMul: 1.1, hpBonus: 12, eyeS: 'sharp', sk: 'strike', mate: 'awol' }),
+  CK('cheer', 'คุกกี้เชียร์ลีดเดอร์', 'S', 9500, ['#f0b878', '#ff8ab0', '#ffd24a', '#e05a8a'],
+    ['ponytail:#f2d848', 'pompom:#ff8ab0'], { comboT: 2.2, sk: 'bless', mate: 'megaphone' }),
+  CK('kumiho', 'คุกกี้จิ้งจอกเก้าหาง', 'S', 12000, ['#f2e2d0', '#ffb8c8', '#e0708a', '#c04a6a'],
+    ['foxears:#f2e2d0', 'foxtail:#f2e2d0', 'blushdot'], { jellyMul: 1.2, sk: 'dash', mate: 'foxbead' }),
+  CK('devil', 'คุกกี้ปีศาจ', 'S', 12000, ['#8a4a9a', '#e05a5a', '#5a2a6a', '#e03a3a'],
+    ['horns:#e05a5a', 'batwings:#6a3a7a', 'fangs'], { ptMul: 1.12, drainMul: 1.05, eyeS: 'fierce', sk: 'strike', mate: 'flamebat' }),
+  CK('fairy', 'คุกกี้แฟรี่', 'S', 10000, ['#bfe8d0', '#eafff2', '#7ad0a0', '#3aa070'],
+    ['fairywings:#dffff0', 'flower:#ffd0e0'], { btPlus: 1.5, sk: 'bless', mate: 'glitter' }),
+  CK('wizard', 'คุกกี้พ่อมด', 'S', 11000, ['#c89a5e', '#3f5fc0', '#e8b03a', '#2e3f90'],
+    ['wizhat:#3f5fc0', 'staff:#8a5a2e'], { skillFast: 1.4, sk: 'blast', mate: 'wizbook' }),
+  CK('rockstar', 'คุกกี้ร็อกสตาร์', 'S', 10000, ['#d9a05a', '#ff8a3a', '#e05a2e', '#c04a24'],
+    ['spikyhair:#ff8a3a', 'guitar:#e0453a', 'glasses'], { comboT: 2.4, sk: 'dash', mate: 'spotfan' }),
+  CK('soda', 'คุกกี้โซดา', 'S', 9500, ['#7ec8e8', '#dff6ff', '#3a90c0', '#2e78a8'],
+    ['bubbles:#dff6ff', 'cap:#3a90c0'], { itemMul: 1.25, sk: 'bless', mate: 'wavedrop' }),
+  CK('cherry', 'คุกกี้เชอร์รี', 'S', 9000, ['#e87a90', '#ffd0da', '#d02e4a', '#b02040'],
+    ['fruit:#d02e4a', 'bob:#c03a5a'], { jellyMul: 1.15, magnet: false, sk: 'heal', mate: 'pinkcandy' }),
+  CK('cheesecake', 'คุกกี้ชีสเค้ก', 'S', 12000, ['#f0d090', '#fff2c8', '#e8a03a', '#c8862e'],
+    ['beret:#e85a6a', 'longhair:#f2d8a0'], { coinMul: 1.35, sk: 'gold', mate: 'cheesecat' }),
+  CK('prophet', 'คุกกี้ผู้พยากรณ์', 'S', 12000, ['#c8b090', '#6a5a9a', '#4a3f7a', '#37306a'],
+    ['hood:#6a5a9a', 'thirdeye:#e8b03a'], { btPlus: 2, skillFast: 1.2, eyeS: 'happy', sk: 'blast', mate: 'candle' }),
+  CK('pistachio', 'คุกกี้พิสตาชิโอ', 'S', 11000, ['#a8c070', '#5a7a3a', '#e0453a', '#3f5f28'],
+    ['helmet:#7a9a4a', 'sword:#dfe8f2'], { hpBonus: 25, comboT: 1.6, sk: 'strike', mate: 'firefly' }),
+  CK('alchemist', 'คุกกี้นักเล่นแร่แปรธาตุ', 'S', 12000, ['#d0a870', '#8a5ac0', '#5a3a90', '#4a2e80'],
+    ['sidebraid:#e8d048', 'glasses', 'bottlebelt:#8a5ac0'], { itemMul: 1.4, sk: 'blast', mate: 'purplecandle' }),
+  CK('vampire', 'คุกกี้แวมไพร์', 'S', 12000, ['#e0d0c8', '#8a2a3a', '#5a1a28', '#7a2436'],
+    ['messyhair:#6a2a3a', 'fangs', 'cape:#8a2a3a'], { drainMul: 0.85, eyeS: 'sharp', sk: 'heal', mate: 'oakbarrel' }),
+  CK('adventurer', 'คุกกี้นักผจญภัย', 'S', 10000, ['#c89a5a', '#b8863a', '#8a5a2e', '#6b4423'],
+    ['fedora:#b8863a', 'stubble:#8a6a3e'], { coinMul: 1.25, pitGuard: 0.6, sk: 'gold', mate: 'backpacky' }),
+  CK('redpepper', 'คุกกี้พริกแดง', 'S', 11000, ['#d05a3a', '#ff8a5a', '#a03020', '#902818'],
+    ['spikyhair:#e03a2a', 'flamecheek:#ff6a3a'], { ptMul: 1.15, drainMul: 1.04, eyeS: 'fierce', sk: 'strike', mate: 'punchbag' }),
+  CK('snowsugar', 'คุกกี้หิมะน้ำตาล', 'S', 11000, ['#eaf4fa', '#ffffff', '#9ecfe8', '#5aa8d0'],
+    ['furhood:#ffffff', 'blushdot'], { drainMul: 0.88, sk: 'bless', mate: 'snowflower' }),
+  CK('carol', 'คุกกี้แคโรล', 'S', 10000, ['#e8b088', '#e0453a', '#3f8a4a', '#2e7a3a'],
+    ['earmuff:#e0453a', 'scarfB:#3f8a4a'], { btPlus: 1.8, sk: 'bless', mate: 'yulelog' }),
+  CK('blackberry', 'คุกกี้แบล็กเบอร์รี', 'S', 11000, ['#e8e0e8', '#5a4a6a', '#3a2e4a', '#4a3a5e'],
+    ['maidband:#ffffff', 'longhair:#4a3a5e'], { skillFast: 1.3, jellyMul: 1.1, eyeS: 'sharp', sk: 'blast', mate: 'ghostbutler' }),
+  CK('pinkchoco', 'คุกกี้พิงก์ช็อกโก', 'S', 10000, ['#f0a8c0', '#ff7ba0', '#e85a8a', '#d0406a'],
+    ['heartcheek:#ff5a8a', 'ribbon:#ff7ba0', 'bob:#e88aa8'], { comboT: 2.0, jellyMul: 1.08, sk: 'heal', mate: 'pinkcandy' }),
+  CK('kiwi', 'คุกกี้กีวี', 'S', 9500, ['#a8c860', '#7a9a3a', '#5a7a28', '#4a6a20'],
+    ['kiwihair:#7a9a3a', 'freckles'], { boostBonus: 1.0, sk: 'dash', mate: 'kiwibird' }),
+  CK('apple', 'คุกกี้แอปเปิล', 'S', 9000, ['#e8a878', '#e0453a', '#c03028', '#a02820'],
+    ['fruit:#e0453a', 'freckles', 'bob:#c8683a'], { hpBonus: 15, jellyMul: 1.08, sk: 'heal', mate: 'applerabbit' }),
+  CK('werewolf', 'คุกกี้มนุษย์หมาป่า', 'S', 12000, ['#9a8a78', '#6a5a4a', '#4a3f34', '#3a3028'],
+    ['wolfears:#7a6a58', 'messyhair:#5a4a3c', 'fangs'], { ptMul: 1.12, hpBonus: 15, eyeS: 'fierce', sk: 'strike', mate: 'furpup' }),
+  CK('mintchoco', 'คุกกี้มินต์ช็อกโก', 'S', 11000, ['#8fd8c8', '#4a3020', '#2e8a74', '#1e7a64'],
+    ['sidehair:#3a2818', 'bowtie:#2e2018'], { comboT: 2.2, skillFast: 1.15, sk: 'dash', mate: 'doremi' }),
+  CK('cocoa', 'คุกกี้โกโก้', 'S', 9500, ['#a06a44', '#6a3f28', '#e0453a', '#5a3520'],
+    ['earmuff:#6a3f28', 'mug:#e05a4a'], { drainMul: 0.9, btPlus: 1, sk: 'heal', mate: 'teacup' }),
+  CK('creampuff', 'คุกกี้ครีมพัฟ', 'S', 10000, ['#f0d8b0', '#fff4e0', '#e8a03a', '#c8862e'],
+    ['puffhair:#fff4e0', 'wand:#e8b03a'], { skillFast: 1.5, sk: 'blast', mate: 'celestar' }),
+  CK('cherryblossom', 'คุกกี้ซากุระ', 'S', 11000, ['#f2c8d8', '#ffb8d0', '#e88aa8', '#d0688a'],
+    ['flowercrown:#ffb8d0', 'longhair:#f0a8c0'], { jellyMul: 1.18, btPlus: 1, sk: 'bless', mate: 'flowerpod' }),
+  CK('gumball', 'คุกกี้กัมบอล', 'S', 9000, ['#e8b060', '#3ac0e8', '#e0453a', '#2ea8d0'],
+    ['propeller:#e0453a', 'gumdots'], { itemMul: 1.3, sk: 'gold', mate: 'gigglebomb' }),
+  CK('lemon', 'คุกกี้เลมอน', 'S', 10000, ['#f0d048', '#fff8b0', '#e8b02e', '#c89a24'],
+    ['lemonhair:#f2e060', 'glasses'], { magnet: true, eyeS: 'sharp', sk: 'dash', mate: 'electrolemon' }),
+  CK('orange', 'คุกกี้ส้ม', 'S', 9500, ['#f0a048', '#ff8a2e', '#e07a24', '#c8681e'],
+    ['ponytail:#ff9a3e', 'band:#ffffff'], { comboT: 1.9, boostBonus: 0.5, sk: 'dash', mate: 'orangemouse' }),
+  CK('lime', 'คุกกี้มะนาว', 'S', 9500, ['#b8d858', '#8fbf3a', '#6a9a28', '#5a8a20'],
+    ['twintail:#9fcf4a', 'goggles:#dff2a0'], { jellyMul: 1.12, itemMul: 1.15, sk: 'bless', mate: 'limeguard' }),
+  CK('peppermint', 'คุกกี้เปปเปอร์มินต์', 'S', 10000, ['#eaf8f4', '#3ab8a8', '#2e9a8c', '#1e8a7c'],
+    ['sailor:#3ab8a8', 'candystripe:#e0453a'], { btPlus: 2.2, sk: 'bless', mate: 'wavedrop' }),
+  CK('jujube', 'แม่ทัพพุทราจีน', 'S', 12000, ['#c05a3a', '#8a2e1e', '#5a1e14', '#4a1a10'],
+    ['generalhat:#8a2e1e', 'longbeard:#3a2a1a', 'sword:#dfe8f2'], { hpBonus: 30, ptMul: 1.08, sk: 'strike', mate: 'pandadump' }),
+  CK('peach', 'คุกกี้พีช', 'S', 9000, ['#f8c8a8', '#ffb090', '#e8907a', '#d0785e'],
+    ['fruit:#ff9a7a', 'blushdot'], { hpBonus: 18, drainMul: 0.94, sk: 'heal', mate: 'sweetseal' }),
+  CK('onion', 'คุกกี้หัวหอม', 'S', 9000, ['#e8e0f0', '#c8b8e0', '#9a86c0', '#8a76b0'],
+    ['sprout:#8fbf4a', 'tear:#9ecfff'], { revives: 2, sk: 'heal', mate: 'onionfish' }),
+  CK('cinnamon', 'คุกกี้ซินนามอน', 'S', 10500, ['#c8875a', '#8a5a34', '#e8b03a', '#6b4423'],
+    ['tophat:#5a3a24', 'mustache:#4a3020', 'wand:#e8b03a'], { coinMul: 1.28, sk: 'gold', mate: 'cinnabunny' }),
+  CK('macaron', 'คุกกี้มาการอง', 'S', 10000, ['#f0b8c8', '#b88ad0', '#8a5ac0', '#7a4ab0'],
+    ['beret:#b88ad0', 'drum:#f0d8e8'], { comboT: 2.1, btPlus: 1, sk: 'bless', mate: 'castanets' }),
+  CK('redbean', 'คุกกี้ถั่วแดง', 'S', 9000, ['#a05a4a', '#7a3a30', '#5a2a22', '#4a221c'],
+    ['beanhair:#7a3a30', 'blushdot'], { hpBonus: 22, pitGuard: 0.7, sk: 'strike', mate: 'sweetseal' }),
+  CK('herb', 'คุกกี้สมุนไพร', 'S', 11000, ['#c8dCA0'.toLowerCase(), '#8fbf6a', '#5a8a3a', '#4a7a30'],
+    ['leafhair:#8fbf6a', 'wateringcan:#7ec8e8'], { drainMul: 0.82, sk: 'heal', mate: 'herbpot' }),
+  CK('whitechoco', 'คุกกี้ไวต์ช็อกโก', 'S', 11500, ['#f4ede0', '#fffaf0', '#e8c8a0', '#c8a878'],
+    ['tiara:#f2e0c0', 'longhair:#fff4e4'], { ptMul: 1.1, coinMul: 1.1, sk: 'bless', mate: 'whitedrop' }),
+  CK('dinosour', 'คุกกี้ไดโนซาวร์', 'S', 10500, ['#8fcf5a', '#5a9a3a', '#3f7a28', '#2e6a20'],
+    ['dinohood:#5a9a3a', 'fangs'], { hpBonus: 20, boostBonus: 0.7, sk: 'strike', mate: 'dinoegg' }),
+  CK('cottoncandy', 'คุกกี้สายไหม', 'S', 9500, ['#f8d8e8', '#b8d8f8', '#e8a8d0', '#c888b8'],
+    ['cottonhair:#f0c0e0', 'blushdot'], { pitGuard: 0.4, sk: 'bless', mate: 'ccbird' }),
+  CK('rollcake', 'คุกกี้โรลเค้ก', 'S', 9500, ['#c8935a', '#8a5a34', '#e8d0a8', '#6b4423'],
+    ['rollhair:#8a5a34', 'buttons:#5a3a20'], { hpBonus: 16, comboT: 1.7, sk: 'strike', mate: 'cakehound' }),
+  CK('banana', 'คุกกี้กล้วย', 'S', 9000, ['#f2dC60'.toLowerCase(), '#f8ec9a', '#c8a83a', '#a8882e'],
+    ['bananapeel:#f2e060', 'freckles'], { boostBonus: 1.1, itemMul: 1.1, sk: 'dash', mate: 'liker' }),
+  CK('pancake', 'คุกกี้แพนเค้ก', 'S', 10000, ['#e8b878', '#f2cf8e', '#e8a03a', '#b8862e'],
+    ['pancakehat:#f2cf8e', 'honeydrip:#e8a03a'], { btPlus: 1.5, pitGuard: 0.6, eyeS: 'happy', sk: 'bless', mate: 'frisbee' }),
+  CK('rebel', 'คุกกี้กบฏ', 'S', 11000, ['#c89a5e', '#3a3a44', '#2a2a34', '#242430'],
+    ['spikyhair:#3a3a44', 'jacket:#2a2a34', 'glasses'], { ptMul: 1.14, comboT: 1.8, eyeS: 'sharp', sk: 'dash', mate: 'beat' }),
+  CK('moonrabbit', 'คุกกี้กระต่ายจันทร์', 'S', 11000, ['#f2ece0', '#ffffff', '#e8a8b8', '#c88898'],
+    ['bunnyears:#ffffff', 'mochi:#f8f0e0', 'blushdot'], { jellyMul: 1.22, eyeS: 'happy', sk: 'bless', mate: 'moonmortar' }),
+  CK('sbshortcake', 'คุกกี้สตรอว์เบอร์รีชอร์ตเค้ก', 'S', 11500, ['#f0b8b8', '#fff0f0', '#e0453a', '#c83a3a'],
+    ['strawhat:#e0453a', 'creamcollar:#fff4f4'], { hpBonus: 20, coinMul: 1.12, sk: 'heal', mate: 'cakehound' }),
+  CK('gulab', 'คุกกี้กุหลาบจามุน', 'S', 10500, ['#b06a3a', '#8a4a24', '#e8b03a', '#6a3a1c'],
+    ['sylip:#e8b03a', 'blushdot'], { coinMul: 1.2, btPlus: 1, sk: 'gold', mate: 'golddrop' }),
+  CK('kajukatli', 'คุกกี้กาจูกัตลี', 'S', 10500, ['#d8d0c0', '#c0b8a8', '#a89a80', '#8a7a60'],
+    ['diamondhat:#e8e0d0', 'silverleaf:#c8c0b0'], { ptMul: 1.12, skillFast: 1.2, sk: 'blast', mate: 'whitedrop' }),
+  CK('marshbunny', 'คุกกี้กระต่ายมาร์ชแมลโลว์', 'S', 10000, ['#fdf6f0', '#ffe8f0', '#f0a8c0', '#d888a8'],
+    ['bunnyears:#ffe8f0', 'blushdot'], { pitGuard: 0.45, drainMul: 0.92, eyeS: 'happy', sk: 'heal', mate: 'marshham' }),
+  CK('cucumber', 'คุกกี้แตงกวา', 'S', 9500, ['#a8c878', '#6a9a4a', '#4a7a30', '#3f6a28'],
+    ['leafhair:#6a9a4a', 'glasses'], { drainMul: 0.86, sk: 'heal', mate: 'garlic' }),
+  CK('sikhye', 'คุกกี้ชิกเฮ', 'S', 10500, ['#f2e8d0', '#fff6e0', '#e8c060', '#c8a048'],
+    ['hanbokribbon:#e85a6a', 'ricedots:#fff8ec'], { btPlus: 1.6, jellyMul: 1.1, sk: 'bless', mate: 'sweetseal' }),
+  CK('sujeonggwa', 'คุกกี้ซูจองกวา', 'S', 10500, ['#c07a4a', '#8a4a2e', '#e0453a', '#6a3a20'],
+    ['hanbokribbon:#8a4a2e', 'leafpin:#8fbf4a'], { coinMul: 1.22, drainMul: 0.94, sk: 'gold', mate: 'cinnabunny' }),
+  /* ----- SS ----- */
+  CK('bari', 'เจ้าหญิงพารี', 'SS', 25000, ['#f2e4e0', '#ffffff', '#e86a8a', '#c84a6a'],
+    ['baricrown:#ffffff', 'longhair:#f8f0ec', 'ribbon:#e86a8a'], { revives: 3, ptMul: 1.15, btPlus: 1.5, sk: 'bless', mate: 'flowerpod' }),
+  CK('gimbap', 'พลเรือเอกคิมบับ', 'SS', 25000, ['#3a3a3a', '#f2ecd8', '#2a2a2a', '#1e1e1e'],
+    ['admiralhat:#2a2a2a', 'ricecollar:#f2ecd8', 'sword:#dfe8f2'], { hpBonus: 40, ptMul: 1.15, coinMul: 1.15, eyeS: 'fierce', sk: 'strike', mate: 'boatman' }),
+  CK('pinemonk', 'พระสงฆ์ต้นสน', 'SS', 25000, ['#7a9a6a', '#4a6a3f', '#3a5a30', '#2e4a26'],
+    ['monkhat:#4a6a3f', 'longbeard:#d8d8cc', 'staff:#6b4423'], { drainMul: 0.75, skillFast: 1.4, hpBonus: 20, eyeS: 'happy', sk: 'blast', mate: 'herbpot' }),
+  /* ----- L ----- */
+  CK('tigerlily', 'คุกกี้ไทเกอร์ลิลี', 'L', 40000, ['#e8a04a', '#3a2a1a', '#e0453a', '#c8341e'],
+    ['tigerstripes:#3a2a1a', 'lilyflower:#ff8a4a', 'spear:#8a5a2e'], { ptMul: 1.2, comboT: 2.4, hpBonus: 25, eyeS: 'fierce', sk: 'strike', mate: 'savlion' }),
+  CK('firespirit', 'คุกกี้วิญญาณเพลิง', 'L', 45000, ['#e0653a', '#ffb03a', '#c02e1e', '#a8281a'],
+    ['flamehair:#ffb03a', 'staff:#c02e1e'], { ptMul: 1.25, boostBonus: 1.8, drainMul: 1.05, eyeS: 'fierce', sk: 'blast', mate: 'flamebat' }),
+  CK('moonlight', 'คุกกี้แสงจันทร์', 'L', 45000, ['#c8d0f0', '#7a86d0', '#5a66b8', '#4a56a8'],
+    ['moonpin:#f2e060', 'longhair:#8a96e0', 'stardust:#f2e060'], { btPlus: 3, jellyMul: 1.25, drainMul: 0.9, eyeS: 'happy', sk: 'bless', mate: 'moonmortar' }),
+  CK('seafairy', 'คุกกี้นางฟ้าทะเล', 'L', 50000, ['#bfe0e8', '#3a7ac0', '#2e5aa8', '#244a98'],
+    ['wavyhair:#4a8ad0', 'seastar:#f2e060'], { ptMul: 1.22, magnet: true, revives: 2, sk: 'bless', mate: 'wavedrop' }),
+  CK('windarcher', 'คุกกี้นักธนูสายลม', 'L', 50000, ['#a8d0a0', '#3f8a4a', '#2e7a3a', '#256a30'],
+    ['leafhood:#3f8a4a', 'bowweapon:#6b4423'], { ptMul: 1.2, comboT: 2.6, skillFast: 1.3, eyeS: 'sharp', sk: 'dash', mate: 'windy' }),
+  CK('dancheong', 'คุกกี้ดันชอง', 'L', 50000, ['#e8c8a0', '#e0563a', '#3a90c0', '#2e78a8'],
+    ['dancheongcrown:#e0563a', 'fanitem:#3a90c0', 'longhair:#3a2a1a'], { ptMul: 1.18, btPlus: 2, coinMul: 1.2, sk: 'bless', mate: 'kingdrop' }),
 ];
 
 /* ============================================================
-   สัตว์เลี้ยง — ความสามารถต่างกัน
+   สัตว์เลี้ยงทั้งหมดของ Cookie Run Classic
    ============================================================ */
+function petDesc(fx) {
+  const v = fx.v;
+  switch (fx.k) {
+    case 'magnet': return ['ดูดเยลลี่รอบตัว', 'รัศมี +' + v];
+    case 'coin': return ['เหรียญที่เก็บ +' + v, 'ต่อเหรียญ'];
+    case 'regen': return ['ฟื้นพลัง +' + v, 'ต่อวินาที'];
+    case 'jelly': return ['เสกเยลลี่พิเศษ', 'ทุก ' + v + ' วิ'];
+    case 'pts': return ['โบนัสแต้ม', 'ทุก ' + v + ' วิ'];
+    case 'skill': return ['ชาร์จเกจสกิล', '+' + v + '/วิ'];
+    case 'destroy': return ['ทำลายสิ่งกีดขวาง', 'ทุก ' + v + ' วิ'];
+    case 'coinrain': return ['โปรยเหรียญ', 'ทุก ' + v + ' วิ'];
+    case 'bt': return ['BONUS TIME', 'นานขึ้น +' + v + ' วิ'];
+    case 'score': return ['แต้มทุกชนิด', '+' + Math.round((v - 1) * 100) + '%'];
+    case 'combo': return ['คอมโบค้างนาน', '+' + v + ' วิ'];
+    case 'hp': return ['พลังชีวิตสูงสุด', '+' + v];
+    case 'boost': return ['Rocket Start', '+' + v + ' วิ'];
+    case 'drain': return ['พลังลดช้าลง', Math.round((1 - v) * 100) + '%'];
+    case 'bear': return ['แต้มหมีเยลลี่', '+' + Math.round((v - 1) * 100) + '%'];
+  }
+  return ['ผู้ช่วยนักวิ่ง'];
+}
+function PE(id, name, grade, cost, shape, col, fx, ex) {
+  return { id, name, grade, cost, shape, c1: col[0], c2: col[1] || '#ffffff', c3: col[2] || '#4a2410',
+    fx: fx || { k: 'pts', v: 8 }, ex: ex || 0, desc: petDesc(fx || { k: 'pts', v: 8 }) };
+}
 const PETS = [
-  { id: 'maca',  name: 'มาการองน้อย', cost: 0,
-    desc: ['บินตามเก็บเยลลี่', 'ใกล้ตัวให้อัตโนมัติ'] },
-  { id: 'chick', name: 'ลูกเจี๊ยบทอฟฟี่', cost: 2500,
-    desc: ['เหรียญที่เก็บได้ค่า x2', 'และช่วยเก็บเยลลี่'] },
-  { id: 'cloud', name: 'ปุยเมฆน้ำตาล', cost: 6000,
-    desc: ['ฟื้นพลัง +1 ต่อวินาที', 'และช่วยเก็บเยลลี่'] },
+  /* C */
+  PE('chocodrop', 'ช็อกโกดรอป', 'C', 0, 'drop', ['#6a3f28', '#8a5a3a'], { k: 'magnet', v: 10 }),
+  PE('cottoncloud', 'ปุยเมฆฝ้าย', 'C', 600, 'cloud', ['#ffffff', '#dfe8f2'], { k: 'regen', v: 0.8 }),
+  PE('bubble', 'ฟองแฝด', 'C', 600, 'bubble', ['#bfe8ff', '#7ec8e8'], { k: 'combo', v: 0.4 }),
+  PE('cheesedrop', 'ชีสดรอป', 'C', 800, 'drop', ['#f2c848', '#e8a03a'], { k: 'coin', v: 1 }),
+  PE('stocking', 'ถุงเท้าที่ถูกลืม', 'C', 800, 'sock', ['#e0453a', '#ffffff'], { k: 'jelly', v: 9 }),
+  PE('liker', 'มือไลก์เกอร์', 'C', 800, 'hand', ['#f2e0c8', '#e8b03a'], { k: 'pts', v: 8 }),
+  /* B */
+  PE('dumbbell', 'ดัมเบลแฝด', 'B', 2000, 'dumbbell', ['#8a97a8', '#5a6478'], { k: 'hp', v: 15 }),
+  PE('mocha', 'มอคค่าดีไลต์', 'B', 2000, 'cup', ['#8a5a3a', '#f2e0c8'], { k: 'regen', v: 1.0 }),
+  PE('cozyyarn', 'ไหมพรมอุ่นใจ', 'B', 2200, 'yarn', ['#e88aa8', '#d0688a'], { k: 'drain', v: 0.94 }),
+  PE('garlic', 'กระเทียมหายาก', 'B', 2200, 'garlic', ['#f2ecd8', '#c8b890'], { k: 'hp', v: 18 }),
+  PE('beat', 'อิเล็กทริกบีต', 'B', 2400, 'note', ['#3ac0e8', '#2e78a8'], { k: 'combo', v: 0.6 }),
+  PE('merryhat', 'หมวกเมอร์รี', 'B', 2400, 'hat', ['#3f8a4a', '#e0453a'], { k: 'jelly', v: 8 }),
+  PE('dustuni', 'ยูนิคอร์นฝุ่นน้ำตาล', 'B', 2600, 'critter', ['#e8d8f0', '#b88ad0', '#8a5ac0'], { k: 'skill', v: 1.5 }, 3),
+  /* A */
+  PE('flowercopter', 'ดอกไม้ใบพัด', 'A', 4200, 'flower', ['#ff8ab0', '#8fbf4a'], { k: 'jelly', v: 7 }),
+  PE('celestar', 'ดาวสวรรค์', 'A', 4500, 'star', ['#f2e060', '#e8b03a'], { k: 'pts', v: 6 }),
+  PE('braingum', 'หมากฝรั่งสมอง', 'A', 4200, 'brain', ['#f0a8c0', '#d888a8'], { k: 'skill', v: 2 }),
+  PE('dragontail', 'หางมังกร', 'A', 4800, 'tail', ['#8fcf5a', '#3f7a28'], { k: 'destroy', v: 11 }),
+  PE('dicebros', 'ลูกเต๋าคู่โชค', 'A', 4500, 'dice', ['#ffffff', '#e0453a'], { k: 'coinrain', v: 10 }),
+  PE('lantern', 'ฟักทองนำโชค', 'A', 4800, 'pumpkin', ['#f0a048', '#3f8a4a'], { k: 'coin', v: 2 }),
+  /* S */
+  PE('locket', 'ล็อกเก็ตเจ้าหญิง', 'S', 8000, 'locket', ['#ffd24a', '#e86a8a'], { k: 'coin', v: 2 }),
+  PE('gigglebomb', 'ระเบิดหัวเราะ', 'S', 8000, 'bomb', ['#3a3a4a', '#e0453a'], { k: 'destroy', v: 8 }),
+  PE('littleghost', 'ผีน้อย', 'S', 8500, 'ghost', ['#eaf2fa', '#9db8d8'], { k: 'jelly', v: 6 }),
+  PE('snowflower', 'บุปผาหิมะ', 'S', 8500, 'snowflake', ['#dff2ff', '#7ec8e8'], { k: 'drain', v: 0.88 }),
+  PE('jellyco', 'เจลลีโคคิวบ์', 'S', 9000, 'cube', ['#8fd8c8', '#2e8a74'], { k: 'jelly', v: 5 }),
+  PE('awol', 'ประทัดหนีทัพ', 'S', 8500, 'cracker', ['#c8955a', '#e0453a'], { k: 'destroy', v: 9 }),
+  PE('glitter', 'บอลวิบวับ', 'S', 8500, 'ball', ['#e8d0f8', '#b88ad0'], { k: 'pts', v: 5 }, 1),
+  PE('luckypouch', 'ถุงนำโชค', 'S', 9000, 'pouch', ['#e0453a', '#ffd24a'], { k: 'coinrain', v: 8 }),
+  PE('foxbead', 'ลูกแก้วจิ้งจอก', 'S', 9500, 'bead', ['#f2e0d0', '#e86a4a'], { k: 'score', v: 1.06 }),
+  PE('flamebat', 'ค้างคาวเพลิง', 'S', 9000, 'bat', ['#6a3a7a', '#e05a3a'], { k: 'destroy', v: 8 }),
+  PE('golddrop', 'โกลด์ดรอป', 'S', 9500, 'drop', ['#ffd24a', '#e8a82e'], { k: 'coin', v: 3 }),
+  PE('flowerpod', 'ฝักดอกไม้', 'S', 8500, 'flower', ['#ffb8d0', '#7a9a4a'], { k: 'regen', v: 1.3 }),
+  PE('wizbook', 'ตำราแห่งปัญญา', 'S', 9000, 'book', ['#3f5fc0', '#e8b03a'], { k: 'skill', v: 2.6 }),
+  PE('spotfan', 'พัดลมสปอตไลต์', 'S', 8500, 'fan', ['#8a97a8', '#f2e060'], { k: 'combo', v: 0.8 }),
+  PE('lemonslice', 'เลมอนสไลซ์', 'S', 8500, 'slice', ['#f2e060', '#fff8b0'], { k: 'jelly', v: 6 }),
+  PE('rocketfc', 'ประทัดจรวด', 'S', 9000, 'rocket', ['#e0453a', '#f2e060'], { k: 'boost', v: 0.8 }),
+  PE('cheesecat', 'แมวชีสปุย', 'S', 9500, 'critter', ['#f2c848', '#f8e0a0', '#e8a03a'], { k: 'coin', v: 2 }, 1),
+  PE('purplecandle', 'เทียนม่วง', 'S', 9000, 'candle', ['#8a5ac0', '#f2e060'], { k: 'skill', v: 2.2 }),
+  PE('firefly', 'หิ่งห้อยพิสตาชิโอ', 'S', 8500, 'firefly', ['#a8c870', '#f2e060'], { k: 'pts', v: 5 }),
+  PE('jellyscale', 'ตาชั่งเยลลี่', 'S', 9500, 'scale', ['#e8b03a', '#ff9db8'], { k: 'jelly', v: 5 }),
+  PE('coinscale', 'ตาชั่งเหรียญ', 'S', 9500, 'scale', ['#e8b03a', '#ffd24a'], { k: 'coinrain', v: 7 }),
+  PE('oakbarrel', 'ถังไม้โอ๊ก', 'S', 8500, 'barrel', ['#8a5a34', '#5a3a20'], { k: 'hp', v: 25 }),
+  PE('backpacky', 'เป้แบ็กแพ็กกี', 'S', 8500, 'bag', ['#b8863a', '#6b4423'], { k: 'coin', v: 2 }),
+  PE('punchbag', 'กระสอบทรายปาปริก้า', 'S', 8500, 'punchbag', ['#d05a3a', '#a03020'], { k: 'hp', v: 22 }),
+  PE('snowglobe', 'ลูกแก้วหิมะ', 'S', 9000, 'globe', ['#bfe8ff', '#8a5a34'], { k: 'bt', v: 1.5 }),
+  PE('yulelog', 'เค้กท่อนไม้', 'S', 8500, 'log', ['#6a3f28', '#f2e0c8'], { k: 'regen', v: 1.4 }),
+  PE('ghostbutler', 'ผีพ่อบ้าน', 'S', 9500, 'ghost', ['#e8e8f2', '#3a3a4a'], { k: 'coinrain', v: 7 }, 1),
+  PE('pinkcandy', 'ลูกกวาดชมพู', 'S', 8500, 'candy', ['#ff9db8', '#ffd0da'], { k: 'regen', v: 1.2 }),
+  PE('kiwibird', 'นกกีวี', 'S', 8500, 'bird', ['#8a7a5a', '#c8b890'], { k: 'jelly', v: 6 }),
+  PE('applerabbit', 'กระต่ายแอปเปิล', 'S', 8500, 'critter', ['#e0453a', '#f2ecd8', '#8fbf4a'], { k: 'regen', v: 1.3 }, 2),
+  PE('furpup', 'ลูกหมาขนปุย', 'S', 8500, 'critter', ['#9a8a78', '#6a5a4a', '#4a3f34'], { k: 'combo', v: 0.7 }, 4),
+  PE('doremi', 'มิสโดเรมี', 'S', 9000, 'note', ['#e86a8a', '#ffd0da'], { k: 'pts', v: 5 }),
+  PE('fasolasi', 'มิสเตอร์ฟาซอลลาซี', 'S', 9000, 'note', ['#3f5fc0', '#bfe0f2'], { k: 'skill', v: 2.2 }),
+  PE('marshham', 'แฮมสเตอร์มาร์ชแมลโลว์', 'S', 8500, 'critter', ['#fdf6f0', '#f0a8c0', '#d888a8'], { k: 'regen', v: 1.4 }, 5),
+  PE('owlcorn', 'นกฮูกยูนิคอร์น', 'S', 9000, 'bird', ['#c8a878', '#f2e060'], { k: 'skill', v: 2.4 }, 1),
+  PE('teacup', 'ถ้วยชา', 'S', 8500, 'cup', ['#f2ecd8', '#e86a8a'], { k: 'drain', v: 0.9 }),
+  PE('minijackson', 'มินิแจ็กสัน No.2', 'S', 9500, 'robot', ['#8a97a8', '#3ac0e8'], { k: 'destroy', v: 7 }),
+  PE('electrolemon', 'เลมอนไฟฟ้า', 'S', 9500, 'slice', ['#f2e060', '#3ac0e8'], { k: 'magnet', v: 26 }),
+  PE('orangemouse', 'หนูส้มจิ๋ว', 'S', 8500, 'critter', ['#f0a048', '#ffd0a0', '#e07a24'], { k: 'coin', v: 2 }, 6),
+  PE('whitedrop', 'ไวต์โกลด์ดรอป', 'S', 10000, 'drop', ['#f4ede0', '#e8c8a0'], { k: 'score', v: 1.07 }),
+  PE('limeguard', 'มิสเตอร์ไลม์การ์ด', 'S', 8500, 'ring', ['#b8d858', '#6a9a28'], { k: 'hp', v: 20 }),
+  PE('boatman', 'กะลาสีเรือกระดาษ', 'S', 8500, 'boat', ['#f2ecd8', '#3a90c0'], { k: 'coinrain', v: 8 }),
+  PE('hotteacup', 'ถ้วยชาไม่ยอมเย็น', 'S', 9000, 'cup', ['#e86a4a', '#f2e0c8'], { k: 'regen', v: 1.5 }),
+  PE('pandadump', 'เกี๊ยวแพนด้า', 'S', 9000, 'critter', ['#f2ecd8', '#3a3a3a', '#2a2a2a'], { k: 'hp', v: 24 }, 7),
+  PE('onionfish', 'ปลาหัวหอม', 'S', 8500, 'fish', ['#e8e0f0', '#9a86c0'], { k: 'jelly', v: 6 }),
+  PE('wavedrop', 'หยดคลื่น', 'S', 9000, 'drop', ['#7ec8e8', '#3a90c0'], { k: 'bt', v: 1.2 }),
+  PE('cinnabunny', 'กระต่ายซินนามอน', 'S', 9000, 'critter', ['#c8875a', '#f2d8b8', '#8a5a34'], { k: 'coin', v: 2 }, 2),
+  PE('castanets', 'คาสตาเน็ตส์', 'S', 8500, 'castanet', ['#8a5a34', '#e0453a'], { k: 'combo', v: 0.8 }),
+  PE('sweetseal', 'แมวน้ำข้าวหวาน', 'S', 8500, 'critter', ['#f2ecd8', '#e8d0a8', '#c8a878'], { k: 'regen', v: 1.3 }, 8),
+  PE('herbpot', 'กาน้ำสมุนไพร', 'S', 9000, 'teapot', ['#8fbf6a', '#5a8a3a'], { k: 'drain', v: 0.87 }),
+  PE('watchref', 'กรรมการนาฬิกาพก', 'S', 9500, 'watch', ['#e8b03a', '#8a5a34'], { k: 'combo', v: 1.0 }),
+  PE('dinoegg', 'ไข่ไดโนเสาร์', 'S', 9000, 'egg', ['#8fcf5a', '#f2ecd8'], { k: 'hp', v: 22 }),
+  PE('ccbird', 'นกสายไหม', 'S', 8500, 'bird', ['#f8d8e8', '#b8d8f8'], { k: 'bt', v: 1.3 }),
+  PE('lightbros', 'พี่น้องหลอดไฟ', 'S', 9000, 'bulb', ['#f2e060', '#3ac0e8'], { k: 'pts', v: 5 }),
+  PE('savlion', 'สิงโตสะวันนาห์นา', 'S', 10000, 'critter', ['#e8b060', '#c8862e', '#8a5a2e'], { k: 'score', v: 1.06 }, 9),
+  PE('frisbee', 'จานร่อนแพนเค้ก', 'S', 8500, 'disc', ['#e8b878', '#e8a03a'], { k: 'jelly', v: 6 }),
+  PE('windy', 'วินดี้', 'S', 10000, 'cloud', ['#dff2e8', '#8fd8c8'], { k: 'score', v: 1.08 }),
+  PE('moonmortar', 'ครกตำจันทรา', 'S', 9000, 'mortar', ['#c8d0f0', '#f2e060'], { k: 'jelly', v: 5 }),
+  PE('cakehound', 'ลูกหมาเค้กจิ๋ว', 'S', 9000, 'critter', ['#c8935a', '#f2e0c8', '#8a5a34'], { k: 'pts', v: 5 }, 4),
+  PE('tabla', 'กลองตับลาจิ๋ว', 'S', 8500, 'drum', ['#c8875a', '#f2ecd8'], { k: 'combo', v: 0.7 }),
+  PE('sugarswan', 'หงส์น้ำตาล', 'S', 10000, 'bird', ['#ffffff', '#f2e060'], { k: 'bt', v: 1.6 }, 2),
+  PE('megaphone', 'โทรโข่งเชียร์', 'S', 8500, 'megaphone', ['#ff8ab0', '#ffd24a'], { k: 'combo', v: 0.9 }),
+  /* L / E */
+  PE('kingdrop', 'คิงช็อกโกดรอป', 'L', 30000, 'drop', ['#4a2e1a', '#ffd24a'], { k: 'score', v: 1.12 }, 10),
+  PE('beanduo', 'ถั่วแฝดดูโอ', 'E', 20000, 'drop', ['#a05a4a', '#8fbf6a'], { k: 'jelly', v: 4 }, 11),
 ];
+const PET_BY_ID = {}; PETS.forEach(p => PET_BY_ID[p.id] = p);
 
 /* ============================================================
    ภารกิจ — ทำสำเร็จรับเหรียญ (เรียงเป็นสายแบบเกมจริง)
@@ -333,6 +640,8 @@ const itemMul = () => (1 + G.upg.item * 0.18) * (G.runBoost.power ? 1.5 : 1);
 const hasTr = i => G.trEquip.includes(i);
 const lvMul = () => 1 + 0.03 * ((G.charLv[G.charIdx] || 1) - 1);   // โบนัสแต้มจากเลเวลคุกกี้
 const petLvNow = () => G.petLv[G.petIdx] || 1;
+const petFxMul = () => 1 + (petLvNow() - 1) * 0.12;   // สเกลพลังสัตว์เลี้ยงตามเลเวล
+const PFX = () => PT().fx || { k: '', v: 0 };
 
 function setState(s) { G.state = s; G.fade = 1; }
 
@@ -763,14 +1072,17 @@ function startGame(mode, boosts) {
   setState('play');
   G.time = G.time; G.dist = 0; G.score = 0; G.coins = 0; G.jellies = 0;
   G.combo = 0; G.comboTimer = 0;
-  G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12 + (G.runBoost.energy ? 40 : 0);
+  G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12 + (G.runBoost.energy ? 40 : 0)
+          + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0);
+  G.combi = PT().id === CH().mate;   // คู่ซี้คุกกี้-สัตว์เลี้ยง = แต้ม +15%
+  G.petFxT = 0;
   G.hp = G.hpMax;
   G.stage = 1; G.stageTimer = 0;
   G.hpDrain = 3.2;
   G.speed = G.baseSpeed; G.newBest = false; G.rankPos = -1;
   P.y = GROUND_Y - P.h; P.vy = 0; P.onGround = true; P.jumps = 0;
   P.sliding = false; P.invT = 0; P.giantT = 0; P.magnetT = 0;
-  P.boostT = (2.4 + CH().boostBonus + G.upg.boost * 0.6) * (G.runBoost.fast ? 2 : 1);
+  P.boostT = (2.4 + CH().boostBonus + (PFX().k === 'boost' ? PFX().v : 0) + G.upg.boost * 0.6) * (G.runBoost.fast ? 2 : 1);
   G.bonusT = 0; G.revives = CH().revives + (hasTr(1) ? 1 : 0);
   G.skill = 0; G.scoreMulT = 0;
   P.dead = false; P.fallingPit = false; slideHeld = false; G.paused = false;
@@ -840,7 +1152,7 @@ function settleGameOver() {
     if (Math.random() < 0.2) G.boxGems++;
   }
   if (G.boxGems > 0) { G.crystals += G.boxGems; SAVE.set('crystals', G.crystals); }
-  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (hasTr(4) ? 1.5 : 1) * (G.runBoost.coin ? 2 : 1));
+  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (hasTr(4) ? 1.5 : 1) * (G.runBoost.coin ? 2 : 1) * (CH().coinMul || 1));
   G.bank += G.earned;
   SAVE.set('coins', G.bank);
   const entry = { s: G.score, d: Math.floor(G.dist), c: G.charIdx, t: Date.now() };
@@ -895,21 +1207,46 @@ function useSkill() {
   G.skill = 0;
   AudioSys.power();
   G.shake = 6;
-  const id = CH().id;
-  if (id === 'brave') {
+  const sk = CH().sk || 'strike';
+  if (sk === 'strike') {
     P.boostT = Math.max(P.boostT, 3.6);
-    banner('⚔ BRAVE STRIKE!!', '#ffd24a');
-  } else if (id === 'berry') {
+    banner('⚔ ' + CH().name + ' STRIKE!!', '#ffd24a');
+  } else if (sk === 'heal') {
     G.hp = Math.min(G.hpMax, G.hp + 35);
     P.invT = Math.max(P.invT, 3);
-    banner('🍓 เบอร์รีฮีล + โล่!', '#ff9db8');
+    banner('💚 ฮีล + โล่กันชน!', '#ff9db8');
     sparkle(P.x + 28, P.y + 30, 22, '#7bff9b');
-  } else if (id === 'ninja') {
+  } else if (sk === 'dash') {
     G.scoreMulT = 6;
     P.magnetT = Math.max(P.magnetT, 6);
-    banner('🥷 SHADOW DASH! แต้ม x2', '#b9c6ff');
+    banner('💨 SPEED DASH! แต้ม x2', '#b9c6ff');
+  } else if (sk === 'gold') {
+    // เปลี่ยนเยลลี่ทั้งจอเป็นเหรียญ
+    let n = 0;
+    for (const j of jellyList) {
+      const jx = j.x - worldX;
+      if (!j.dead && jx > -40 && jx < W + 40 && ['bar', 'pink', 'coin'].includes(j.type)) {
+        j.dead = true; G.coins += 2; G.score += 60; n++;
+        if (n % 3 === 0) sparkle(jx, j.y, 4, '#ffd700');
+      }
+    }
+    jellyList = jellyList.filter(j => !j.dead);
+    banner('💰 MIDAS TOUCH! +' + n * 2 + ' เหรียญ', '#ffd24a');
+  } else if (sk === 'blast') {
+    // ระเบิดเวทเคลียร์สิ่งกีดขวางทั้งจอ
+    let n = 0;
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const ox = obstacles[i].x - worldX;
+      if (ox > -40 && ox < W + 60) {
+        sparkle(ox, GROUND_Y - 28, 16, '#c9a2ff');
+        obstacles.splice(i, 1); n++;
+      }
+    }
+    G.score += 300 * n;
+    P.invT = Math.max(P.invT, 2);
+    banner('🔮 MAGIC BLAST! ล้าง ' + n + ' สิ่งกีดขวาง', '#c9a2ff');
   } else {
-    // เทวดา: อวยพรเก็บเยลลี่ทั้งจอทันที
+    // bless: เก็บเยลลี่ทั้งจอทันที
     let n = 0;
     for (const j of jellyList) {
       const jx = j.x - worldX;
@@ -918,7 +1255,7 @@ function useSkill() {
       }
     }
     jellyList = jellyList.filter(j => !j.dead);
-    banner('👼 ANGEL BLESS! +' + n + ' เยลลี่', '#fff3b0');
+    banner('✨ BLESSING! +' + n + ' เยลลี่', '#fff3b0');
     sparkle(P.x + 28, P.y + 30, 30, '#ffe066');
   }
 }
@@ -993,10 +1330,23 @@ function hatchEgg(premium) {
     if (G.bank < 800) { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ (ต้องใช้ 800🪙)', '#ff8888', true); return; }
     G.bank -= 800; SAVE.set('coins', G.bank);
   }
-  const locked = [0, 1, 2].filter(i => !G.petsOwned.includes(i));
   let pick;
-  if (premium && locked.length) pick = locked[rndi(0, locked.length - 1)];   // ไข่ทองการันตีตัวใหม่
-  else pick = rndi(0, 2);
+  const allIdx = PETS.map((q, i2) => i2);
+  if (premium) {
+    // ไข่ทอง: การันตีตัวใหม่ (ถ้ามี) เน้นเกรดสูง
+    const pool = allIdx.filter(i2 => !G.petsOwned.includes(i2));
+    if (pool.length) {
+      const hi = pool.filter(i2 => 'SLE'.includes(PETS[i2].grade));
+      const src = hi.length && Math.random() < 0.75 ? hi : pool;
+      pick = src[rndi(0, src.length - 1)];
+    } else pick = allIdx[rndi(0, allIdx.length - 1)];
+  } else {
+    // ไข่ธรรมดา: สุ่มตามเกรด C30/B26/A18/S23/L2/E1
+    const r = Math.random() * 100;
+    const g = r < 30 ? 'C' : r < 56 ? 'B' : r < 74 ? 'A' : r < 97 ? 'S' : r < 99 ? 'L' : 'E';
+    const gp = allIdx.filter(i2 => PETS[i2].grade === g);
+    pick = gp[rndi(0, gp.length - 1)];
+  }
   AudioSys.buy();
   if (!G.petsOwned.includes(pick)) {
     G.petsOwned.push(pick);
@@ -1138,8 +1488,38 @@ function update(dt) {
   }
 
   /* --- HP ลดตามเวลา --- */
-  if (PT().id === 'cloud') G.hp = Math.min(G.hpMax, G.hp + (1.0 + (petLvNow() - 1) * 0.15) * dt);
-  if (G.bonusT <= 0) G.hp -= G.hpDrain * (hasTr(2) ? 0.85 : 1) * dt;
+  /* ---- เอฟเฟกต์สัตว์เลี้ยง (ทุกชนิด สเกลตามเลเวล) ---- */
+  const pf = PFX();
+  if (pf.k === 'regen') G.hp = Math.min(G.hpMax, G.hp + pf.v * petFxMul() * dt);
+  if (pf.k === 'skill') G.skill = Math.min(100, G.skill + pf.v * petFxMul() * dt);
+  if (pf.k === 'jelly' || pf.k === 'pts' || pf.k === 'destroy' || pf.k === 'coinrain') {
+    G.petFxT = (G.petFxT || 0) + dt;
+    const iv = Math.max(3, pf.v * (1 - (petLvNow() - 1) * 0.05));
+    if (G.petFxT >= iv) {
+      G.petFxT = 0;
+      if (pf.k === 'jelly') {
+        const pts2 = Math.round(180 * lvMul());
+        G.score += pts2; sparkle(Pet.x, Pet.y, 10, '#ff9db8');
+        floatText(Pet.x, Pet.y - 20, '🍬 +' + pts2, '#ff9db8');
+      } else if (pf.k === 'pts') {
+        const pts2 = Math.round(120 * lvMul());
+        G.score += pts2; floatText(Pet.x, Pet.y - 20, '+' + pts2, '#ffe066');
+      } else if (pf.k === 'coinrain') {
+        const n = 3 + Math.floor(petLvNow() / 3);
+        G.coins += n; floatText(Pet.x, Pet.y - 20, '🪙 +' + n, '#ffd24a');
+        AudioSys.jelly(8);
+      } else {
+        const o = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 30; });
+        if (o) {
+          obstacles.splice(obstacles.indexOf(o), 1);
+          const ox = o.x - worldX;
+          sparkle(ox, GROUND_Y - 26, 20, '#ff9d2e');
+          floatText(ox, GROUND_Y - 60, '💥 เพื่อนซี้เคลียร์ทาง!', '#ff9d2e', true);
+        }
+      }
+    }
+  }
+  if (G.bonusT <= 0) G.hp -= G.hpDrain * (hasTr(2) ? 0.85 : 1) * (CH().drainMul || 1) * (PFX().k === 'drain' ? 1 - (1 - PFX().v) * petFxMul() : 1) * dt;
   if (G.hp <= 0) {
     G.hp = 0;
     if (gameOver()) return;
@@ -1220,7 +1600,7 @@ function update(dt) {
     const jx = j.x - worldX;
     if (jx < -40 || jx > 300) continue;
     if (['potion','giant','magnet','star','bear','blast','box','letter'].includes(j.type)) continue;
-    const petR = 36 + (PT().id === 'maca' ? (petLvNow() - 1) * 4 : 0);   // มาการอง: เลเวลเพิ่มรัศมี
+    const petR = 36 + (PFX().k === 'magnet' ? PFX().v * petFxMul() : 0);   // สัตว์เลี้ยงสายแม่เหล็ก
     if (Math.hypot(jx - Pet.x, j.y - Pet.y) < petR) { j.dead = true; collectJelly(j, jx); }
   }
 
@@ -1306,7 +1686,7 @@ function update(dt) {
     let jx = j.x - worldX;
     if (jx < -80) { j.dead = true; continue; }
     if (jx > W + 80) break;
-    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0 || hasTr(3)) && !['potion','giant','magnet','star','blast','box','letter'].includes(j.type)) {
+    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0 || hasTr(3) || CH().magnet) && !['potion','giant','magnet','star','blast','box','letter'].includes(j.type)) {
       const dx = cx - jx, dy = cy - j.y;
       const d = Math.hypot(dx, dy);
       // ช่วงโบนัสดูดรัศมีสั้นลง จะได้เห็นตัวอักษร BONUS ชัด ๆ ก่อนบินทะลุ
@@ -1372,21 +1752,25 @@ function collectJelly(j, jx) {
   const mult = P.giantT > 0 ? 2 : 1;
   switch (j.type) {
     case 'bar': case 'coin': case 'pink': case 'bear': {
-      G.combo++; G.comboTimer = CH().comboT;
+      G.combo++; G.comboTimer = CH().comboT + (PFX().k === 'combo' ? PFX().v * petFxMul() : 0);
       const comboBonus = Math.min(G.combo, 50);
       let base = JSCORE[j.type];
       if (j.type === 'bear') base = j.v === 'b' ? 5000 : j.v === 'p' ? 2500 : 1000;   // หมี 3 ระดับ
       let pts = (base + comboBonus) * mult;
       pts *= 1 + G.upg.jelly * 0.06;                         // เยลลี่พลัส
       pts *= lvMul();                                        // เลเวลคุกกี้
+      pts *= (CH().ptMul || 1) * (G.combi ? 1.15 : 1);       // ความสามารถคุกกี้ + คู่ซี้ Combi
+      if (j.type !== 'coin' && j.type !== 'bear') pts *= CH().jellyMul || 1;
+      if (PFX().k === 'score') pts *= 1 + (PFX().v - 1) * petFxMul();
+      if (j.type === 'bear' && PFX().k === 'bear') pts *= 1 + (PFX().v - 1) * petFxMul();
       if (j.type === 'bear' && hasTr(0)) pts *= 2;          // จี้หมีทองคำ
       if (G.scoreMulT > 0) pts *= 2;                         // สกิลนินจา
       pts = Math.round(pts);
       G.score += pts; G.jellies++;
-      G.skill = Math.min(100, G.skill + 1.7 * (hasTr(5) ? 1.3 : 1));   // ชาร์จเกจสกิล
+      G.skill = Math.min(100, G.skill + 1.7 * (hasTr(5) ? 1.3 : 1) * (CH().skillFast || 1));   // ชาร์จเกจสกิล
       G.maxCombo = Math.max(G.maxCombo, G.combo);
       if (j.type === 'coin')
-        G.coins += PT().id === 'chick' ? 2 + (petLvNow() >= 4 ? 1 : 0) + (petLvNow() >= 8 ? 1 : 0) : 1;
+        G.coins += PFX().k === 'coin' ? 1 + Math.round(PFX().v * petFxMul()) : 1;
       if (j.type === 'bear') {
         G.runBears++;
         AudioSys.bear();
@@ -1411,13 +1795,13 @@ function collectJelly(j, jx) {
       floatText(jx, j.y - 30, '+HP พลังคืนมา!', '#7bff9b', true);
       break;
     case 'giant':
-      P.giantT = 6 * itemMul();
+      P.giantT = 6 * itemMul() * (CH().itemMul || 1);
       AudioSys.power();
       sparkle(jx, j.y, 20, '#ffd24a');
       banner('ยักษ์โหมด! GIANT MODE!', '#ffd24a');
       break;
     case 'magnet':
-      P.magnetT = 8 * itemMul();
+      P.magnetT = 8 * itemMul() * (CH().itemMul || 1);
       AudioSys.power();
       sparkle(jx, j.y, 20, '#7ecbff');
       banner('แม่เหล็กเยลลี่!', '#7ecbff');
@@ -1464,7 +1848,7 @@ function startBonusTime() {
   G.runStars++;
   bonusLetterQueue = ['B','O','N','U','S'];
   bonusBearSpawned = false;
-  G.bonusT = 6.5 + G.upg.bonus * 0.7;
+  G.bonusT = 6.5 + G.upg.bonus * 0.7 + (CH().btPlus || 0) + (PFX().k === 'bt' ? PFX().v * petFxMul() : 0);
   P.vy = -120;
   AudioSys.bear();
   banner('🎉 BONUSTIME ครบ! ค้างปุ่มบิน ขึ้น/ลง 🎉', '#ffe066');
@@ -1977,73 +2361,537 @@ function drawPet(pet) {
   ctx.save();
   if (!pet) ctx.translate(Pet.x, Pet.y);
   const flap = Math.sin(Pet.wing) * 0.7;
-  if (p.id === 'maca') {
-    ctx.fillStyle = '#ffe9b8';
-    ctx.save(); ctx.rotate(-0.5 - flap * 0.5);
-    ctx.beginPath(); ctx.ellipse(-10, -6, 12, 6, 0, 0, TAU); ctx.fill();
-    ctx.restore();
-    ctx.fillStyle = ballGrad(0, 0, 14, '#ff9db8');
+  const C1 = p.c1 || '#ffd24a', C2 = p.c2 || '#ffffff', C3 = p.c3 || '#4a2410', ex = p.ex || 0;
+  const line = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; };
+  /* ปีกบินด้านหลัง */
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.save(); ctx.rotate(-0.45 - flap * 0.5);
+  ctx.beginPath(); ctx.ellipse(-11, -5, 11, 5.5, 0, 0, TAU); ctx.fill();
+  ctx.restore();
+  let face = true, fy = -2, fx2 = 3;
+  const S = p.shape;
+  if (S === 'drop') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.moveTo(0, -18);
+    ctx.quadraticCurveTo(13, -6, 13, 3); ctx.arc(0, 3, 13, 0, Math.PI);
+    ctx.quadraticCurveTo(-13, -6, 0, -18); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    ctx.beginPath(); ctx.arc(-5, 0, 3.4, 0, TAU); ctx.fill();
+    if (ex === 10) { /* คิงดรอป: มงกุฎ */
+      ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(-8, -21); ctx.lineTo(-3, -15);
+      ctx.lineTo(0, -23); ctx.lineTo(3, -15); ctx.lineTo(8, -21); ctx.lineTo(8, -12);
+      ctx.closePath(); ctx.fill();
+    }
+    if (ex === 11) { /* ถั่วแฝด: ตัวจิ๋วเกาะข้าง */
+      ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.arc(14, 8, 7, 0, TAU); ctx.fill();
+      ctx.fillStyle = C3;
+      ctx.beginPath(); ctx.arc(13, 7, 1.4, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(17, 7, 1.4, 0, TAU); ctx.fill();
+    }
+    fy = 2;
+  } else if (S === 'ball' || S === 'bead' || S === 'brain' || S === 'garlic' || S === 'pumpkin' || S === 'yarn') {
+    ctx.fillStyle = C1;
     ctx.beginPath(); ctx.arc(0, 0, 14, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.ellipse(0, 0, 14, 4.5, 0, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#ff7ba0';
-    ctx.beginPath(); ctx.arc(0, -5, 12, Math.PI, 0); ctx.fill();
-    ctx.fillStyle = '#4a2410';
-    ctx.beginPath(); ctx.arc(5, -4, 2, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(11, -4, 2, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#ffb84a';
-    ctx.beginPath(); ctx.moveTo(14, -1); ctx.lineTo(20, 1); ctx.lineTo(14, 3); ctx.fill();
-    ctx.fillStyle = '#ffd9e4';
-    ctx.save(); ctx.rotate(0.3 + flap * 0.5);
-    ctx.beginPath(); ctx.ellipse(-8, 4, 10, 5, 0, 0, TAU); ctx.fill();
-    ctx.restore();
-  } else if (p.id === 'chick') {
-    // ลูกเจี๊ยบทอฟฟี่
-    ctx.fillStyle = '#ffe98a';
-    ctx.save(); ctx.rotate(-0.4 - flap * 0.5);
-    ctx.beginPath(); ctx.ellipse(-11, -4, 11, 6, 0, 0, TAU); ctx.fill();
-    ctx.restore();
-    ctx.fillStyle = ballGrad(0, 0, 15, '#ffd84a');
-    ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#ffce2e';
-    ctx.beginPath(); ctx.arc(0, 5, 12, 0, Math.PI); ctx.fill();
-    // หงอนทอฟฟี่
-    ctx.fillStyle = '#e0453a';
-    ctx.beginPath(); ctx.arc(0, -14, 4, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(-5, -12, 3.2, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#4a2410';
-    ctx.beginPath(); ctx.arc(5, -3, 2.1, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(11, -3, 2.1, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#ff9d2e';
-    ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(21, 2); ctx.lineTo(14, 5); ctx.fill();
-    ctx.fillStyle = 'rgba(255,120,120,.5)';
-    ctx.beginPath(); ctx.arc(2, 4, 2.6, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#ffe98a';
-    ctx.save(); ctx.rotate(0.3 + flap * 0.5);
-    ctx.beginPath(); ctx.ellipse(-8, 5, 9, 5, 0, 0, TAU); ctx.fill();
-    ctx.restore();
-  } else {
-    // ปุยเมฆน้ำตาล
-    const bob = Math.sin(Pet.wing * 0.5) * 2;
-    ctx.translate(0, bob);
-    ctx.fillStyle = '#f6efe4';
-    for (const [dx, dy, r] of [[-10,2,9],[0,-4,12],[11,2,9],[0,5,10]])
+    if (S === 'brain') { line(2.4, C2);
+      for (const [x1,y1,x2,y2] of [[-9,-6,-2,-9],[-2,-9,5,-5],[-8,3,0,0],[0,0,8,4]])
+        { ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo((x1+x2)/2, (y1+y2)/2-3, x2,y2); ctx.stroke(); } }
+    if (S === 'yarn') { line(2, C2);
+      for (const r of [11, 7]) { ctx.beginPath(); ctx.arc(0, 0, r, 0.4, 2.6); ctx.stroke(); } }
+    if (S === 'garlic') { line(2, C2);
+      ctx.beginPath(); ctx.moveTo(0, -14); ctx.quadraticCurveTo(2, -19, -1, -21); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-4, -13); ctx.lineTo(-4, 6); ctx.moveTo(4, -13); ctx.lineTo(4, 6); ctx.stroke(); }
+    if (S === 'pumpkin') { ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.ellipse(0, -15, 3, 4, 0.3, 0, TAU); ctx.fill();
+      line(1.6, 'rgba(0,0,0,.25)');
+      ctx.beginPath(); ctx.moveTo(-5, -13); ctx.quadraticCurveTo(-6, 0, -5, 12); ctx.moveTo(5, -13); ctx.quadraticCurveTo(6, 0, 5, 12); ctx.stroke(); }
+    if (S === 'bead') { ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.arc(0, 0, 6.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.7)';
+      ctx.beginPath(); ctx.arc(-4, -5, 2.6, 0, TAU); ctx.fill(); face = false; }
+    if (S === 'ball' && ex === 1) { ctx.fillStyle = 'rgba(255,255,255,.8)';
+      for (const [x, y] of [[-7, -8], [6, -3], [-2, 7], [9, -9]])
+        { ctx.beginPath(); ctx.arc(x, y, 1.6, 0, TAU); ctx.fill(); } }
+  } else if (S === 'bubble') {
+    for (const [dx, r] of [[-6, 10], [8, 8]]) {
+      ctx.fillStyle = C1; ctx.globalAlpha = 0.8;
+      ctx.beginPath(); ctx.arc(dx, 0, r, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1; line(1.8, C2);
+      ctx.beginPath(); ctx.arc(dx, 0, r, 0, TAU); ctx.stroke();
+    }
+    fx2 = -6;
+  } else if (S === 'cloud') {
+    ctx.fillStyle = C1;
+    for (const [dx, dy, r] of [[-10, 2, 9], [0, -4, 12], [11, 2, 9], [0, 5, 10]])
       { ctx.beginPath(); ctx.arc(dx, dy, r, 0, TAU); ctx.fill(); }
-    ctx.fillStyle = 'rgba(200,150,190,.35)';
+    ctx.fillStyle = C2; ctx.globalAlpha = 0.5;
     ctx.beginPath(); ctx.ellipse(0, 9, 13, 4, 0, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#4a2410';
-    ctx.beginPath(); ctx.arc(-1, -2, 2.1, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(7, -2, 2.1, 0, TAU); ctx.fill();
-    ctx.strokeStyle = '#4a2410'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.arc(3, 2, 3, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,150,150,.5)';
-    ctx.beginPath(); ctx.arc(-6, 2, 2.2, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(12, 2, 2.2, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (S === 'sock') {
+    ctx.fillStyle = C1;
+    roundRect(-6, -16, 13, 18, 5); ctx.fill();
+    ctx.beginPath(); ctx.arc(-4, 6, 9, Math.PI * 0.4, Math.PI * 1.6); ctx.fill();
+    roundRect(-9, 0, 16, 12, 6); ctx.fill();
+    ctx.fillStyle = C2;
+    roundRect(-7, -17, 15, 6, 3); ctx.fill();
+    fy = 4; fx2 = 0;
+  } else if (S === 'hand') {
+    ctx.fillStyle = C1;
+    roundRect(-9, -6, 18, 18, 7); ctx.fill();
+    for (let i = 0; i < 4; i++) { roundRect(-9 + i * 4.6, -14, 4, 12, 2); ctx.fill(); }
+    roundRect(-14, -4, 7, 10, 3.5); ctx.fill();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.arc(0, 2, 5, 0, TAU); ctx.fill();
+    face = false;
+  } else if (S === 'dumbbell') {
+    line(5, C2);
+    ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(9, 0); ctx.stroke();
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(-12, 0, 8.5, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(12, 0, 8.5, 0, TAU); ctx.fill();
+    ctx.fillStyle = C3;
+    for (const dx of [-12, 12]) {
+      ctx.beginPath(); ctx.arc(dx - 2, -2, 1.5, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(dx + 2, -2, 1.5, 0, TAU); ctx.fill();
+    }
+    face = false;
+  } else if (S === 'cup' || S === 'mortar') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.moveTo(-12, -8); ctx.lineTo(12, -8);
+    ctx.quadraticCurveTo(11, 12, 0, 12); ctx.quadraticCurveTo(-11, 12, -12, -8);
+    ctx.closePath(); ctx.fill();
+    if (S === 'cup') { line(2.6, C1);
+      ctx.beginPath(); ctx.arc(14, 0, 5, -1.2, 1.2); ctx.stroke(); }
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.ellipse(0, -8, 12, 3.6, 0, 0, TAU); ctx.fill();
+    if (S === 'mortar') { line(3, C2);
+      ctx.beginPath(); ctx.moveTo(6, -14); ctx.lineTo(14, -22); ctx.stroke(); }
+    fy = 2; fx2 = 0;
+  } else if (S === 'teapot') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.ellipse(0, 2, 13, 10, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(11, -2); ctx.lineTo(19, -8); ctx.lineTo(15, 2); ctx.closePath(); ctx.fill();
+    line(2.6, C1);
+    ctx.beginPath(); ctx.arc(-14, 0, 5, 0.8, 4.2); ctx.stroke();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.ellipse(0, -8, 6, 2.6, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -11, 2.2, 0, TAU); ctx.fill();
+    fy = 3; fx2 = 0;
+  } else if (S === 'note') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.ellipse(-4, 8, 7, 5.5, -0.3, 0, TAU); ctx.fill();
+    line(3.4, C1);
+    ctx.beginPath(); ctx.moveTo(2, 7); ctx.lineTo(2, -14); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(2, -14); ctx.quadraticCurveTo(10, -12, 11, -5); ctx.stroke();
+    fx2 = -6; fy = 6;
+  } else if (S === 'hat') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.moveTo(-13, 4); ctx.quadraticCurveTo(-2, -22, 12, -8);
+    ctx.quadraticCurveTo(15, 0, 13, 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = C2;
+    roundRect(-16, 3, 32, 7, 3.5); ctx.fill();
+    ctx.fillStyle = p.c3 === '#4a2410' ? C2 : p.c3;
+    ctx.beginPath(); ctx.arc(12, -9, 4, 0, TAU); ctx.fill();
+    fy = -1; fx2 = -2;
+  } else if (S === 'critter') {
+    /* สัตว์ตัวกลม: หูตามชนิด ex 1แมว 2กระต่าย 3ยูนิคอร์น 4หมา 5แฮมสเตอร์ 6หนู 7แพนด้า 8แมวน้ำ 9สิงโต */
+    if (ex === 9) { ctx.fillStyle = C3;
+      for (let i = 0; i < 10; i++) { const a = i * TAU / 10;
+        ctx.beginPath(); ctx.arc(Math.cos(a) * 13, Math.sin(a) * 13, 5, 0, TAU); ctx.fill(); } }
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.fill();
+    if (ex === 1 || ex === 6) { ctx.fillStyle = C1;
+      ctx.beginPath(); ctx.moveTo(-11, -7); ctx.lineTo(-13, -17); ctx.lineTo(-4, -12); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(4, -12); ctx.lineTo(12, -17); ctx.lineTo(10, -7); ctx.closePath(); ctx.fill(); }
+    if (ex === 2) { ctx.fillStyle = C1;
+      ctx.beginPath(); ctx.ellipse(-6, -17, 3.6, 9, -0.12, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(6, -17, 3.6, 9, 0.12, 0, TAU); ctx.fill(); }
+    if (ex === 3) { ctx.fillStyle = '#f2e060';
+      ctx.beginPath(); ctx.moveTo(-3, -11); ctx.lineTo(0, -22); ctx.lineTo(3, -11); ctx.closePath(); ctx.fill(); }
+    if (ex === 4) { ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.ellipse(-10, -8, 4.5, 7, -0.5, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(10, -8, 4.5, 7, 0.5, 0, TAU); ctx.fill(); }
+    if (ex === 5) { ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.arc(-8, -10, 4.4, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(8, -10, 4.4, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,140,150,.5)';
+      ctx.beginPath(); ctx.arc(-7, 4, 3.4, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(9, 4, 3.4, 0, TAU); ctx.fill(); }
+    if (ex === 7) { ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.arc(-9, -10, 4.6, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(9, -10, 4.6, 0, TAU); ctx.fill();
+      ctx.fillStyle = C3; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.ellipse(-4, -2, 3.4, 4.2, 0.3, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(8, -2, 3.4, 4.2, -0.3, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 1; }
+    if (ex === 8) { ctx.fillStyle = C1;
+      ctx.beginPath(); ctx.ellipse(-13, 8, 6, 3.6, 0.6, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(13, 8, 6, 3.6, -0.6, 0, TAU); ctx.fill(); }
+  } else if (S === 'flower') {
+    ctx.fillStyle = C1;
+    for (let i = 0; i < 6; i++) {
+      const a = i * TAU / 6;
+      ctx.beginPath(); ctx.ellipse(Math.cos(a) * 8.6, Math.sin(a) * 8.6, 6.4, 4, a, 0, TAU); ctx.fill();
+    }
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.arc(0, 0, 7, 0, TAU); ctx.fill();
+    fx2 = 0; fy = 0;
+  } else if (S === 'star') {
+    ctx.fillStyle = C1;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 7 : 15;
+      ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath(); ctx.fill();
+    fx2 = 0; fy = 1;
+  } else if (S === 'snowflake') {
+    line(3, C1);
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * 13, Math.sin(a) * 13); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * 8 + Math.cos(a + 1.2) * 4, Math.sin(a) * 8 + Math.sin(a + 1.2) * 4);
+      ctx.lineTo(Math.cos(a) * 8, Math.sin(a) * 8);
+      ctx.lineTo(Math.cos(a) * 8 + Math.cos(a - 1.2) * 4, Math.sin(a) * 8 + Math.sin(a - 1.2) * 4);
+      ctx.stroke();
+    }
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.arc(0, 0, 5.5, 0, TAU); ctx.fill();
+    fx2 = 0; fy = 0; face = false;
+  } else if (S === 'cube' || S === 'dice') {
+    ctx.fillStyle = C1;
+    roundRect(-11, -11, 22, 22, 5); ctx.fill();
+    if (S === 'dice') {
+      ctx.fillStyle = C2;
+      roundRect(-11, -11, 22, 22, 5); ctx.fill();
+      ctx.fillStyle = p.c3 !== '#4a2410' ? p.c3 : '#e0453a';
+      for (const [x, y] of [[-5, -5], [5, 5], [5, -5], [-5, 5]])
+        { ctx.beginPath(); ctx.arc(x, y, 2.4, 0, TAU); ctx.fill(); }
+      face = false;
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,.3)';
+      roundRect(-11, -11, 22, 8, 4); ctx.fill();
+    }
+  } else if (S === 'cracker' || S === 'rocket') {
+    ctx.save(); ctx.rotate(-0.5);
+    ctx.fillStyle = C1;
+    roundRect(-7, -14, 14, 26, 5); ctx.fill();
+    if (S === 'rocket') {
+      ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.moveTo(-7, -12); ctx.quadraticCurveTo(0, -24, 7, -12); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ff9d2e';
+      ctx.beginPath(); ctx.moveTo(-4, 12); ctx.lineTo(0, 22 + flap * 3); ctx.lineTo(4, 12); ctx.closePath(); ctx.fill();
+    } else {
+      line(2.6, C2);
+      ctx.beginPath(); ctx.moveTo(0, -14); ctx.quadraticCurveTo(4, -20, 1, -24); ctx.stroke();
+      ctx.fillStyle = '#ffe066';
+      ctx.beginPath(); ctx.arc(1, -25, 2.6, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+    fy = 0; fx2 = -1;
+  } else if (S === 'ghost') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(0, -3, 12, Math.PI, 0);
+    ctx.lineTo(12, 8);
+    for (let i = 0; i < 4; i++) ctx.quadraticCurveTo(9 - i * 6, 13 - (i % 2) * 4, 6 - i * 6, 8 + (i % 2) * 3);
+    ctx.closePath(); ctx.fill();
+    if (ex === 1) { ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.moveTo(-1, 2); ctx.lineTo(-7, -1); ctx.lineTo(-7, 5); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(1, 2); ctx.lineTo(7, -1); ctx.lineTo(7, 5); ctx.closePath(); ctx.fill(); }
+    fy = -4;
+  } else if (S === 'candle') {
+    ctx.fillStyle = C1;
+    roundRect(-8, -10, 16, 24, 4); ctx.fill();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.ellipse(0, -13 + flap, 3.4, 6, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#ff9d2e';
+    ctx.beginPath(); ctx.ellipse(0, -12 + flap, 1.8, 3.4, 0, 0, TAU); ctx.fill();
+    fy = 0; fx2 = 0;
+  } else if (S === 'firefly') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.ellipse(0, 0, 9, 11, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = C2; ctx.globalAlpha = 0.5 + Math.abs(flap) * 0.6;
+    ctx.beginPath(); ctx.arc(0, 9, 6.5, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1;
+    line(1.8, C3);
+    ctx.beginPath(); ctx.moveTo(-3, -10); ctx.quadraticCurveTo(-6, -16, -9, -16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(3, -10); ctx.quadraticCurveTo(6, -16, 9, -16); ctx.stroke();
+    fy = -3;
+  } else if (S === 'bat') {
+    ctx.fillStyle = C1;
+    for (const sgn of [-1, 1]) {
+      ctx.save(); ctx.scale(sgn, 1); ctx.rotate(-flap * 0.35);
+      ctx.beginPath(); ctx.moveTo(6, -2);
+      ctx.quadraticCurveTo(20, -12, 24, -2);
+      ctx.quadraticCurveTo(19, 0, 18, 4);
+      ctx.quadraticCurveTo(13, 1, 10, 5);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); ctx.fill();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.moveTo(-8, -6); ctx.lineTo(-9, -13); ctx.lineTo(-3, -9); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(3, -9); ctx.lineTo(9, -13); ctx.lineTo(8, -6); ctx.closePath(); ctx.fill();
+  } else if (S === 'book') {
+    ctx.save(); ctx.rotate(-0.12);
+    ctx.fillStyle = C1;
+    roundRect(-13, -10, 26, 20, 3); ctx.fill();
+    ctx.fillStyle = C2;
+    roundRect(-10, -7, 20, 3, 1.5); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 3, 4.4, 0, TAU); ctx.fill();
+    ctx.restore();
+    face = false;
+  } else if (S === 'fan') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.fill();
+    ctx.fillStyle = C2;
+    for (let i = 0; i < 3; i++) {
+      ctx.save(); ctx.rotate(Pet.wing * 1.5 + i * TAU / 3);
+      ctx.beginPath(); ctx.ellipse(0, -7, 3.4, 7, 0, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(0, 0, 4, 0, TAU); ctx.fill();
+    face = false;
+  } else if (S === 'slice') {
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.fill();
+    ctx.fillStyle = C1;
+    for (let i = 0; i < 6; i++) {
+      const a = i * TAU / 6 + 0.26;
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.arc(0, 0, 10.5, a, a + 0.78); ctx.closePath(); ctx.fill();
+    }
+    fx2 = 0; fy = 0; face = false;
+  } else if (S === 'scale') {
+    line(3, C1);
+    ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-12, -8); ctx.lineTo(12, -8); ctx.stroke();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.arc(-12, -2, 5, 0, Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.arc(12, -2, 5, 0, Math.PI); ctx.fill();
+    ctx.fillStyle = C1;
+    roundRect(-7, 8, 14, 4, 2); ctx.fill();
+    face = false;
+  } else if (S === 'barrel' || S === 'log') {
+    ctx.fillStyle = C1;
+    roundRect(-11, -13, 22, 26, S === 'log' ? 9 : 5); ctx.fill();
+    if (S === 'barrel') { ctx.fillStyle = C2; ctx.globalAlpha = 0.6;
+      roundRect(-11, -9, 22, 3.4, 1.7); ctx.fill();
+      roundRect(-11, 6, 22, 3.4, 1.7); ctx.fill(); ctx.globalAlpha = 1; }
+    else { ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.ellipse(0, -13, 11, 4, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = C1;
+      ctx.beginPath(); ctx.arc(0, -13, 4.4, 0, TAU); ctx.fill(); }
+    fy = 2; fx2 = 0;
+  } else if (S === 'bag' || S === 'pouch' || S === 'punchbag') {
+    ctx.fillStyle = C1;
+    if (S === 'pouch') {
+      ctx.beginPath(); ctx.moveTo(-10, -6); ctx.quadraticCurveTo(-13, 12, 0, 12);
+      ctx.quadraticCurveTo(13, 12, 10, -6); ctx.closePath(); ctx.fill();
+      line(2.6, C2);
+      ctx.beginPath(); ctx.moveTo(-10, -6); ctx.quadraticCurveTo(0, -2, 10, -6); ctx.stroke();
+      ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.arc(0, -9, 3.4, 0, TAU); ctx.fill();
+    } else {
+      roundRect(-10, -12, 20, 24, 6); ctx.fill();
+      ctx.fillStyle = C2;
+      if (S === 'bag') { roundRect(-10, -4, 20, 9, 4); ctx.fill();
+        line(2.4, C2); ctx.beginPath(); ctx.arc(0, -12, 6, Math.PI, 0); ctx.stroke(); }
+      else { roundRect(-4, -18, 8, 7, 3); ctx.fill(); }
+    }
+    fy = 2; fx2 = 0;
+  } else if (S === 'globe') {
+    ctx.fillStyle = C2;
+    roundRect(-11, 6, 22, 7, 3); ctx.fill();
+    ctx.fillStyle = C1; ctx.globalAlpha = 0.55;
+    ctx.beginPath(); ctx.arc(0, -2, 11, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff';
+    for (const [x, y] of [[-4, -6], [3, -1], [-1, 3], [5, -7]])
+      { ctx.beginPath(); ctx.arc(x, y, 1.3, 0, TAU); ctx.fill(); }
+    line(1.8, '#dff2ff');
+    ctx.beginPath(); ctx.arc(0, -2, 11, 0, TAU); ctx.stroke();
+    face = false;
+  } else if (S === 'candy') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(0, 0, 10, 0, TAU); ctx.fill();
+    ctx.fillStyle = C2;
+    for (const sgn of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(sgn * 9, -3); ctx.lineTo(sgn * 17, -7); ctx.lineTo(sgn * 17, 7); ctx.lineTo(sgn * 9, 3);
+      ctx.closePath(); ctx.fill();
+    }
+    line(2, 'rgba(255,255,255,.6)');
+    ctx.beginPath(); ctx.arc(0, 0, 6, 0.6, 2.4); ctx.stroke();
+  } else if (S === 'bird') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(0, 0, 12, 0, TAU); ctx.fill();
+    if (ex === 2) { line(4, C1);
+      ctx.beginPath(); ctx.moveTo(-8, -8); ctx.quadraticCurveTo(-14, -18, -6, -20) ; ctx.stroke(); }
+    ctx.fillStyle = '#ff9d2e';
+    ctx.beginPath(); ctx.moveTo(11, -2); ctx.lineTo(18, 1); ctx.lineTo(11, 4); ctx.closePath(); ctx.fill();
+    if (ex === 1) { ctx.fillStyle = '#f2e060';
+      ctx.beginPath(); ctx.moveTo(-2, -10); ctx.lineTo(0, -19); ctx.lineTo(3, -10); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = C2;
+      ctx.beginPath(); ctx.arc(0, -2, 4.6, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(8, -2, 4.6, 0, TAU); ctx.fill(); }
+    ctx.fillStyle = C2; ctx.globalAlpha = 0.7;
+    ctx.save(); ctx.rotate(0.3 + flap * 0.5);
+    ctx.beginPath(); ctx.ellipse(-7, 5, 8, 4.4, 0, 0, TAU); ctx.fill();
+    ctx.restore(); ctx.globalAlpha = 1;
+  } else if (S === 'fish') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.ellipse(1, 0, 11, 8, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(-17, -7); ctx.lineTo(-17, 7); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.moveTo(2, -7); ctx.quadraticCurveTo(5, -14, 1, -16); ctx.stroke();
+    line(2, C2);
+    ctx.beginPath(); ctx.moveTo(2, -8); ctx.quadraticCurveTo(6, -13, 2, -17); ctx.stroke();
+    fy = 0;
+  } else if (S === 'ring') {
+    line(6, C1);
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0, TAU); ctx.stroke();
+    line(2, C2);
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0.5, 1.6); ctx.stroke();
+    face = false;
+  } else if (S === 'boat') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.moveTo(-15, -2); ctx.lineTo(15, -2); ctx.lineTo(9, 9); ctx.lineTo(-9, 9);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, -17); ctx.lineTo(10, -6); ctx.closePath(); ctx.fill();
+    fy = 3; fx2 = -4;
+  } else if (S === 'robot') {
+    ctx.fillStyle = C1;
+    roundRect(-11, -11, 22, 20, 5); ctx.fill();
+    ctx.fillStyle = C2;
+    roundRect(-7, -6, 14, 8, 3); ctx.fill();
+    line(2.4, C1);
+    ctx.beginPath(); ctx.moveTo(0, -11); ctx.lineTo(0, -16); ctx.stroke();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.arc(0, -17, 2.2, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#2a2a2a';
+    ctx.beginPath(); ctx.arc(-3, -2, 1.8, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(3, -2, 1.8, 0, TAU); ctx.fill();
+    face = false;
+  } else if (S === 'watch') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(0, 0, 12, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(0, 0, 9, 0, TAU); ctx.fill();
+    line(2, C3);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(4, 2); ctx.stroke();
+    ctx.fillStyle = C1;
+    roundRect(-3, -16, 6, 5, 2); ctx.fill();
+    face = false;
+  } else if (S === 'egg') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.ellipse(0, 0, 11, 13.5, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = C2;
+    for (const [x, y, r] of [[-4, -5, 2.6], [5, 1, 3], [-2, 7, 2.2]])
+      { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+    fy = -1;
+  } else if (S === 'bulb') {
+    for (const dx of [-8, 8]) {
+      ctx.fillStyle = dx < 0 ? C1 : C2;
+      ctx.beginPath(); ctx.arc(dx, -3, 7.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#8a97a8';
+      roundRect(dx - 3.4, 4, 6.8, 5, 2); ctx.fill();
+    }
+    face = false;
+  } else if (S === 'disc') {
+    ctx.fillStyle = C1;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath(); ctx.ellipse(0, 4 - i * 4, 14 - i * 1.2, 5.5, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = i === 1 ? C2 : C1;
+    }
+    ctx.fillStyle = '#e8a03a';
+    ctx.beginPath(); ctx.ellipse(0, -5, 6, 2.6, 0, 0, TAU); ctx.fill();
+    fy = -8; fx2 = 0;
+  } else if (S === 'drum') {
+    ctx.fillStyle = C1;
+    roundRect(-11, -8, 22, 18, 4); ctx.fill();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.ellipse(0, -8, 11, 4.4, 0, 0, TAU); ctx.fill();
+    line(2, C2);
+    ctx.beginPath(); ctx.moveTo(-11, -2); ctx.lineTo(-4, 6); ctx.moveTo(-4, -1); ctx.lineTo(4, 6); ctx.moveTo(4, -1); ctx.lineTo(11, -2 + 8); ctx.stroke();
+    fy = 3; fx2 = 0; face = false;
+  } else if (S === 'castanet') {
+    for (const [dy, open] of [[-6, -0.35 - Math.abs(flap) * 0.3], [5, 0]]) {
+      ctx.save(); ctx.translate(0, dy); ctx.rotate(open);
+      ctx.fillStyle = C1;
+      ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, 0, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.arc(9, -8, 2.4, 0, TAU); ctx.fill();
+    fy = 6; fx2 = -2;
+  } else if (S === 'megaphone') {
+    ctx.save(); ctx.rotate(-0.2);
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.moveTo(-10, -4); ctx.lineTo(10, -12); ctx.lineTo(10, 12); ctx.lineTo(-10, 4);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = C2;
+    roundRect(-15, -5, 6, 10, 2.5); ctx.fill();
+    ctx.restore();
+    face = false;
+  } else if (S === 'locket') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.moveTo(0, 12);
+    ctx.quadraticCurveTo(-14, 2, -9, -6);
+    ctx.quadraticCurveTo(-4, -12, 0, -5);
+    ctx.quadraticCurveTo(4, -12, 9, -6);
+    ctx.quadraticCurveTo(14, 2, 0, 12);
+    ctx.fill();
+    line(2.2, C1);
+    ctx.beginPath(); ctx.arc(0, -12, 5, Math.PI * 0.2, Math.PI * 0.8, true); ctx.stroke();
+    ctx.fillStyle = C2;
+    ctx.beginPath(); ctx.arc(0, 0, 3.4, 0, TAU); ctx.fill();
+    face = false;
+  } else if (S === 'bomb') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(0, 2, 12, 0, TAU); ctx.fill();
+    ctx.fillStyle = C1;
+    roundRect(-4, -14, 8, 5, 2); ctx.fill();
+    line(2.4, C2);
+    ctx.beginPath(); ctx.moveTo(0, -14); ctx.quadraticCurveTo(6, -18, 8, -15); ctx.stroke();
+    ctx.fillStyle = '#ffe066';
+    ctx.beginPath(); ctx.arc(9, -15, 2.6 + Math.abs(flap), 0, TAU); ctx.fill();
+    fy = 2;
+  } else if (S === 'tail') {
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.moveTo(-12, 10);
+    ctx.quadraticCurveTo(-4, -2, 2, -8);
+    ctx.quadraticCurveTo(8, -13, 13, -10);
+    ctx.quadraticCurveTo(10, -4, 2, 2);
+    ctx.quadraticCurveTo(-4, 8, -12, 10);
+    ctx.fill();
+    ctx.fillStyle = C2;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath(); ctx.moveTo(-10 + i * 7, 9 - i * 5);
+      ctx.lineTo(-5 + i * 7, 13 - i * 5); ctx.lineTo(-3 + i * 7, 6 - i * 5);
+      ctx.closePath(); ctx.fill();
+    }
+    face = false;
+  } else {
+    /* สำรอง: ก้อนกลมยิ้ม */
+    ctx.fillStyle = C1;
+    ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.fill();
+  }
+  if (face) {
+    ctx.fillStyle = C3;
+    ctx.beginPath(); ctx.arc(fx2 - 3, fy - 2, 2, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(fx2 + 5, fy - 2, 2, 0, TAU); ctx.fill();
+    ctx.strokeStyle = C3; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(fx2 + 1, fy + 1, 3, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
   }
   ctx.restore();
 }
 
-/* ---------- jellies & items ---------- */
 function drawJellies() {
   for (const j of jellyList) {
     const x = j.x - worldX;
@@ -2396,6 +3244,469 @@ function ballGrad(x, y, r, c) {
   return g;
 }
 
+/* ============================================================
+   ระบบตกแต่งตัวละคร: ผม/หมวก/หน้า/ลำตัว/ของถือ ใช้ร่วมกันทุกคุกกี้
+   ============================================================ */
+const DECO_ALIAS = {
+  puffhair:'puff', curlhair:'curl', patchhair:'messy', spikyhair:'spiky', sidebraid:'side',
+  messyhair:'messy', sidehair:'side', kiwihair:'spiky', lemonhair:'spiky', twintail:'twin',
+  beanhair:'bob', leafhair:'spiky', cottonhair:'puff', rollhair:'curl', flamehair:'spiky',
+  wavyhair:'long', longhair:'long', ponytail:'pony',
+  fedora:'cap', sailor:'cap', generalhat:'tophat', admiralhat:'tophat', monkhat:'tophat',
+  pancakehat:'beret', strawhat:'beret', diamondhat:'beret', furhood:'hood', dinohood:'hood',
+  leafhood:'hood', baricrown:'crown', dancheongcrown:'crown', maidband:'band',
+  wolfears:'ears', foxears:'ears', bunnyears:'bunny', heromask:'mask',
+  lilyflower:'flower', leafpin:'flower', silverleaf:'moonpin', seastar:'moonpin',
+  honeydrip:'drip', sylip:'drip', hanbokribbon:'bowtie', stardust:'freckles', bubbles:'freckles',
+  longbeard:'beard', goggles:'glasses', heartcheek:'blushdot', flamecheek:'blushdot',
+  bottlebelt:'buttons', candystripe:'stripes', tigerstripes:'stripes', ricedots:'dots',
+  gumdots:'dots', ricecollar:'collar', creamcollar:'collar', jacket:'vest', batwings:'cape',
+  fairywings:'wings2', spear:'staff', wateringcan:'mug', drum:'mug', mochi:'mug',
+  bowweapon:'bow2', fanitem:'fan2', ribbon:'bow',
+};
+function decosOf(ch) {
+  if (!ch.deco) return null;
+  if (!ch._dc) ch._dc = ch.deco.map(d => {
+    const q = d.split(':');
+    return { p: DECO_ALIAS[q[0]] || q[0], c: q[1] || '#ffffff' };
+  });
+  return ch._dc;
+}
+/* วาด deco ตามเฟส: back(หลังตัว) body(บนตัว) hair/head/face(ในเฮดบล็อก) held(ของถือ) */
+function runDecos(ch, phase, RIM) {
+  const ds = decosOf(ch);
+  if (!ds) return false;
+  let drewHair = false;
+  const line = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; };
+  for (const d of ds) {
+    const c = d.c, p = d.p;
+    if (phase === 'back') {
+      if (p === 'cape') {
+        const w1 = Math.sin(P.anim * 2.2) * 4;
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(-6, -60);
+        ctx.quadraticCurveTo(-30, -46 + w1, -36, -16 + w1);
+        ctx.quadraticCurveTo(-20, -22, -8, -28);
+        ctx.closePath(); ctx.fill();
+      } else if (p === 'wings2') {
+        ctx.fillStyle = 'rgba(255,255,255,.75)';
+        for (const sgn of [0, 1]) {
+          ctx.save(); ctx.translate(-10, -56);
+          ctx.rotate(-0.5 - sgn * 0.5 + Math.sin(P.anim * 3) * 0.12);
+          ctx.fillStyle = sgn ? c : 'rgba(255,255,255,.85)';
+          ctx.beginPath(); ctx.ellipse(-13, 0, 15, 6, -0.3, 0, TAU); ctx.fill();
+          ctx.restore();
+        }
+      } else if (p === 'foxtail') {
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(-8, -26);
+        ctx.quadraticCurveTo(-34, -30, -32, -52);
+        ctx.quadraticCurveTo(-24, -38, -6, -34);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(-30, -48, 5, 4, 0.6, 0, TAU); ctx.fill();
+      }
+    } else if (phase === 'body') {
+      if (p === 'icing') {
+        line(4.2, c);
+        ctx.beginPath();
+        ctx.moveTo(-10.5, -33);
+        ctx.lineTo(-5.3, -39); ctx.lineTo(0, -33); ctx.lineTo(5.3, -39); ctx.lineTo(10.5, -33);
+        ctx.stroke();
+      } else if (p === 'buttons') {
+        ctx.fillStyle = c;
+        for (const y of [-46, -35]) { ctx.beginPath(); ctx.arc(0, y, 3.6, 0, TAU); ctx.fill(); }
+      } else if (p === 'stitch') {
+        line(2.4, c);
+        for (const [x, y] of [[-7, -46], [6, -34]]) {
+          ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x + 4, y); ctx.stroke();
+          for (const dx of [-3, 0, 3]) { ctx.beginPath(); ctx.moveTo(x + dx, y - 2.4); ctx.lineTo(x + dx, y + 2.4); ctx.stroke(); }
+        }
+      } else if (p === 'stripes') {
+        line(5, c);
+        for (const y of [-50, -40, -30]) {
+          ctx.beginPath(); ctx.moveTo(-12, y + 3.5); ctx.lineTo(12, y - 3.5); ctx.stroke();
+        }
+      } else if (p === 'dots') {
+        ctx.fillStyle = c;
+        for (const [x, y] of [[-7, -47], [5, -43], [-3, -37], [8, -33], [-8, -31]])
+          { ctx.beginPath(); ctx.arc(x, y, 2.2, 0, TAU); ctx.fill(); }
+      } else if (p === 'collar') {
+        ctx.fillStyle = c;
+        roundRect(-13, -58, 26, 7, 3.5); ctx.fill();
+      } else if (p === 'bowtie') {
+        ctx.fillStyle = c;
+        ctx.beginPath(); ctx.moveTo(-1, -52); ctx.lineTo(-9, -56); ctx.lineTo(-9, -48); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(1, -52); ctx.lineTo(9, -56); ctx.lineTo(9, -48); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -52, 2.4, 0, TAU); ctx.fill();
+      } else if (p === 'scarfB') {
+        ctx.fillStyle = c;
+        roundRect(-13, -58, 26, 8, 4); ctx.fill();
+        roundRect(-6, -54, 8, 16, 4); ctx.fill();
+      } else if (p === 'vest') {
+        ctx.fillStyle = c;
+        roundRect(-14.5, -58, 8, 28, 4); ctx.fill();
+        roundRect(6.5, -58, 8, 28, 4); ctx.fill();
+      }
+    }
+  }
+  return drewHair;
+}
+/* ผม + หมวก + หน้า วาดในพิกัดหัว (เรียกภายใน head block) */
+function runHeadDecos(ch, RIM, EYE) {
+  const ds = decosOf(ch);
+  if (!ds) return false;
+  let drewHair = false;
+  const line = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; };
+  for (const d of ds) {
+    const c = d.c, p = d.p;
+    /* ----- ผม ----- */
+    if (p === 'swirl') {
+      drewHair = true; line(6.5, c);
+      ctx.beginPath(); ctx.arc(2, -22, 9, Math.PI * 0.9, Math.PI * 2.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(10, -24); ctx.quadraticCurveTo(18, -20, 20, -12); ctx.stroke();
+    } else if (p === 'spiky') {
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.moveTo(-26, -12);
+      for (let i = 0; i < 5; i++) {
+        const x = -24 + i * 11;
+        ctx.lineTo(x + 5, -30 - (i % 2) * 6); ctx.lineTo(x + 11, -13 + (i % 2) * 2);
+      }
+      ctx.quadraticCurveTo(0, -20, -26, -12); ctx.closePath(); ctx.fill();
+    } else if (p === 'bob') {
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -6, 30, Math.PI * 0.95, Math.PI * 2.05);
+      ctx.quadraticCurveTo(24, -4, 16, -12);
+      ctx.quadraticCurveTo(6, -2, -4, -12);
+      ctx.quadraticCurveTo(-14, -2, -22, -12);
+      ctx.quadraticCurveTo(-30, -6, -29, -4);
+      ctx.closePath(); ctx.fill();
+    } else if (p === 'long') {
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -5, 30.5, Math.PI * 0.9, Math.PI * 2.1);
+      ctx.lineTo(29, 16); ctx.quadraticCurveTo(22, 10, 20, 2);
+      ctx.quadraticCurveTo(8, -8, -6, -10);
+      ctx.quadraticCurveTo(-20, -8, -21, 2);
+      ctx.quadraticCurveTo(-24, 12, -30, 16);
+      ctx.closePath(); ctx.fill();
+    } else if (p === 'curl') {
+      drewHair = true; ctx.fillStyle = c;
+      for (const [x, y, r] of [[-14, -22, 9], [1, -26, 10], [15, -21, 8.5]])
+        { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+    } else if (p === 'puff') {
+      drewHair = true; ctx.fillStyle = c;
+      for (const [x, y, r] of [[-18, -18, 9], [-6, -25, 10.5], [8, -24, 10], [19, -16, 8]])
+        { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+    } else if (p === 'messy') {
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.moveTo(-28, -8);
+      ctx.lineTo(-18, -26) ; ctx.lineTo(-10, -14); ctx.lineTo(-2, -30);
+      ctx.lineTo(6, -15); ctx.lineTo(15, -27); ctx.lineTo(22, -10);
+      ctx.quadraticCurveTo(0, -20, -28, -8); ctx.closePath(); ctx.fill();
+    } else if (p === 'pony') {
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -8, 29, Math.PI * 0.95, Math.PI * 2.05); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-26, -18, 7, 13, 0.5, 0, TAU); ctx.fill();
+    } else if (p === 'twin') {
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -8, 29, Math.PI * 0.95, Math.PI * 2.05); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-28, -2, 6, 12, 0.3, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(29, -2, 6, 12, -0.3, 0, TAU); ctx.fill();
+    } else if (p === 'side') {
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.moveTo(-26, -6);
+      ctx.quadraticCurveTo(-16, -30, 12, -26);
+      ctx.quadraticCurveTo(2, -18, 4, -10);
+      ctx.quadraticCurveTo(-12, -18, -26, -6);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  /* ----- หมวก/เครื่องหัว + หน้า (วาดทับผม) ----- */
+  for (const d of ds) {
+    const c = d.c, p = d.p;
+    if (p === 'bow') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.moveTo(14, -26); ctx.lineTo(3, -32); ctx.lineTo(3, -20); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(16, -26); ctx.lineTo(27, -32); ctx.lineTo(27, -20); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.arc(15, -26, 3.4, 0, TAU); ctx.fill();
+    } else if (p === 'santa') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.moveTo(-26, -14); ctx.quadraticCurveTo(-4, -46, 20, -28);
+      ctx.quadraticCurveTo(30, -38, 24, -46);
+      ctx.quadraticCurveTo(4, -58, -18, -34); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff';
+      roundRect(-28, -20, 48, 9, 4.5); ctx.fill();
+      ctx.beginPath(); ctx.arc(26, -46, 6, 0, TAU); ctx.fill();
+    } else if (p === 'crown') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.moveTo(-14, -24);
+      ctx.lineTo(-14, -38); ctx.lineTo(-7, -30); ctx.lineTo(0, -40); ctx.lineTo(7, -30); ctx.lineTo(14, -38);
+      ctx.lineTo(14, -24); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e0453a';
+      ctx.beginPath(); ctx.arc(0, -30, 2.4, 0, TAU); ctx.fill();
+    } else if (p === 'tiara') {
+      line(3.5, c);
+      ctx.beginPath(); ctx.arc(0, -14, 20, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
+      ctx.fillStyle = c;
+      for (const [x, y] of [[-12, -29], [0, -34], [12, -29]])
+        { ctx.beginPath(); ctx.arc(x, y, 2.6, 0, TAU); ctx.fill(); }
+    } else if (p === 'wizhat') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.ellipse(0, -25, 27, 7, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-14, -27); ctx.quadraticCurveTo(-2, -64, 8, -58);
+      ctx.quadraticCurveTo(16, -50, 13, -27); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#f2e060';
+      ctx.beginPath(); ctx.arc(7, -56, 3.4, 0, TAU); ctx.fill();
+    } else if (p === 'hood') {
+      line(11, c);
+      ctx.beginPath(); ctx.arc(0.5, 2, 30, Math.PI * 0.86, Math.PI * 2.14); ctx.stroke();
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -20, 15, Math.PI, TAU); ctx.fill();
+    } else if (p === 'band') {
+      ctx.fillStyle = c;
+      roundRect(-27, -18, 54, 9, 4.5); ctx.fill();
+    } else if (p === 'bandana') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -8, 29.5, Math.PI * 0.95, Math.PI * 2.05); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-24, -14); ctx.lineTo(-38, -6); ctx.lineTo(-36, -16); ctx.closePath(); ctx.fill();
+    } else if (p === 'beret') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.ellipse(-4, -26, 22, 10, -0.12, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(-4, -37, 3, 0, TAU); ctx.fill();
+    } else if (p === 'cap') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -16, 24, Math.PI, TAU); ctx.closePath(); ctx.fill();
+      roundRect(2, -20, 32, 7, 3.5); ctx.fill();
+    } else if (p === 'tophat') {
+      ctx.fillStyle = c;
+      roundRect(-17, -52, 34, 28, 4); ctx.fill();
+      roundRect(-26, -28, 52, 7, 3.5); ctx.fill();
+    } else if (p === 'helmet') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -10, 28, Math.PI * 0.92, Math.PI * 2.08); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,.15)';
+      roundRect(-24, -14, 48, 5, 2.5); ctx.fill();
+    } else if (p === 'earmuff') {
+      line(4, c);
+      ctx.beginPath(); ctx.arc(0, -8, 26, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(-26, -4, 8, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(27, -4, 8, 0, TAU); ctx.fill();
+    } else if (p === 'ears') {
+      ctx.fillStyle = c;
+      for (const sgn of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(sgn * 8, -26); ctx.lineTo(sgn * 22, -44); ctx.lineTo(sgn * 24, -22);
+        ctx.closePath(); ctx.fill();
+      }
+    } else if (p === 'bunny') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.ellipse(-10, -40, 6.5, 16, -0.14, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(12, -40, 6.5, 16, 0.14, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,150,170,.5)';
+      ctx.beginPath(); ctx.ellipse(-10, -38, 3, 10, -0.14, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(12, -38, 3, 10, 0.14, 0, TAU); ctx.fill();
+    } else if (p === 'mask') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -10, 28.5, Math.PI * 1.02, Math.PI * 1.98); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#f2e060';
+      ctx.beginPath(); ctx.moveTo(0, -34); ctx.lineTo(3, -26); ctx.lineTo(-4, -27); ctx.closePath(); ctx.fill();
+    } else if (p === 'fruit') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(6, -34, 8, 0, TAU); ctx.fill();
+      line(2.6, '#5a3413');
+      ctx.beginPath(); ctx.moveTo(6, -41); ctx.lineTo(8, -47); ctx.stroke();
+      ctx.fillStyle = '#7bd94a';
+      ctx.beginPath(); ctx.ellipse(11, -45, 4.5, 2.4, 0.5, 0, TAU); ctx.fill();
+    } else if (p === 'flower') {
+      ctx.fillStyle = c;
+      for (let i = 0; i < 5; i++) {
+        const a = i * TAU / 5 - 0.3;
+        ctx.beginPath(); ctx.ellipse(17 + Math.cos(a) * 6, -27 + Math.sin(a) * 6, 4, 2.6, a, 0, TAU); ctx.fill();
+      }
+      ctx.fillStyle = '#f2e060';
+      ctx.beginPath(); ctx.arc(17, -27, 3, 0, TAU); ctx.fill();
+    } else if (p === 'flowercrown') {
+      for (const [x, y, cc] of [[-16, -26, c], [0, -31, '#f2e060'], [16, -26, c]]) {
+        ctx.fillStyle = cc;
+        for (let i = 0; i < 5; i++) {
+          const a = i * TAU / 5;
+          ctx.beginPath(); ctx.ellipse(x + Math.cos(a) * 4.4, y + Math.sin(a) * 4.4, 3, 2, a, 0, TAU); ctx.fill();
+        }
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(x, y, 2.2, 0, TAU); ctx.fill();
+      }
+    } else if (p === 'sprout') {
+      line(3, '#5a8a3a');
+      ctx.beginPath(); ctx.moveTo(0, -28); ctx.quadraticCurveTo(1, -38, 0, -42); ctx.stroke();
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.ellipse(-5, -43, 6, 3.2, -0.5, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(5, -44, 6, 3.2, 0.5, 0, TAU); ctx.fill();
+    } else if (p === 'propeller') {
+      line(3, '#8a97a8');
+      ctx.beginPath(); ctx.moveTo(0, -28); ctx.lineTo(0, -38); ctx.stroke();
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.ellipse(-10, -40, 10, 3.4, -0.14, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(10, -40, 10, 3.4, 0.14, 0, TAU); ctx.fill();
+    } else if (p === 'moonpin') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(-16, -26, 7, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(90,60,30,.35)';
+      ctx.beginPath(); ctx.arc(-13.5, -27.5, 5.2, 0, TAU); ctx.fill();
+    } else if (p === 'thirdeye') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.ellipse(11, -18, 4.4, 3, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#3a2a1a';
+      ctx.beginPath(); ctx.arc(11, -18, 1.5, 0, TAU); ctx.fill();
+    } else if (p === 'horns') {
+      ctx.fillStyle = c;
+      for (const sgn of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(sgn * 10, -25);
+        ctx.quadraticCurveTo(sgn * 20, -34, sgn * 16, -46);
+        ctx.quadraticCurveTo(sgn * 24, -36, sgn * 19, -24);
+        ctx.closePath(); ctx.fill();
+      }
+    } else if (p === 'drip') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -10, 29, Math.PI * 1.02, Math.PI * 1.98);
+      ctx.quadraticCurveTo(24, -8, 16, -16);
+      ctx.quadraticCurveTo(10, -4, 2, -16);
+      ctx.quadraticCurveTo(-6, -2, -14, -16);
+      ctx.quadraticCurveTo(-22, -6, -28, -12);
+      ctx.closePath(); ctx.fill();
+    } else if (p === 'mustache') {
+      line(3.4, c);
+      ctx.beginPath(); ctx.moveTo(10, 7); ctx.quadraticCurveTo(4, 10, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(12, 7); ctx.quadraticCurveTo(18, 10, 22, 7); ctx.stroke();
+    } else if (p === 'beard') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(11, 12, 15, Math.PI * 1.9, Math.PI * 1.1);
+      ctx.quadraticCurveTo(11, 34, 4, 24);
+      ctx.closePath(); ctx.fill();
+    } else if (p === 'stubble') {
+      ctx.fillStyle = c;
+      for (const [x, y] of [[2, 15], [9, 17], [16, 15], [6, 19], [13, 19]])
+        { ctx.beginPath(); ctx.arc(x, y, 1.1, 0, TAU); ctx.fill(); }
+    } else if (p === 'glasses') {
+      line(2.6, '#3a2a1a');
+      ctx.beginPath(); ctx.arc(1.5, -2, 8, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(21.5, -2, 8, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(9.5, -3); ctx.lineTo(13.5, -3); ctx.stroke();
+    } else if (p === 'patch') {
+      ctx.fillStyle = '#2a2a2a';
+      ctx.beginPath(); ctx.ellipse(21.5, -3, 7.5, 8.5, 0, 0, TAU); ctx.fill();
+      line(2.4, '#2a2a2a');
+      ctx.beginPath(); ctx.moveTo(14, -8); ctx.lineTo(-24, -18); ctx.stroke();
+    } else if (p === 'freckles') {
+      ctx.fillStyle = c === '#ffffff' ? 'rgba(120,70,30,.5)' : c;
+      for (const [x, y] of [[-8, 4], [-3, 7], [26, 4], [30, 7]])
+        { ctx.beginPath(); ctx.arc(x, y, 1.3, 0, TAU); ctx.fill(); }
+    } else if (p === 'blushdot') {
+      ctx.fillStyle = c === '#ffffff' ? 'rgba(255,130,140,.55)' : c;
+      ctx.beginPath(); ctx.ellipse(-8, 7, 4.6, 3.2, 0.1, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(29, 7, 4.2, 3, -0.1, 0, TAU); ctx.fill();
+    } else if (p === 'fangs') {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.moveTo(4, 11); ctx.lineTo(7, 17); ctx.lineTo(9.5, 11); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(14, 11); ctx.lineTo(16.5, 16); ctx.lineTo(19, 11); ctx.closePath(); ctx.fill();
+    } else if (p === 'tear') {
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.ellipse(-4, 6, 2.6, 3.6, 0, 0, TAU); ctx.fill();
+    } else if (p === 'steam') {
+      line(2.8, c);
+      ctx.beginPath(); ctx.moveTo(-20, -30); ctx.quadraticCurveTo(-26, -38, -20, -44); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-12, -32); ctx.quadraticCurveTo(-18, -40, -12, -46); ctx.stroke();
+    } else if (p === 'facepaint') {
+      ctx.fillStyle = c;
+      roundRect(-11, 2, 8, 3.4, 1.7); ctx.fill();
+      roundRect(25, 2, 8, 3.4, 1.7); ctx.fill();
+    }
+  }
+  return drewHair;
+}
+/* ของถือ (พิกัดลำตัว, มือหน้า ~ (24,-40)) */
+function runHeldDecos(ch, RIM) {
+  const ds = decosOf(ch);
+  if (!ds) return;
+  const line = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; };
+  for (const d of ds) {
+    const c = d.c, p = d.p;
+    if (p === 'sword') {
+      ctx.save(); ctx.translate(26, -36); ctx.rotate(-0.5);
+      line(7, RIM); ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(0, -26); ctx.stroke();
+      line(4.4, c); ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(0, -26); ctx.stroke();
+      line(4, '#8a5a2e'); ctx.beginPath(); ctx.moveTo(-6, 8); ctx.lineTo(6, 8); ctx.stroke();
+      ctx.restore();
+    } else if (p === 'staff') {
+      ctx.save(); ctx.translate(26, -34); ctx.rotate(0.16);
+      line(5.5, '#6b4423'); ctx.beginPath(); ctx.moveTo(0, 24); ctx.lineTo(0, -30); ctx.stroke();
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0, -34, 6.5, 0, TAU); ctx.fill();
+      ctx.restore();
+    } else if (p === 'wand') {
+      ctx.save(); ctx.translate(27, -38); ctx.rotate(-0.4);
+      line(3.6, '#8a5a2e'); ctx.beginPath(); ctx.moveTo(0, 8); ctx.lineTo(0, -12); ctx.stroke();
+      ctx.fillStyle = c;
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + i * TAU / 5;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 6.6, -16 + Math.sin(a) * 6.6);
+        ctx.lineTo(Math.cos(a + 2.51) * 6.6, -16 + Math.sin(a + 2.51) * 6.6);
+        ctx.lineTo(Math.cos(a + 1.25) * 2.8, -16 + Math.sin(a + 1.25) * 2.8);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    } else if (p === 'guitar') {
+      ctx.save(); ctx.translate(8, -34); ctx.rotate(0.5);
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(-4, 8, 9, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(4, 0, 7.5, 0, TAU); ctx.fill();
+      line(3.4, '#6b4423'); ctx.beginPath(); ctx.moveTo(6, -2); ctx.lineTo(20, -16); ctx.stroke();
+      ctx.fillStyle = '#3a2a1a';
+      ctx.beginPath(); ctx.arc(-2, 6, 3, 0, TAU); ctx.fill();
+      ctx.restore();
+    } else if (p === 'mug') {
+      ctx.save(); ctx.translate(27, -34);
+      ctx.fillStyle = c;
+      roundRect(-6, -6, 12, 12, 3); ctx.fill();
+      line(2.6, c); ctx.beginPath(); ctx.arc(7.5, 0, 3.6, -1.2, 1.2); ctx.stroke();
+      ctx.restore();
+    } else if (p === 'bow2') {
+      ctx.save(); ctx.translate(27, -38); ctx.rotate(-0.2);
+      line(4, c);
+      ctx.beginPath(); ctx.arc(-4, 0, 16, -1.15, 1.15); ctx.stroke();
+      line(1.8, '#e8e0d0');
+      ctx.beginPath(); ctx.moveTo(2, -15); ctx.lineTo(2, 15); ctx.stroke();
+      ctx.restore();
+    } else if (p === 'fan2') {
+      ctx.save(); ctx.translate(27, -38); ctx.rotate(-0.3);
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.moveTo(0, 6);
+      ctx.arc(0, 6, 17, -Math.PI * 0.82, -Math.PI * 0.18);
+      ctx.closePath(); ctx.fill();
+      line(2, 'rgba(255,255,255,.6)');
+      for (const a of [-0.72, -0.5, -0.28]) {
+        ctx.beginPath(); ctx.moveTo(0, 6);
+        ctx.lineTo(Math.cos(a * Math.PI) * 16, 6 + Math.sin(a * Math.PI) * 16); ctx.stroke();
+      }
+      ctx.restore();
+    } else if (p === 'pompom') {
+      for (const [x, y] of [[27, -38], [-24, -40]]) {
+        ctx.fillStyle = c;
+        for (let i = 0; i < 6; i++) {
+          const a = i * TAU / 6;
+          ctx.beginPath(); ctx.arc(x + Math.cos(a) * 4.4, y + Math.sin(a) * 4.4, 4, 0, TAU); ctx.fill();
+        }
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(x, y, 3.4, 0, TAU); ctx.fill();
+      }
+    }
+  }
+}
+
 function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   ch = ch || CH();
   joints = joints || {};
@@ -2440,6 +3751,7 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     ctx.quadraticCurveTo(-27, -50 + w1, -7, -54);
     ctx.closePath(); ctx.fill();
   }
+  runDecos(ch, 'back', RIM);
 
   /* ---------- ทรงขนมปังขิงชิ้นเดียวตามสไปรต์ต้นฉบับ ----------
      แขน = ปีกป้อมเรียวสั้น · ขา = ตอสั้น · ตัวทรงลูกแพร์ · หัวโตครึ่งตัว
@@ -2510,7 +3822,7 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     };
     skull(0, -47, 1.15);
     skull(0, -32.5, 0.98);
-  } else {
+  } else if (!ch.deco) {
     ctx.strokeStyle = ICING; ctx.lineWidth = 4.2; ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(-10.5, -33);
@@ -2520,6 +3832,8 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     ctx.beginPath(); ctx.arc(0, -48, 4.4, 0, TAU); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.8)';
     ctx.beginPath(); ctx.arc(-1.4, -49.5, 1.4, 0, TAU); ctx.fill();
+  } else {
+    runDecos(ch, 'body', RIM);
   }
   if (ch.id === 'berry') {
     ctx.fillStyle = 'rgba(255,240,200,.9)';
@@ -2553,7 +3867,7 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     }
     ctx.strokeStyle = '#3a7a3a'; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(0, -33); ctx.lineTo(2, -42); ctx.stroke();
-  } else {
+  } else if (!ch.deco) {
     /* ปอยผมหวัดขาวหนาแบบต้นฉบับ: ซิกแซกใหญ่มุมบนซ้าย + ปลายพลิ้ว */
     const qf = Math.floor(G.time * 12) / 12;
     const f1 = Math.sin(qf * 9) * 1.4, f2 = Math.sin(qf * 9 + 1.3) * 1.8;
@@ -2567,6 +3881,8 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     ctx.stroke();
     ctx.lineWidth = 3.8;
     ctx.beginPath(); ctx.moveTo(1, -26); ctx.lineTo(12, -19.5 + f2 * 0.6); ctx.stroke();
+  } else {
+    runHeadDecos(ch, RIM, EYE);
   }
 
   if (ch.id === 'ninja') {
@@ -2585,6 +3901,8 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     ctx.beginPath(); ctx.ellipse(0, -40, 18, 5.8, 0, 0, TAU); ctx.stroke();
   }
 
+  const eyeStyle = ch.deco ? (ch.eyeS || 'round') : 'fierce';
+  if (eyeStyle === 'fierce') {
   /* --- คิ้วขาวหนาเฉียง + ตาครึ่งวงฟ้า "มุ่งมั่น" (แบบสไปรต์เป๊ะ) --- */
   ctx.lineCap = 'round';
   ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 5;
@@ -2605,6 +3923,39 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   };
   eye(1.5, -2.6, 6.2, 0.3);
   eye(21.5, -2.6, 5.8, -0.28);
+  } else if (eyeStyle === 'round') {
+    /* ตากลมโตแบบคลาสสิก: วงตาสีเข้ม + ม่านตาสี + ประกาย */
+    for (const [ex, r] of [[1.5, 7], [21.5, 6.6]]) {
+      ctx.fillStyle = RIM;
+      ctx.beginPath(); ctx.arc(ex, -3, r + 1.6, 0, TAU); ctx.fill();
+      ctx.fillStyle = EYE;
+      ctx.beginPath(); ctx.arc(ex, -3, r, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#2a1e14';
+      ctx.beginPath(); ctx.arc(ex + 1, -2, r * 0.45, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.9)';
+      ctx.beginPath(); ctx.arc(ex - r * 0.35, -5.4, r * 0.3, 0, TAU); ctx.fill();
+    }
+  } else if (eyeStyle === 'sharp') {
+    /* ตาเรียวเฉียบ */
+    for (const [ex, tilt] of [[1.5, 0.18], [21.5, -0.18]]) {
+      ctx.save(); ctx.translate(ex, -3); ctx.rotate(tilt);
+      ctx.fillStyle = RIM;
+      ctx.beginPath(); ctx.ellipse(0, 0, 7.4, 4.6, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = EYE;
+      ctx.beginPath(); ctx.ellipse(0, 0.4, 6, 3.4, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#2a1e14';
+      ctx.beginPath(); ctx.arc(1, 0.4, 2, 0, TAU); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = RIM; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(ex - 7, -9.5); ctx.lineTo(ex + 6, -7); ctx.stroke();
+    }
+  } else {
+    /* happy: ตาหลับยิ้ม */
+    ctx.strokeStyle = RIM; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(1.5, -1, 6, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+    ctx.beginPath(); ctx.arc(21.5, -1, 5.6, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();
+  }
+  if (eyeStyle === 'fierce') {
   /* --- ยิ้มเจ้าเล่ห์แดงหนา + ติ่งมุมปาก + จุดแก้ม --- */
   ctx.strokeStyle = '#d5342b'; ctx.lineWidth = 4.6;
   ctx.beginPath();
@@ -2615,6 +3966,12 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   // ติ่งมุมปากเข้ม + ไฝจุดเล็ก
   ctx.fillStyle = RIM;
   ctx.beginPath(); ctx.ellipse(-8.5, 5.2, 1.5, 2.1, 0.5, 0, TAU); ctx.fill();
+  } else {
+    /* ยิ้มเรียบง่ายแบบสไปรต์คลาสสิก */
+    ctx.strokeStyle = '#d5342b'; ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(11.5, 6, 7.5, Math.PI * 0.18, Math.PI * 0.82); ctx.stroke();
+  }
   if (ch.id === 'berry') {
     ctx.fillStyle = ch.cheek;
     ctx.beginPath(); ctx.ellipse(-8.5, 8, 5, 3.6, 0.1, 0, TAU); ctx.fill();
@@ -2670,6 +4027,8 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
     ctx.beginPath(); ctx.arc(0, 12, 7, 0, TAU); ctx.stroke();
     ctx.restore();
   }
+
+  runHeldDecos(ch, RIM);
 
   ctx = main;
   ctx.drawImage(charCanvas, -C_OX, -C_OY, 200, 190);
@@ -2781,6 +4140,7 @@ function drawFloaters() {
    ============================================================ */
 function drawBtn(x, y, w, h, label, cb, opt = {}) {
   uiButtons.push({ x, y, w, h, cb, disabled: opt.disabled });
+  if (opt.invisible) return;   // พื้นที่คลิกล่องหน (การ์ดกริด)
   const base = opt.disabled ? '#8a8178' : (opt.color || '#ff8b3d');
   const dark = opt.disabled ? '#6e675f' : (opt.dark || '#d96a1e');
   // เงา
@@ -3266,123 +4626,192 @@ function drawPrep() {
 function drawSelect() {
   ctx.fillStyle = 'rgba(40,20,5,.62)';
   ctx.fillRect(0, 0, W, H);
-  drawTitleText('เลือกตัวละคร', W / 2, 62, 40);
+  drawTitleText('เลือกตัวละคร', W / 2, 52, 34);
   drawCoinChip(W - 20, 24, G.bank.toLocaleString());
-
-  const cw = 215, gap = 14;
-  const x0 = (W - (cw * 4 + gap * 3)) / 2;
-  CHARS.forEach((c, i) => {
-    const x = x0 + i * (cw + gap), y = 96, h = 356;
-    const selected = i === G.charIdx;
-    const owned = G.owned.includes(i);
-    drawPanel(x, y, cw, h);
-    if (selected) {
-      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 4;
-      roundRect(x + 2, y + 2, cw - 4, h - 4, 16); ctx.stroke();
-    }
-
-    // ตัวคุกกี้
-    ctx.save();
-    ctx.translate(x + cw / 2, y + 158);
-    ctx.scale(0.95, 0.95);
-    const bob = selected ? Math.sin(G.time * 5) * 0.4 : 0;
-    cookieBody(0, 0.12 + bob, -0.12 - bob, 1.6, 4.2, 0, c, { cane: { x: -27, y: -54, rot: -0.06, flip: true, len: 56 } });
-    ctx.restore();
-
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 18px Trebuchet MS';
-    ctx.fillStyle = selected ? '#ffd24a' : '#fff';
-    ctx.fillText(c.name, x + cw / 2, y + 192);
-    ctx.font = '13px Trebuchet MS';
-    ctx.fillStyle = '#ffe9b8';
-    ctx.fillText(c.desc[0], x + cw / 2, y + 213);
-    ctx.fillText(c.desc[1], x + cw / 2, y + 231);
-
-    // เลเวลคุกกี้ Lv.1-8: แต้ม +3% ต่อเลเวล
-    if (owned) {
-      const lv = G.charLv[i] || 1;
-      ctx.font = 'bold 13px Trebuchet MS';
-      ctx.fillStyle = '#aee4ff';
-      ctx.fillText('Lv.' + lv + '  (แต้ม +' + ((lv - 1) * 3) + '%)', x + cw / 2, y + 252);
-      if (lv < 8) {
-        const upCost = 350 * lv;
-        drawBtn(x + 24, y + h - 122, cw - 48, 36, '⬆ อัปเลเวล 🪙 ' + upCost.toLocaleString(), () => {
-          if (G.bank >= upCost) {
-            G.bank -= upCost;
-            G.charLv[i] = lv + 1;
-            SAVE.set('coins', G.bank); SAVE.set('charLv', G.charLv);
-            AudioSys.buy();
-            floatText(W / 2, 100, c.name + ' → Lv.' + (lv + 1) + '!', '#aee4ff', true);
-          } else { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true); }
-        }, G.bank >= upCost ? { color: '#5cb8e8', dark: '#3d92c4', font: 13.5 } : { color: '#8a8178', dark: '#6e675f', font: 13.5 });
-      } else {
-        drawBtn(x + 24, y + h - 122, cw - 48, 36, '★ MAX Lv.8', () => {}, { disabled: true, font: 14 });
-      }
-    }
-
-    if (selected) {
-      drawBtn(x + 24, y + h - 76, cw - 48, 46, '✓ ใช้อยู่', () => {}, { disabled: true });
-    } else if (owned) {
-      drawBtn(x + 24, y + h - 76, cw - 48, 46, 'เลือก', () => trySelectChar(i), { color: '#7bd94a', dark: '#57a832' });
-    } else {
-      const afford = G.bank >= c.cost;
-      drawBtn(x + 24, y + h - 76, cw - 48, 46, '🪙 ' + c.cost.toLocaleString(), () => trySelectChar(i),
-        afford ? { color: '#ffb02e', dark: '#e07b12' } : { color: '#8a8178', dark: '#6e675f' });
-    }
-  });
-
-  drawBtn(W / 2 - 90, 476, 180, 46, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
+  drawGrid(CHARS, 'char');
 }
 
 /* ---------- เลือกสัตว์เลี้ยง ---------- */
 function drawPets() {
   ctx.fillStyle = 'rgba(40,20,5,.62)';
   ctx.fillRect(0, 0, W, H);
-  drawTitleText('เลือกสัตว์เลี้ยง', W / 2, 62, 40);
+  drawTitleText('เลือกสัตว์เลี้ยง', W / 2, 52, 34);
   drawCoinChip(W - 20, 24, G.bank.toLocaleString());
-
-  const cw = 240, gap = 20;
-  const x0 = (W - (cw * 3 + gap * 2)) / 2;
-  PETS.forEach((p, i) => {
-    const x = x0 + i * (cw + gap), y = 96, h = 356;
-    const selected = i === G.petIdx;
-    const owned = G.petsOwned.includes(i);
-    drawPanel(x, y, cw, h);
-    if (selected) {
-      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 4;
-      roundRect(x + 2, y + 2, cw - 4, h - 4, 16); ctx.stroke();
-    }
-
-    ctx.save();
-    ctx.translate(x + cw / 2, y + 120 + (selected ? Math.sin(G.time * 4) * 6 : 0));
-    ctx.scale(2.1, 2.1);
-    drawPet(p);
-    ctx.restore();
-
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 19px Trebuchet MS';
-    ctx.fillStyle = selected ? '#ffd24a' : '#fff';
-    ctx.fillText(p.name + (owned ? '  Lv.' + (G.petLv[i] || 1) : ''), x + cw / 2, y + 196);
-    ctx.font = '14px Trebuchet MS';
-    ctx.fillStyle = '#ffe9b8';
-    ctx.fillText(p.desc[0], x + cw / 2, y + 222);
-    ctx.fillText(p.desc[1], x + cw / 2, y + 242);
-
-    if (selected) {
-      drawBtn(x + 30, y + h - 76, cw - 60, 46, '✓ ใช้อยู่', () => {}, { disabled: true });
-    } else if (owned) {
-      drawBtn(x + 30, y + h - 76, cw - 60, 46, 'เลือก', () => trySelectPet(i), { color: '#7bd94a', dark: '#57a832' });
-    } else {
-      const afford = G.bank >= p.cost;
-      drawBtn(x + 30, y + h - 76, cw - 60, 46, '🪙 ' + p.cost.toLocaleString(), () => trySelectPet(i),
-        afford ? { color: '#ffb02e', dark: '#e07b12' } : { color: '#8a8178', dark: '#6e675f' });
-    }
-  });
-
-  drawBtn(120, 476, 230, 46, '🥚 ฟักไข่ 800🪙', () => hatchEgg(false), { color: '#e8b23c', dark: '#c08d1e', font: 16 });
-  drawBtn(370, 476, 230, 46, '✨ ไข่ทอง 5💎', () => hatchEgg(true), { color: '#7ec3e8', dark: '#559ec4', font: 16 });
-  drawBtn(620, 476, 220, 46, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
   drawGemChip(W - 20, 62);
+  drawGrid(PETS, 'pet');
+}
+
+/* ---------- แคชภาพตัวละคร/สัตว์เลี้ยง (วาดครั้งเดียว) ---------- */
+const portCache = {};
+function cookiePortrait(i) {
+  let cv = portCache['c' + i];
+  if (!cv) {
+    cv = document.createElement('canvas');
+    cv.width = 130; cv.height = 150;
+    const pc = cv.getContext('2d');
+    const old = ctx; ctx = pc;
+    pc.save(); pc.translate(65, 130); pc.scale(0.6, 0.6);
+    try {
+      cookieBody(0, 0.12, -0.12, 1.6, 4.2, 0, CHARS[i],
+        CHARS[i].id === 'brave' ? { cane: { x: -27, y: -54, rot: -0.06, flip: true, len: 56 } } : undefined);
+    } catch (e) {}
+    pc.restore(); ctx = old;
+    portCache['c' + i] = cv;
+  }
+  return cv;
+}
+function petPortrait(i) {
+  let cv = portCache['p' + i];
+  if (!cv) {
+    cv = document.createElement('canvas');
+    cv.width = 90; cv.height = 90;
+    const pc = cv.getContext('2d');
+    const old = ctx; ctx = pc;
+    pc.save(); pc.translate(45, 46); pc.scale(1.5, 1.5);
+    try { drawPet(PETS[i]); } catch (e) {}
+    pc.restore(); ctx = old;
+    portCache['p' + i] = cv;
+  }
+  return cv;
+}
+
+/* ---------- กริดเลือกแบบหลายหน้า (ใช้ร่วมคุกกี้/สัตว์เลี้ยง) ---------- */
+function drawGrid(LIST, kind) {
+  const isChar = kind === 'char';
+  const page = (isChar ? G.selPage : G.petPage) || 0;
+  const perPage = 16, cols = 8;
+  const pages = Math.ceil(LIST.length / perPage);
+  const cw = 106, chh = 140, gapX = 4, gapY = 8;
+  const x0 = (W - (cols * cw + (cols - 1) * gapX)) / 2;
+  const y0 = 72;
+  const curIdx = isChar ? G.charIdx : G.petIdx;
+  const ownedArr = isChar ? G.owned : G.petsOwned;
+
+  for (let k = 0; k < perPage; k++) {
+    const i = page * perPage + k;
+    if (i >= LIST.length) break;
+    const it = LIST[i];
+    const x = x0 + (k % cols) * (cw + gapX);
+    const y = y0 + Math.floor(k / cols) * (chh + gapY);
+    const selected = i === curIdx;
+    const owned = ownedArr.includes(i);
+
+    drawPanel(x, y, cw, chh, 12);
+    if (selected) {
+      ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3.5;
+      roundRect(x + 2, y + 2, cw - 4, chh - 4, 10); ctx.stroke();
+    }
+    // ป้ายเกรด
+    ctx.fillStyle = GRADES[it.grade] || '#9aa7b0';
+    roundRect(x + 6, y + 6, 26, 17, 6); ctx.fill();
+    ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(it.grade, x + 19, y + 19);
+
+    // ภาพ (จากแคช)
+    ctx.save();
+    if (!owned) ctx.globalAlpha = 0.38;
+    const bob = selected ? Math.sin(G.time * 5) * 2.5 : 0;
+    if (isChar) ctx.drawImage(cookiePortrait(i), x + 2, y + 3 + bob, 102, 118);
+    else ctx.drawImage(petPortrait(i), x + 18, y + 22 + bob, 70, 70);
+    ctx.restore();
+    if (!owned) {
+      ctx.font = '15px Trebuchet MS'; ctx.textAlign = 'center';
+      ctx.fillText('🔒', x + cw - 16, y + 22);
+    }
+
+    // ชื่อ + สถานะ
+    ctx.font = 'bold 10.5px Trebuchet MS'; ctx.textAlign = 'center';
+    ctx.fillStyle = selected ? '#ffd24a' : '#fff';
+    let nm = it.name.replace('คุกกี้', '');
+    if (nm.length > 11) nm = nm.slice(0, 10) + '…';
+    ctx.fillText(nm, x + cw / 2, y + chh - 22);
+    ctx.font = 'bold 10px Trebuchet MS';
+    if (owned) {
+      ctx.fillStyle = '#aee4ff';
+      const lv = (isChar ? G.charLv : G.petLv)[i] || 1;
+      ctx.fillText('Lv.' + lv, x + cw / 2, y + chh - 9);
+    } else {
+      ctx.fillStyle = '#ffd24a';
+      ctx.fillText('🪙' + (it.cost >= 1000 ? (it.cost / 1000) + 'k' : it.cost), x + cw / 2, y + chh - 9);
+    }
+    // คลิกการ์ด = เลือก/ซื้อ
+    drawBtn(x, y, cw, chh, '', () => (isChar ? trySelectChar(i) : trySelectPet(i)), { invisible: true });
+  }
+
+  // ---------- แถบรายละเอียดตัวที่ใช้อยู่ ----------
+  const cur = LIST[curIdx];
+  const dy = 372;
+  drawPanel(16, dy, W - 32, 92, 14);
+  ctx.save();
+  if (isChar) { ctx.translate(64, dy + 78); ctx.scale(0.42, 0.42);
+    ctx.drawImage(cookiePortrait(curIdx), -65, -140, 130, 150); ctx.restore(); }
+  else { ctx.restore(); ctx.drawImage(petPortrait(curIdx), 28, dy + 12, 68, 68); }
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 17px Trebuchet MS';
+  ctx.fillStyle = '#ffd24a';
+  const lvCur = (isChar ? G.charLv : G.petLv)[curIdx] || 1;
+  const wN = ctx.measureText(cur.name + '  Lv.' + lvCur).width;
+  ctx.fillText(cur.name + '  Lv.' + lvCur, 112, dy + 30);
+  ctx.fillStyle = GRADES[cur.grade];
+  roundRect(112 + wN + 12, dy + 15, 32, 19, 6); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillText(cur.grade, 112 + wN + 28, dy + 29);
+  ctx.textAlign = 'left';
+  ctx.font = '13px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+  ctx.fillText((cur.desc[0] || '') + (cur.desc[1] ? ' · ' + cur.desc[1] : ''), 112, dy + 52);
+  // คู่ซี้ Combi
+  if (isChar && cur.mate && PET_BY_ID[cur.mate]) {
+    const mateOn = PT().id === cur.mate;
+    ctx.fillStyle = mateOn ? '#7bd94a' : '#c8b8a0';
+    ctx.fillText((mateOn ? '💞 COMBI กับ ' : '🤍 คู่ซี้: ') + PET_BY_ID[cur.mate].name + ' (แต้ม +15%)', 112, dy + 72);
+  } else if (!isChar) {
+    const mate = CHARS.find(c2 => c2.mate === cur.id);
+    if (mate) {
+      const on = CH().mate === cur.id;
+      ctx.fillStyle = on ? '#7bd94a' : '#c8b8a0';
+      ctx.fillText((on ? '💞 COMBI กับ ' : '🤍 คู่ซี้: ') + mate.name + ' (แต้ม +15%)', 112, dy + 72);
+    }
+  }
+  // ปุ่มอัปเลเวล
+  const ownedCur = ownedArr.includes(curIdx);
+  if (ownedCur && lvCur < 8) {
+    const upCost = (isChar ? 350 : 300) * lvCur;
+    drawBtn(W - 208, dy + 24, 180, 40, '⬆ Lv.' + (lvCur + 1) + '  🪙' + upCost.toLocaleString(), () => {
+      if (G.bank >= upCost) {
+        G.bank -= upCost;
+        if (isChar) { G.charLv[curIdx] = lvCur + 1; SAVE.set('charLv', G.charLv); }
+        else { G.petLv[curIdx] = lvCur + 1; SAVE.set('petLv', G.petLv); }
+        SAVE.set('coins', G.bank);
+        AudioSys.buy();
+        floatText(W / 2, 100, cur.name + ' → Lv.' + (lvCur + 1) + '!', '#aee4ff', true);
+      } else { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true); }
+    }, G.bank >= upCost ? { color: '#5cb8e8', dark: '#3d92c4', font: 13 } : { color: '#8a8178', dark: '#6e675f', font: 13 });
+  } else if (ownedCur) {
+    drawBtn(W - 208, dy + 24, 180, 40, '★ MAX Lv.8', () => {}, { disabled: true, font: 13 });
+  }
+
+  // ---------- แถวล่าง: เปลี่ยนหน้า + ไข่ + กลับ ----------
+  const by = 478;
+  drawBtn(16, by, 52, 44, '‹', () => {
+    const np = (page - 1 + pages) % pages;
+    if (isChar) G.selPage = np; else G.petPage = np;
+    AudioSys.click();
+  }, { color: '#a08468', dark: '#7d6448', font: 22 });
+  drawBtn(74, by, 52, 44, '›', () => {
+    const np = (page + 1) % pages;
+    if (isChar) G.selPage = np; else G.petPage = np;
+    AudioSys.click();
+  }, { color: '#a08468', dark: '#7d6448', font: 22 });
+  ctx.font = 'bold 14px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffe9b8';
+  ctx.fillText('หน้า ' + (page + 1) + '/' + pages + ' · มี ' + ownedArr.length + '/' + LIST.length + ' ตัว', 220, by + 27);
+
+  if (!isChar) {
+    drawBtn(330, by, 200, 44, '🥚 ฟักไข่ 800🪙', () => hatchEgg(false), { color: '#e8b23c', dark: '#c08d1e', font: 14 });
+    drawBtn(540, by, 200, 44, '✨ ไข่ทอง 5💎', () => hatchEgg(true), { color: '#7ec3e8', dark: '#559ec4', font: 14 });
+  }
+  drawBtn(W - 156, by, 140, 44, '← กลับ', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
 }
 
 /* ---------- สมบัติ ---------- */
