@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Cookie Run Classic — คุกกี้รัน คลาสสิค</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍪</text></svg>">
+<meta name="theme-color" content="#6e2117">
+<meta property="og:title" content="Cookie Run Classic — คุกกี้รัน คลาสสิค">
+<meta property="og:description" content="เกมวิ่งคุกกี้สุดคลาสสิค: หนีเตาอบ เก็บเยลลี่ เลือกตัวละคร อัปเกรด แข่งอันดับ — เล่นฟรีบนมือถือและคอม">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body {
@@ -262,7 +266,7 @@ const G = {
   board: SAVE.get('board', []),
   shake: 0, flash: 0, banner: null, bannerT: 0,
   overT: 0, newBest: false, earned: 0, rankPos: -1,
-  bonusT: 0, revives: 0, fade: 0,
+  bonusT: 0, revives: 0, fade: 0, paused: false,
 };
 if (G.charIdx >= CHARS.length || !G.owned.includes(G.charIdx)) G.charIdx = 0;
 if (G.petIdx >= PETS.length || !G.petsOwned.includes(G.petIdx)) G.petIdx = 0;
@@ -535,6 +539,7 @@ addEventListener('keydown', e => {
     else doJump();
   }
   if (e.code === 'Escape' && ['select','shop','rank','pets'].includes(G.state)) setState('menu');
+  if ((e.code === 'KeyP' || e.code === 'Escape') && G.state === 'play') togglePause();
   if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); doSlide(true); }
   if (e.code === 'KeyM') { AudioSys.muted = !AudioSys.muted; }
   keys[e.code] = true;
@@ -562,6 +567,8 @@ function canvasXY(clientX, clientY) {
 }
 function pointerDown(x, y, id) {
   if (G.state === 'play') {
+    if (G.paused) { togglePause(); return; }
+    if (Math.hypot(x - W / 2, y - 30) < 26) { togglePause(); return; }   // ปุ่มพักกลางบน
     if (x < W / 2) { if (id !== undefined) touches[id] = 'L'; doJump(); }
     else { if (id !== undefined) touches[id] = 'R'; doSlide(true); }
     return;
@@ -608,7 +615,7 @@ function startGame() {
   P.sliding = false; P.invT = 0; P.giantT = 0; P.magnetT = 0;
   P.boostT = 2.4 + CH().boostBonus + G.upg.boost * 0.6;
   G.bonusT = 0; G.revives = CH().revives;
-  P.dead = false; P.fallingPit = false; slideHeld = false;
+  P.dead = false; P.fallingPit = false; slideHeld = false; G.paused = false;
   G.runBears = 0; G.runStars = 0; G.maxCombo = 0; G.missionDone = false;
   jellyList = []; obstacles = []; pits = []; particles = []; floaters = []; platforms = [];
   Pet.x = 60; Pet.y = 280;
@@ -664,6 +671,11 @@ function gameOver() {
   return true;
 }
 function banner(text, color) { G.banner = { text, color }; G.bannerT = 0; }
+function togglePause() {
+  G.paused = !G.paused;
+  if (G.paused) AudioSys.stopMusic();
+  else { AudioSys.startMusic(); AudioSys.click(); }
+}
 
 /* ---------- shop / select actions ---------- */
 function trySelectChar(i) {
@@ -2496,6 +2508,30 @@ function drawHUD() {
   };
   bubbleBtn(82, 'Jump', !P.onGround);
   bubbleBtn(W - 82, 'Slide', P.sliding);
+
+  // ปุ่มพักเกมกลางบน
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = 'rgba(60,30,0,.5)';
+  ctx.beginPath(); ctx.arc(W / 2, 30, 20, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(W / 2, 30, 20, 0, TAU); ctx.stroke();
+  ctx.fillStyle = '#fff';
+  roundRect(W / 2 - 7, 22, 5, 16, 2); ctx.fill();
+  roundRect(W / 2 + 2, 22, 5, 16, 2); ctx.fill();
+  ctx.restore();
+
+  // จอพักเกม
+  if (G.paused) {
+    ctx.fillStyle = 'rgba(30,12,2,.66)';
+    ctx.fillRect(0, 0, W, H);
+    drawTitleText('พักเกม', W / 2, 240, 54);
+    ctx.font = 'bold 22px Trebuchet MS'; ctx.textAlign = 'center';
+    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(60,30,0,.9)';
+    ctx.strokeText('แตะที่ไหนก็ได้ หรือกด P เพื่อเล่นต่อ', W / 2, 300);
+    ctx.fillStyle = '#ffe9b8';
+    ctx.fillText('แตะที่ไหนก็ได้ หรือกด P เพื่อเล่นต่อ', W / 2, 300);
+  }
 }
 
 function drawBanner() {
@@ -2903,7 +2939,7 @@ let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
-  update(dt);
+  update(G.paused && G.state === 'play' ? 0 : dt);
   draw();
   requestAnimationFrame(loop);
 }
