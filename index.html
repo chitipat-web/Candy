@@ -472,6 +472,15 @@ const EPISODES = [
     sky: { top:'#ffd6ec', mid:'#ffc0e0', bot:'#fff0f6', hill:'#f2a8cc', far:'#e08cb8', sun:'#fff4c8', night:0 } },
 ];
 const EP = () => EPISODES[G.episode] || EPISODES[0];
+/* ด่านผจญภัย: วิ่งให้ถึงเส้นชัย + เงื่อนไข 3 ดาว (ระยะ/เยลลี่/ไม่โดนชน) */
+const LEVELS = [
+  { goal: 400,  jelly: 40,  maxHit: 2 },
+  { goal: 600,  jelly: 60,  maxHit: 2 },
+  { goal: 800,  jelly: 80,  maxHit: 3 },
+  { goal: 1000, jelly: 100, maxHit: 3 },
+  { goal: 1200, jelly: 120, maxHit: 3 },
+];
+const LV = () => LEVELS[G.episode] || LEVELS[0];
 const epUnlocked = i => G.distBest >= EPISODES[i].unlock;
 function abDesc(o) {
   const d = [];
@@ -1265,7 +1274,7 @@ const G = {
   bank: Math.floor(+(SAVE.get('coins', 0)) || 0),
   charIdx: SAVE.get('char', 0),
   relayIdx: SAVE.get('relay', -1), relayUsed: false, mainCharIdx: -1,
-  episode: SAVE.get('ep', 0), distBest: SAVE.get('distBest', 0),
+  episode: SAVE.get('ep', 0), distBest: SAVE.get('distBest', 0), starBest: SAVE.get('starBest', [0,0,0,0,0]),
   stats: SAVE.get('stats', { runs: 0, dist: 0, bears: 0, jellies: 0, coins: 0, bt: 0, maxCombo: 0 }),
   medals: SAVE.get('medals', []), leagueClaim: SAVE.get('leagueClaim', 0),
   ingr: SAVE.get('ingr', [0, 0, 0, 0, 0]), cooked: SAVE.get('cooked', 0),
@@ -1820,6 +1829,7 @@ function startGame(mode, boosts) {
   G.skill = 0; G.scoreMulT = 0;
   P.dead = false; P.fallingPit = false; slideHeld = false; G.paused = false;
   G.runBears = 0; G.runStars = 0; G.maxCombo = 0; G.missionDone = false;
+  G.runHit = 0; G.goal = G.mode === 'story' ? LV().goal : 0; G.cleared = false;
   G.btProgress = 0; G.runBoxes = 0;
   jellyList = []; obstacles = []; pits = []; particles = []; floaters = []; platforms = [];
   Pet.x = 60; Pet.y = 280;
@@ -1828,6 +1838,7 @@ function startGame(mode, boosts) {
   ovenAmt = (G.mode === 'normal' && G.episode > 0) ? 0 : 1;   // ตอนแรกเท่านั้นที่เริ่มในเตาอบ
   if (G.mode === 'coins') banner('🏴‍☠️ เกาะโจรสลัด: กวาดเหรียญให้มากที่สุด!', '#ffd24a');
   else if (G.mode === 'tower') { banner('🧊 หอคอยน้ำแข็ง — ชั้นที่ 1!', '#8fd3ff'); skyPrev = 3; skyCur = 3; }
+  else if (G.mode === 'story') banner('🗺️ ด่าน ' + (G.episode + 1) + ': ' + EP().name + ' — วิ่งให้ถึงเส้นชัย!', '#ffdd44');
   else banner('EPISODE ' + (G.episode + 1) + ': ' + EP().name + ' GO!!', '#ffdd44');
   AudioSys.startMusic();
 }
@@ -1896,6 +1907,33 @@ function doContinue() {
   AudioSys.startMusic();
 }
 
+function calcStars() {
+  const lv = LV();
+  let n = 1;                              // ดาว 1: ถึงเส้นชัย
+  if (G.jellies >= lv.jelly) n++;         // ดาว 2: เก็บเยลลี่ครบ
+  if (G.runHit <= lv.maxHit) n++;         // ดาว 3: โดนชนไม่เกินกำหนด
+  return n;
+}
+function levelClear() {
+  G.cleared = true;
+  G.stars = calcStars();
+  if (G.mainCharIdx >= 0) { G.charIdx = G.mainCharIdx; G.mainCharIdx = -1; }
+  // บันทึกดาวสูงสุดของด่าน + ปลดล็อกด่านถัดไป
+  if (!G.starBest) G.starBest = [0,0,0,0,0];
+  if (G.stars > (G.starBest[G.episode] || 0)) { G.starBest[G.episode] = G.stars; SAVE.set('starBest', G.starBest); }
+  if (G.dist > G.distBest) { G.distBest = Math.floor(G.dist); SAVE.set('distBest', G.distBest); }
+  G.earned = Math.floor((G.coins + Math.floor(G.score / 400)) * (1 + trV('coin')) * (CH().coinMul || 1)) + G.stars * 100;
+  G.bank += G.earned; SAVE.set('coins', G.bank);
+  G.crystals += G.stars; SAVE.set('crystals', G.crystals);   // รางวัลคริสตัลตามดาว
+  const st = G.stats; st.runs++; st.dist += Math.floor(G.dist); st.jellies += G.jellies; SAVE.set('stats', st);
+  cloudSave(true);
+  setState('clear'); G.clearT = 0;
+  P.dead = false;
+  FX.flashT = 0.5; FX.flashC = '#ffe98e'; FX.raysT = 0.9; FX.raysC = '#ffd24a';
+  for (let q = 0; q < 4; q++) FX.rings.push({ t: -q * 0.1, c: q % 2 ? '#ffd24a' : '#ffffff', x: P.x + 28, y: P.y + P.h / 2 });
+  sparkle(P.x + 28, P.y + 20, 50, '#ffd24a');
+  AudioSys.power();
+}
 function settleGameOver() {
   if (G.mainCharIdx >= 0) { G.charIdx = G.mainCharIdx; G.mainCharIdx = -1; }   // คืนตัวหลักหลังจบรอบ
   if (G.dist > G.distBest) { G.distBest = Math.floor(G.dist); SAVE.set('distBest', G.distBest); }
@@ -3044,6 +3082,7 @@ function hurt(amount) {
     spawnActor('shield', { c: '#7ec8ff' });
   }
   G.hp -= amount;
+  G.runHit = (G.runHit || 0) + 1;
   G.combo = 0;
   P.invT = 2.0;
   P.stumbleT = 0.5;
@@ -3087,6 +3126,7 @@ function update(dt) {
 
   if (G.state !== 'play') {
     if (G.state === 'over') G.overT += dt;
+    if (G.state === 'clear') { G.clearT = (G.clearT || 0) + dt; updateFX(dt); }
     if (G.state === 'continue') {
       G.continueT -= dt;
       if (G.continueT <= 0) settleGameOver();
@@ -3303,6 +3343,7 @@ function update(dt) {
   worldX += move;
   G.dist += move / 40;
   G.score += move * 0.02;
+  if (G.mode === 'story' && !G.cleared && G.dist >= G.goal) { levelClear(); return; }
 
   while (spawnX < worldX + W + 700) {
     rngSrc = courseRng;      // สร้างด่านด้วย seed คงที่
@@ -3726,7 +3767,7 @@ function draw() {
     }
     ctx.globalAlpha = 1;
   }
-  if (G.state === 'play' || G.state === 'over' || G.state === 'continue') drawPlayer();
+  if (G.state === 'play' || G.state === 'over' || G.state === 'continue' || G.state === 'clear') drawPlayer();
   if (G.state === 'play') drawPet();
   drawParticles();
   if (G.state === 'play') { drawFX(); drawActors(); }
@@ -3798,6 +3839,7 @@ function draw() {
 
   if (G.state === 'play') drawHUD();
   if (G.state === 'menu') drawMenu();
+  if (G.state === 'advmap') drawAdvMap();
   if (G.state === 'prep') drawPrep();
   if (G.state === 'login') drawLogin();
   if (G.state === 'select') drawSelect();
@@ -3806,6 +3848,7 @@ function draw() {
   if (G.state === 'shop') drawShop();
   if (G.state === 'rank') drawRank();
   if (G.state === 'over') drawGameOver();
+  if (G.state === 'clear') drawLevelClear();
   if (G.state === 'continue') drawContinue();
   drawFloaters();
   drawBanner();
@@ -5207,6 +5250,28 @@ function drawRockSkin(epi) {
 }
 function drawObstacles() {
   const epi = G.mode === 'normal' ? EP().id : (G.mode === 'tower' ? 'tower' : 'oven');
+  // 🏁 เส้นชัยโหมดผจญภัย
+  if (G.mode === 'story' && G.goal > 0) {
+    const fx = G.goal * 40 - worldX;
+    if (fx > -60 && fx < W + 120) {
+      ctx.save(); ctx.translate(fx, 0);
+      // เสาธง
+      ctx.fillStyle = '#e8e0d0';
+      ctx.fillRect(-4, 60, 8, GROUND_Y - 60);
+      ctx.fillRect(120 - 4, 60, 8, GROUND_Y - 60);
+      // คานบน + ธงสามเหลี่ยม
+      ctx.fillStyle = '#c8342a';
+      ctx.fillRect(-6, 52, 132, 16);
+      // ลายตาราง
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) {
+        ctx.fillStyle = (r + c) % 2 ? '#2e2620' : '#f4f0e6';
+        ctx.fillRect(c * 16, 74 + r * 16, 16, 16);
+      }
+      ctx.fillStyle = '#ffd24a'; ctx.font = 'bold 18px Trebuchet MS'; ctx.textAlign = 'center';
+      ctx.fillText('🏁 FINISH', 60, 44);
+      ctx.restore();
+    }
+  }
   for (const o of obstacles) {
     const x = o.x - worldX;
     if (x < -140 || x > W + 60) continue;
@@ -7500,6 +7565,8 @@ function drawMenu() {
 
   // ปุ่มหลัก
   drawBtn(W / 2 - 10, 222, 310, 54, '▶  เริ่มวิ่ง!', () => { G.boostSel = {}; setState('prep'); }, { color: '#ffb02e', dark: '#e07b12', font: 25 });
+  const sb = (G.starBest || [0,0,0,0,0]).reduce((a, b) => a + b, 0);
+  drawBtn(W / 2 - 10, 236, 310, 40, '🗺️ โหมดผจญภัย (ดาว ' + sb + '/15)', () => setState('advmap'), { color: '#e8913a', dark: '#c06a1a', font: 15 });
   drawBtn(W / 2 - 10, 284, 150, 40, '🏴‍☠️ เกาะเหรียญ', () => startGame('coins'), { color: '#c9a227', dark: '#a17d12', font: 14 });
   drawBtn(W / 2 + 150, 284, 150, 40, '🧊 หอคอย ' + (G.towerBest > 0 ? '(ชั้น ' + G.towerBest + ')' : ''), () => startGame('tower'), { color: '#6fb8d8', dark: '#4d92b4', font: 14 });
   drawBtn(W / 2 - 10, 334, 150, 44, '🍪 ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 16 });
@@ -8249,6 +8316,110 @@ function drawGameOver() {
   if (G.overT > 0.9) {
     drawBtn(W / 2 - 230, 448, 220, 54, '▶ เล่นอีกครั้ง', () => startGame(G.mode), { color: '#ffb02e', dark: '#e07b12' });
     drawBtn(W / 2 + 10, 448, 220, 54, '🏠 เมนูหลัก', () => setState('menu'), { color: '#a08468', dark: '#7d6448' });
+  }
+}
+
+/* ---------- หน้าแผนที่ผจญภัย: เลือกด่าน + ดาวที่เก็บได้ ---------- */
+function drawAdvMap() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#3a2416'); g.addColorStop(1, '#20140a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  drawTitleText('🗺️ โหมดผจญภัย', W / 2, 54, 32);
+  const sb = G.starBest || [0,0,0,0,0];
+  for (let i = 0; i < LEVELS.length; i++) {
+    const col = i % 3, row = (i / 3) | 0;
+    const x = W / 2 + (col - 1) * 240 - (row === 1 ? 120 : 0), y = 150 + row * 170;
+    const unlocked = i === 0 || epUnlocked(i);
+    const cx = x, cy = y;
+    // การ์ดด่าน
+    drawBtn(cx - 100, cy - 52, 200, 118, '', () => {
+      if (unlocked) { G.episode = i; SAVE.set('ep', i); startGame('story'); }
+      else floatText(W / 2, 100, 'ปลดล็อกที่ ' + EPISODES[i].unlock + 'm (โหมดอิสระ)', '#ff8888', true);
+    }, { color: unlocked ? '#5a4230' : '#3a3028', dark: unlocked ? '#3a2a1c' : '#282018', radius: 14 });
+    ctx.textAlign = 'center';
+    ctx.font = '30px serif';
+    ctx.fillText(EPISODES[i].icon, cx, cy - 16);
+    ctx.font = 'bold 16px Trebuchet MS'; ctx.fillStyle = unlocked ? '#ffe9b8' : 'rgba(200,180,150,.5)';
+    ctx.fillText('ด่าน ' + (i + 1), cx, cy + 8);
+    ctx.font = 'bold 13px Trebuchet MS'; ctx.fillStyle = unlocked ? '#e0c8a0' : 'rgba(180,160,130,.5)';
+    ctx.fillText(EPISODES[i].name, cx, cy + 28);
+    // ดาว 3 ดวง
+    for (let q = 0; q < 3; q++) {
+      const got = (sb[i] || 0) > q;
+      ctx.save(); ctx.translate(cx + (q - 1) * 26, cy + 50); ctx.scale(0.42, 0.42);
+      ctx.beginPath();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 17 : 42;
+        ctx[k ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); }
+      ctx.closePath();
+      ctx.fillStyle = got ? '#ffd24a' : 'rgba(120,100,70,.5)'; ctx.fill();
+      ctx.restore();
+    }
+    if (!unlocked) { ctx.font = '22px serif'; ctx.fillText('🔒', cx, cy - 40); }
+  }
+  drawBtn(W / 2 - 90, 486, 180, 44, '← กลับเมนู', () => setState('menu'), { color: '#8494a4', dark: '#63707c', font: 15 });
+}
+
+/* ---------- หน้าจอผ่านด่าน (ผจญภัย) + ดาว 3 ดวง ---------- */
+function drawLevelClear() {
+  ctx.fillStyle = 'rgba(20,10,4,.72)';
+  ctx.fillRect(0, 0, W, H);
+  const lv = LV();
+  // ป้ายหัว
+  ctx.font = 'bold 44px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(60,30,0,.9)';
+  ctx.strokeText('🎉 ผ่านด่าน! 🎉', W / 2, 108);
+  ctx.fillStyle = '#ffe066'; ctx.fillText('🎉 ผ่านด่าน! 🎉', W / 2, 108);
+  ctx.font = 'bold 20px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+  ctx.fillText('ด่าน ' + (G.episode + 1) + ': ' + EP().name, W / 2, 140);
+
+  // ดาว 3 ดวง (เด้งเข้าทีละดวง)
+  const cond = [
+    { on: true, label: 'ถึงเส้นชัย' },
+    { on: G.jellies >= lv.jelly, label: 'เก็บเยลลี่ ' + G.jellies + '/' + lv.jelly },
+    { on: G.runHit <= lv.maxHit, label: 'โดนชน ' + G.runHit + ' (≤' + lv.maxHit + ')' },
+  ];
+  for (let i = 0; i < 3; i++) {
+    const appearT = 0.4 + i * 0.35;
+    const sc = G.clearT < appearT ? 0 : Math.min(1, 1.4 - Math.abs(1 - (G.clearT - appearT) * 3.5));
+    const cx = W / 2 + (i - 1) * 108, cy = 214;
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(sc || 0.001, sc || 0.001);
+    const got = cond[i].on;
+    // ดาว
+    ctx.beginPath();
+    for (let q = 0; q < 10; q++) {
+      const a = -Math.PI / 2 + q * Math.PI / 5, r = q % 2 ? 17 : 42;
+      ctx[q ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fillStyle = got ? '#ffd24a' : 'rgba(120,100,70,.55)';
+    ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = got ? '#c8951e' : 'rgba(80,64,40,.6)'; ctx.stroke();
+    if (got && sc > 0.9) { ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.beginPath(); ctx.arc(-12, -14, 5, 0, TAU); ctx.fill(); }
+    ctx.restore();
+    if (sc > 0.5) {
+      ctx.font = 'bold 14px Trebuchet MS'; ctx.fillStyle = got ? '#ffe9b8' : 'rgba(200,180,150,.7)';
+      ctx.fillText(cond[i].label, cx, cy + 62);
+    }
+  }
+
+  // รางวัล
+  ctx.font = 'bold 22px Trebuchet MS'; ctx.fillStyle = '#ffd24a';
+  ctx.fillText('🪙 +' + (G.earned || 0).toLocaleString() + '   💎 +' + G.stars, W / 2, 330);
+  if ((G.starBest[G.episode] || 0) >= 3) {
+    ctx.font = 'bold 16px Trebuchet MS'; ctx.fillStyle = '#7bff9b';
+    ctx.fillText('⭐ เก็บครบ 3 ดาวแล้ว!', W / 2, 358);
+  }
+
+  const hasNext = G.episode < LEVELS.length - 1;
+  drawBtn(W / 2 - 232, 400, 148, 52, '🔁 เล่นซ้ำ', () => startGame('story'), { color: '#a08468', dark: '#7d6448', font: 15 });
+  drawBtn(W / 2 - 74, 400, 148, 52, '🏠 เมนู', () => setState('menu'), { color: '#8494a4', dark: '#63707c', font: 15 });
+  if (hasNext) {
+    const nextUnlocked = epUnlocked(G.episode + 1);
+    drawBtn(W / 2 + 84, 400, 148, 52, nextUnlocked ? '▶ ด่านต่อไป' : '🔒 ล็อก', () => {
+      if (nextUnlocked) { G.episode++; SAVE.set('ep', G.episode); startGame('story'); }
+      else floatText(W / 2, 130, 'วิ่งให้ถึง ' + EPISODES[G.episode + 1].unlock + 'm ในโหมดอิสระก่อน!', '#ff8888', true);
+    }, { color: nextUnlocked ? '#ffb02e' : '#8a7a5a', dark: nextUnlocked ? '#e07b12' : '#6a5c40', font: 15 });
   }
 }
 
