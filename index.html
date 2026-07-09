@@ -784,27 +784,27 @@ const REAL = {
   angel: { desc: ['สนามแม่เหล็กดูดเยลลี่', 'รอบตัวตลอดเวลา'], mate: 'wishstar', magnet: true },
   ninja: { desc: ['โดดกลางอากาศต่อเนื่อง', '(ต้นฉบับสูงสุด 10 ชั้น)'], mate: 'littleghost', jumps: 5 },
   pirate: { desc: ['พลังหมดแล้วฟื้นเป็น', 'โจรสลัดผีพร้อมพลังเต็ม'], mate: 'gigglebomb', revives: 2, cfx: { k: 'reviveHp', v: 60 } },
-  skatingq: { desc: ['แต้มพิเศษจากการโดด 2 ชั้น', 'และ BONUS TIME'], mate: 'snowflower', btPlus: 1, cfx: { k: 'jumpPts', v: 150 } },
+  skatingq: { limb: 'slim', desc: ['แต้มพิเศษจากการโดด 2 ชั้น', 'และ BONUS TIME'], mate: 'snowflower', btPlus: 1, cfx: { k: 'jumpPts', v: 150 } },
   hero: { desc: ['แปลงร่างซูเปอร์ฮีโร่', 'บินอมตะเป็นระยะ'], mate: 'jellyco', cfx: { k: 'transform', iv: 22, dur: 5, tag: '🦸 HERO MODE' } },
   sforce: { desc: ['ยิงลูกกวาดดาว', 'ทำลายสิ่งกีดขวาง'], mate: 'awol', cfx: { k: 'destroyIv', iv: 8, tag: '🌟 ยิง!' } },
   cheer: { desc: ['โดดครบ 16 ครั้ง ทีมเชียร์บุก', 'ทำลายสิ่งกีดขวาง+โปรยเหรียญ'], mate: 'glitter', cfx: { k: 'squad', n: 16 } },
-  kumiho: { desc: ['โดด 2 ชั้นครบ 9 ครั้ง', 'แปลงร่างจิ้งจอกเก้าหาง'], mate: 'foxbead', cfx: { k: 'transform', trig: 'djump', n: 9, dur: 4, tag: '🦊 เก้าหาง' } },
+  kumiho: { limb: 'slim', desc: ['โดด 2 ชั้นครบ 9 ครั้ง', 'แปลงร่างจิ้งจอกเก้าหาง'], mate: 'foxbead', cfx: { k: 'transform', trig: 'djump', n: 9, dur: 4, tag: '🦊 เก้าหาง' } },
   devil: { desc: ['เก็บเยลลี่ครบ 22 ชิ้น', 'แปลงร่างซูเปอร์เดวิล'], mate: 'flamebat', cfx: { k: 'transform', trig: 'jelly', n: 22, dur: 5, tag: '😈 SUPER DEVIL' } },
-  fairy: { desc: ['ออร่าแม่เหล็ก', 'พร้อมเกราะกันชน'], mate: 'flowerpod', magnet: true, cfx: { k: 'hitGuard', v: 0.6 } },
-  wizard: { desc: ['ร่ายเวทเป็นระยะ ทำลาย', 'สิ่งกีดขวาง+เสกเยลลี่'], mate: 'wizbook', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🔮 เวทมนตร์' } },
+  fairy: { limb: 'slim', desc: ['ออร่าแม่เหล็ก', 'พร้อมเกราะกันชน'], mate: 'flowerpod', magnet: true, cfx: { k: 'hitGuard', v: 0.6 } },
+  wizard: { limb: 'slim', desc: ['ร่ายเวทเป็นระยะ ทำลาย', 'สิ่งกีดขวาง+เสกเยลลี่'], mate: 'wizbook', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🔮 เวทมนตร์' } },
   rockstar: { desc: ['สไลด์ปล่อยโน้ตเยลลี่', 'เก็บเป็นแต้มพิเศษ'], mate: 'spotfan', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: 'โน้ตเยลลี่' } },
   soda: { desc: ['ดื่มยาแล้วโต้คลื่นโซดา', 'สิ่งกีดขวางถูกซัดหาย'], mate: 'lemonslice', cfx: { k: 'transform', trig: 'potion', dur: 5, tag: '🏄 SODA SURF' } },
   cherry: { desc: ['ขว้างเชอร์รีบอมบ์ทำลาย', 'สิ่งกีดขวาง+เกิดเยลลี่'], mate: 'rocketfc', cfx: { k: 'destroyIv', iv: 8, jelly: 1, tag: '🍒 บอมบ์!' } },
   cheesecake: { desc: ['ปาร์ตี้พลุเหรียญ', 'เป็นระยะ'], mate: 'cheesecat', cfx: { k: 'coinIv', iv: 9, n: 5, tag: '🎆 พลุเหรียญ' } },
-  prophet: { desc: ['คำพยากรณ์เป็นจริงเสมอ:', 'กล่องปริศนาให้รางวัลโต'], mate: 'purplecandle', cfx: { k: 'boxLuck', v: 1.6 } },
+  prophet: { limb: 'slim', desc: ['คำพยากรณ์เป็นจริงเสมอ:', 'กล่องปริศนาให้รางวัลโต'], mate: 'purplecandle', cfx: { k: 'boxLuck', v: 1.6 } },
   pistachio: { desc: ['พุ่งดัชอมตะความเร็วสูง', 'เป็นระยะ'], mate: 'firefly', cfx: { k: 'transform', iv: 18, dur: 3, tag: '⚡ DASH' } },
-  alchemist: { desc: ['เกจแปรธาตุเต็มแล้ว', 'ยิงเยลลี่พิเศษ'], mate: 'jellyscale', cfx: { k: 'spawnSp', iv: 9, n: 3, tag: 'แปรธาตุ' } },
-  vampire: { desc: ['แปลงร่างค้างคาวน้ำองุ่น', 'อมตะและดูดพลังคืน'], mate: 'oakbarrel', cfx: { k: 'transform', iv: 22, dur: 5, tag: '🦇 JUICE BAT' } },
+  alchemist: { limb: 'slim', desc: ['เกจแปรธาตุเต็มแล้ว', 'ยิงเยลลี่พิเศษ'], mate: 'jellyscale', cfx: { k: 'spawnSp', iv: 9, n: 3, tag: 'แปรธาตุ' } },
+  vampire: { limb: 'slim', desc: ['แปลงร่างค้างคาวน้ำองุ่น', 'อมตะและดูดพลังคืน'], mate: 'oakbarrel', cfx: { k: 'transform', iv: 22, dur: 5, tag: '🦇 JUICE BAT' } },
   adventurer: { desc: ['เปิดประตูลับ', 'พบเหรียญกองโต'], mate: 'backpacky', cfx: { k: 'coinIv', iv: 11, n: 6, tag: '🚪 ประตูลับ' } },
   redpepper: { desc: ['ชนสิ่งกีดขวางแล้วทุบแตก', 'แทนการเจ็บ (จำกัดครั้ง)'], mate: 'punchbag', revives: 2, cfx: { k: 'obSmash', v: 3 } },
   snowsugar: { desc: ['เรียกสโนว์โคนทำลาย', 'สิ่งกีดขวาง+เยลลี่หิมะ'], mate: 'snowglobe', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '❄ สโนว์โคน' } },
   carol: { desc: ['วนเพลง 3 บท: ชีวิต /', 'เปลี่ยนร่าง / ความอุดม'], mate: 'yulelog', cfx: { k: 'songs', iv: 9 } },
-  blackberry: { desc: ['วิญญาณรับใช้เสก', 'แบล็กเบอร์รีเยลลี่เป็นระยะ'], mate: 'ghostbutler', cfx: { k: 'spawnSp', iv: 7, n: 3, tag: 'วิญญาณ' } },
+  blackberry: { limb: 'slim', desc: ['วิญญาณรับใช้เสก', 'แบล็กเบอร์รีเยลลี่เป็นระยะ'], mate: 'ghostbutler', cfx: { k: 'spawnSp', iv: 7, n: 3, tag: 'วิญญาณ' } },
   pinkchoco: { desc: ['ยิงฮาร์ตบีมทำลาย', 'สิ่งกีดขวาง+บงบงเยลลี่'], mate: 'pinkcandy', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '💗 ฮาร์ตบีม' } },
   kiwi: { desc: ['ซิ่งมอเตอร์ไซค์พุ่งทะลุ', 'เป็นระยะ'], mate: 'kiwibird', cfx: { k: 'transform', iv: 20, dur: 4, tag: '🏍 ซิ่ง!' } },
   apple: { desc: ['เสกฟองเยลลี่ตัวอักษร', 'BONUSTIME จริง ๆ'], mate: 'applerabbit', cfx: { k: 'spawnSp', iv: 9, n: 2, lt: 1, tag: '🍎 ฟองอักษร' } },
@@ -825,7 +825,7 @@ const REAL = {
   macaron: { desc: ['ขบวนพาเหรดมาการอง', 'ทำลายสิ่งกีดขวาง+เยลลี่'], mate: 'castanets', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🥁 พาเหรด' } },
   redbean: { desc: ['ขี่เลื่อนเพนกวิน', 'พุ่งเป็นระยะ'], mate: 'sweetseal', cfx: { k: 'transform', iv: 22, dur: 4, tag: '🐧 เลื่อนเพนกวิน' } },
   herb: { desc: ['เยลลี่สายฝน-แสงแดด', 'ผลิบานเป็นระยะ'], mate: 'herbpot', drainMul: 0.9, cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌱 ผลิบาน' } },
-  whitechoco: { desc: ['ลุกจากสไลด์ฟาดทำลาย', 'สิ่งกีดขวางรอบตัว'], mate: 'watchref', cfx: { k: 'destroyIv', iv: 9, tag: '🤺 ฟาด!' } },
+  whitechoco: { limb: 'slim', desc: ['ลุกจากสไลด์ฟาดทำลาย', 'สิ่งกีดขวางรอบตัว'], mate: 'watchref', cfx: { k: 'destroyIv', iv: 9, tag: '🤺 ฟาด!' } },
   dinosour: { desc: ['วิ่งกับเจลลี่ไดโนเสาร์', 'กระโดดปลูกเยลลี่'], mate: 'dinoegg', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🦕 ไดโนฟุต' } },
   cottoncandy: { desc: ['BONUS TIME พิเศษนานขึ้น', '+เยลลี่หัวใจจดหมายรัก'], mate: 'ccbird', btPlus: 2.2, cfx: { k: 'spawnSp', iv: 10, n: 3, tag: '💌 จดหมายรัก' } },
   rollcake: { desc: ['ค้อนโรลเค้กทุบทำลาย', 'สิ่งกีดขวาง+เยลลี่'], mate: 'lightbros', cfx: { k: 'destroyIv', iv: 8, jelly: 1, tag: '🔨 ทุบ!' } },
@@ -840,15 +840,15 @@ const REAL = {
   cucumber: { desc: ['เหวี่ยงเบ็ดทุบสิ่งกีดขวาง', 'ตกเยลลี่ปลา'], mate: 'garlic', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🎣 ตกปลา' } },
   sikhye: { desc: ['เกจเต็มแล้วสร้างบ้าน', 'หมากเยลลี่เก็บแต้ม'], mate: 'sweetseal', cfx: { k: 'spawnSp', iv: 9, n: 4, tag: '⚪ หมากล้อม' } },
   sujeonggwa: { desc: ['เกจเต็มแล้วสร้างบ้าน', 'หมากเยลลี่เก็บแต้ม'], mate: 'cinnabunny', cfx: { k: 'spawnSp', iv: 9, n: 4, tag: '⚫ หมากล้อม' } },
-  bari: { desc: ['เก็บเยลลี่ครบ 15 ชิ้น', 'เข้าโหมดเดินทางวิญญาณอมตะ'], mate: 'flowerpod', revives: 2, cfx: { k: 'transform', trig: 'jelly', n: 15, dur: 5, tag: '🌺 เดินทางวิญญาณ' } },
+  bari: { limb: 'slim', desc: ['เก็บเยลลี่ครบ 15 ชิ้น', 'เข้าโหมดเดินทางวิญญาณอมตะ'], mate: 'flowerpod', revives: 2, cfx: { k: 'transform', trig: 'jelly', n: 15, dur: 5, tag: '🌺 เดินทางวิญญาณ' } },
   gimbap: { desc: ['กองทัพคิมบับบุกทำลาย', 'สิ่งกีดขวาง+เยลลี่'], mate: 'boatman', cfx: { k: 'destroyIv', iv: 7, jelly: 1, tag: '⚓ กองทัพ' } },
   pinemonk: { desc: ['คลี่คัมภีร์เสกเยลลี่ใบสน', 'ขับไล่ภูตผี'], mate: 'herbpot', drainMul: 0.85, cfx: { k: 'spawnSp', iv: 7, n: 4, tag: '📿 คัมภีร์' } },
   tigerlily: { desc: ['เปลี่ยนสิ่งกีดขวางเป็นหญ้า', 'พุ่งหอกเกิดเยลลี่+ยา'], mate: 'savlion', cfx: { k: 'destroyIv', iv: 7, jelly: 1, tag: '🐯 หอกลิลี' } },
-  firespirit: { desc: ['ฟื้นคืนชีพเป็นวิญญาณเพลิง', 'อมตะเผาทุกอย่าง'], mate: 'flamebat', revives: 2, cfx: { k: 'transform', trig: 'revive', dur: 6, tag: '🔥 FIRE SPIRIT' } },
-  moonlight: { desc: ['หลับฝันดูดเยลลี่ทั้งจอ', '+เสกเยลลี่ผงดาว'], mate: 'moonmortar', magnet: true, cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌙 ผงดาว' } },
-  seafairy: { desc: ['เรียกคลื่นยักษ์ถล่ม', 'สิ่งกีดขวาง+คริสตัลทะเล'], mate: 'wavedrop', cfx: { k: 'destroyIv', iv: 7, jelly: 1, tag: '🌊 คลื่นยักษ์' } },
-  windarcher: { desc: ['ง้างธนูยิงวิญญาณร้าย', 'ครบแล้วพุ่งลมกรด'], mate: 'windy', cfx: { k: 'transform', iv: 18, dur: 4, tag: '🏹 WIND DASH' } },
-  dancheong: { desc: ['ระบำพัดดันชอง', 'เสกเยลลี่ห้าสี'], mate: 'kingdrop', cfx: { k: 'spawnSp', iv: 8, n: 4, tag: '🎏 ระบำพัด' } },
+  firespirit: { limb: 'slim', desc: ['ฟื้นคืนชีพเป็นวิญญาณเพลิง', 'อมตะเผาทุกอย่าง'], mate: 'flamebat', revives: 2, cfx: { k: 'transform', trig: 'revive', dur: 6, tag: '🔥 FIRE SPIRIT' } },
+  moonlight: { limb: 'slim', desc: ['หลับฝันดูดเยลลี่ทั้งจอ', '+เสกเยลลี่ผงดาว'], mate: 'moonmortar', magnet: true, cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌙 ผงดาว' } },
+  seafairy: { limb: 'slim', desc: ['เรียกคลื่นยักษ์ถล่ม', 'สิ่งกีดขวาง+คริสตัลทะเล'], mate: 'wavedrop', cfx: { k: 'destroyIv', iv: 7, jelly: 1, tag: '🌊 คลื่นยักษ์' } },
+  windarcher: { limb: 'slim', desc: ['ง้างธนูยิงวิญญาณร้าย', 'ครบแล้วพุ่งลมกรด'], mate: 'windy', cfx: { k: 'transform', iv: 18, dur: 4, tag: '🏹 WIND DASH' } },
+  dancheong: { limb: 'slim', desc: ['ระบำพัดดันชอง', 'เสกเยลลี่ห้าสี'], mate: 'kingdrop', cfx: { k: 'spawnSp', iv: 8, n: 4, tag: '🎏 ระบำพัด' } },
   cricketer: { desc: ['หวดลูกคริกเก็ต', 'ทำลายสิ่งกีดขวาง'], mate: 'laddu', cfx: { k: 'destroyIv', iv: 8, tag: '🏏 หวด!' } },
   jalebi: { desc: ['ทอดขนมจาเลบีวน ๆ', 'เกิดเยลลี่+เหรียญ'], mate: 'diya', cfx: { k: 'coinIv', iv: 9, n: 4, tag: '🍥 จาเลบี' } },
   survivor: { desc: ['เก็บกล่องเสบียงกลางทาง', 'ทนทานเป็นพิเศษ'], mate: 'airdrop', cfx: { k: 'hitGuard', v: 0.5 } },
@@ -861,34 +861,34 @@ const LOOK = {
   cream: { body: '#f0e0c8', deco: ['puff:#ffffff', 'sprinkles:#5a3a26', 'collar:#e8d0b0', 'staff:#8a5a2e', 'heldfruit:#8fbf4a'] },
   cloudc: { body: '#f2d048', eye: '#4a9fe0', deco: ['puff:#bfe4f8', 'starchest:#ffffff', 'hookstaff:#5aa8e0'] },
   bcchoco: { body: '#6a4028', deco: ['swirl:#f6e8d0', 'buttons:#f2d8b0'] },
-  gclaus: { icing: '#c8342a', deco: ['suit:#c8342a', 'belt:#3a3028', 'collar:#ffffff', 'gloves:#ffffff', 'cuffs:#ffffff', 'sack:#b02a20', 'santa:#e0453a', 'beard:#ffffff', 'candycane'] },
+  gclaus: { icing: '#c8342a', deco: ['bootfeet:#2e2824', 'suit:#c8342a', 'belt:#3a3028', 'collar:#ffffff', 'gloves:#ffffff', 'cuffs:#ffffff', 'sack:#b02a20', 'santa:#e0453a', 'beard:#ffffff', 'candycane'] },
   coffee: { body: '#5a3a26', eyeS: 'sharp', deco: ['vest:#6a5a9a', 'sleeves:#6a5a9a', 'collar:#ffffff', 'nytag', 'side:#d9a05e', 'mug:#e8e0d0'] },
   angel: { deco: ['curl:#f2d977', 'icing:#ffffff', 'blushdot'] },
-  skater: { deco: ['tee:#2e2a30', 'icing:#ffffff', 'cap:#3a86c8'] },
+  skater: { deco: ['sneakfeet:#e0453a', 'tee:#2e2a30', 'icing:#ffffff', 'cap:#3a86c8'] },
   princess: { icing: '#ff9ec0', deco: ['dress:#ff9ec0', 'frillhem:#fff4f8', 'drills:#f2d848', 'crown:#ffd24a', 'blushdot', 'heartwand:#ff5a8a'] },
-  knight: { body: '#c8b090', deco: ['armor:#aab6c4', 'helmet:#aab6c4', 'gloves:#9aa6b4', 'sword:#dfe8f2'] },
+  knight: { body: '#c8b090', deco: ['bootfeet:#8a96a4', 'armor:#aab6c4', 'helmet:#aab6c4', 'gloves:#9aa6b4', 'sword:#dfe8f2'] },
   muscle: { body: '#7a4a2a', eyeS: 'sharp', deco: ['messy:#2e2018'] },
-  pirate: { deco: ['messy:#5a3a26', 'suit:#26262e', 'collar:#ffffff', 'piratehat:#22222c', 'patch', 'sword:#dfe8f2'] },
+  pirate: { deco: ['bootfeet:#1c1c24', 'messy:#5a3a26', 'suit:#26262e', 'collar:#ffffff', 'piratehat:#22222c', 'patch', 'sword:#dfe8f2'] },
   skatingq: { deco: ['dress:#dff2ff', 'tiara:#bfe8ff', 'long:#f2f8ff', 'wand:#7ec8e8'] },
-  hero: { deco: ['suit:#3f6fd0', 'cape:#e0453a', 'heromask:#3f6fd0', 'gloves:#ffffff', 'glasses'] },
+  hero: { deco: ['bootfeet:#2e4a90', 'suit:#3f6fd0', 'cape:#e0453a', 'heromask:#3f6fd0', 'gloves:#ffffff', 'glasses'] },
   sforce: { body: '#9a7a4e', deco: ['suit:#4a5a3a', 'beret:#4a5a3a', 'facepaint:#37472c'] },
-  cheer: { deco: ['skirt:#3a86c8', 'pony:#f2d848', 'stripes:#3a86c8', 'pompom:#7ec8ff'] },
+  cheer: { deco: ['sneakfeet:#f2f2f2', 'skirt:#3a86c8', 'pony:#f2d848', 'stripes:#3a86c8', 'pompom:#7ec8ff'] },
   kumiho: { body: '#fdf2ec', deco: ['foxears:#fdf2ec', 'foxtail:#fdf2ec', 'blushdot', 'lollipop:#ff9db8'] },
   devil: { body: '#e0483a', icing: '#8a1e14', eye: '#ffd24a', deco: ['deviltail:#a02818', 'horns:#a02818', 'batwings:#3a2a34', 'fangs', 'trident:#8a1e14'] },
   fairy: { body: '#cfeee0', deco: ['fairywings:#c8f0dc', 'spiralbun:#c8d848', 'dress:#66d8bc', 'frillhem:#a8ecd8', 'lilyflower:#f2d848', 'lotus:#3ec8a8'] },
-  firespirit: { deco: ['flame:#ff7a1e', 'cape:#3a1620', 'collar:#3a1620', 'staff:#e0453a'] },
-  windarcher: { deco: ['batwings:#3f8a4a', 'leafswept:#3f8a4a', 'longbow:#4a8a3a'] },
+  firespirit: { deco: ['flamefeet:#ff8a2e', 'flame:#ff7a1e', 'cape:#3a1620', 'collar:#3a1620', 'staff:#e0453a'] },
+  windarcher: { deco: ['bootfeet:#2e6a30', 'batwings:#3f8a4a', 'leafswept:#3f8a4a', 'longbow:#4a8a3a'] },
   zombie: { deco: ['messy:#6a8a4a', 'stitch:#5a7a3a', 'zombieeye', 'bone:#f2ecdc'] },
   wizard: { deco: ['robe:#3f5fc0', 'wizhat:#3f5fc0', 'hatstars:#f2e060', 'bigbeard:#e8e4da', 'staff:#8a5a2e'] },
   rockstar: { deco: ['spiky:#f2f0ec', 'guitar:#e0453a', 'glasses', 'vest:#3a3a44'] },
-  soda: { body: '#8fd8f2', deco: ['band:#f2e060', 'freckles:#dff6ff', 'icing:#dff6ff'] },
+  soda: { body: '#8fd8f2', deco: ['sneakfeet:#ffffff', 'band:#f2e060', 'freckles:#dff6ff', 'icing:#dff6ff'] },
   cherry: { body: '#e05a6a', deco: ['hood:#c8303a', 'fruit:#d02e4a', 'blushdot'] },
   cheesecake: { deco: ['curl:#f2d089', 'fruit:#e0453a', 'collar:#fff2c8'] },
   prophet: { deco: ['robe:#6a5a9a', 'hood:#c8b090', 'thirdeye:#e8b03a'] },
   pistachio: { body: '#b8d080', deco: ['armor:#7a9a4a', 'helmet:#7a9a4a', 'cape:#f2f0e8', 'sword:#dfe8f2'] },
   alchemist: { deco: ['robe:#5a3e88', 'tophat:#4a3268', 'glasses', 'side:#e8d048', 'bottlebelt:#b89ad0'] },
   vampire: { body: '#ece0d8', deco: ['suit:#2a2430', 'collar:#f2ecd8', 'long:#c8283a', 'fangs', 'cape:#2a2430'] },
-  adventurer: { deco: ['fedora:#8a6a3e', 'vest:#6b4423', 'stubble:#8a6a3e'] },
+  adventurer: { deco: ['bootfeet:#5a3a22', 'fedora:#8a6a3e', 'vest:#6b4423', 'stubble:#8a6a3e'] },
   redpepper: { deco: ['spiky:#c81e10', 'sword:#dfe8f2', 'flamecheek:#ff6a3a'] },
   snowsugar: { deco: ['robe:#ffffff', 'furhood:#ffffff', 'blushdot', 'staff:#7ec8e8'] },
   carol: { body: '#d9a05e', icing: '#2e7a3a', deco: ['dress:#2e7a3a', 'moonpin:#ffd24a', 'dots:#e0453a', 'spiky:#2e7a3a'] },
@@ -902,7 +902,7 @@ const LOOK = {
   creampuff: { deco: ['puff:#f2cf8e', 'wand:#e8b03a', 'glasses'] },
   gumball: { deco: ['helmet:#3a86c8', 'gumdots', 'freckles'] },
   peppermint: { body: '#eaf8f4', deco: ['cap:#ffffff', 'stripes:#3a86c8', 'collar:#3a86c8'] },
-  jujube: { body: '#a84a3a', deco: ['armor:#8a2e1e', 'generalhat:#6a1e14', 'longbeard:#3a2a1a', 'spear:#8a5a2e'] },
+  jujube: { body: '#a84a3a', deco: ['bootfeet:#5a1e14', 'armor:#8a2e1e', 'generalhat:#6a1e14', 'longbeard:#3a2a1a', 'spear:#8a5a2e'] },
   peach: { body: '#f8d0c0', deco: ['twin:#f2a8b8', 'fruit:#ff9a7a', 'blushdot', 'spear:#8a5a2e'] },
   onion: { deco: ['dress:#f4f0fa', 'hood:#f4f0fa', 'sprout:#8fbf4a', 'tear:#9ecfff'] },
   cinnamon: { deco: ['curl:#d97a2e', 'tophat:#5a3a24', 'collar:#ffffff', 'bowtie:#e0453a', 'wand:#e8b03a', 'mustache:#8a4a20'] },
@@ -913,7 +913,7 @@ const LOOK = {
   dinosour: { deco: ['spiky:#3a86c8', 'dinohood:#5a9a3a', 'fangs'] },
   cottoncandy: { body: '#f8d8e8', deco: ['dress:#f4c8e4', 'puff:#f4c8e4', 'dots:#7ec8ff', 'blushdot'] },
   rollcake: { deco: ['curl:#8a5a34', 'staff:#8a97a8', 'buttons:#5a3a20'] },
-  rebel: { body: '#d9a86a', deco: ['suit:#2e3a54', 'spiky:#f2f0ec', 'cap:#e8c03a'] },
+  rebel: { body: '#d9a86a', deco: ['sneakfeet:#e8c03a', 'suit:#2e3a54', 'spiky:#f2f0ec', 'cap:#e8c03a'] },
   sbshortcake: { body: '#fdf2ec', deco: ['puff:#fff8f0', 'fruit:#e0453a', 'blushdot', 'collar:#fff4f4'] },
   gulab: { deco: ['drip:#ffd24a', 'collar:#e8b03a', 'ribbon:#e0453a', 'blushdot'] },
   kajukatli: { deco: ['beret:#e8e0d0', 'staff:#c8c0b0', 'collar:#c0b8a8'] },
@@ -924,7 +924,7 @@ const LOOK = {
   tigerlily: { body: '#d9a05e', deco: ['spiky:#e8791e', 'tigerstripes:#3a2a1a', 'lilyflower:#ff8a4a', 'spear:#8a5a2e'] },
   moonlight: { body: '#7a86d8', deco: ['robe:#5a66c0', 'long:#f2d848', 'moonpin:#f2e060', 'stardust:#f2e060', 'staff:#f2e060'] },
   dancheong: { body: '#e86a8a', deco: ['dress:#e0563a', 'dancheongcrown:#e0563a', 'long:#3a2a1a', 'fanitem:#3a90c0'] },  bari: { deco: ['robe:#fff4f4', 'long:#f8f0ec', 'ribbon:#e86a8a', 'crown:#ffffff'] },
-  gimbap: { deco: ['armor:#2a2a2a', 'admiralhat:#2a2a2a', 'ricecollar:#f2ecd8', 'sword:#dfe8f2'] },
+  gimbap: { deco: ['bootfeet:#1c1c22', 'armor:#2a2a2a', 'admiralhat:#2a2a2a', 'ricecollar:#f2ecd8', 'sword:#dfe8f2'] },
   seafairy: { deco: ['dress:#7ec8e8', 'wavyhair:#4a8ad0', 'seastar:#f2e060'] },
 };
 
@@ -5151,9 +5151,12 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   const pickC = (...names) => { for (const n of names) { const f = ds0.find(q => q.p === n); if (f) return f.c; } return null; };
   const SLV = pickC('sleeves', 'suit', 'robe', 'armor', 'dress');
   const LEGC = pickC('pants', 'suit', 'robe', 'overalls');
-  const SHOE = pickC('shoes', 'boots') || (LEGC ? dk(LEGC, 0.72) : null);
+  const SHOEST = ds0.find(q => q.p === 'bootfeet' || q.p === 'sneakfeet' || q.p === 'flamefeet') || null;
+  const SHOE = pickC('shoes', 'boots', 'bootfeet', 'sneakfeet', 'flamefeet') || (LEGC ? dk(LEGC, 0.72) : null);
   const GLOVE = pickC('gloves');
   const CUFF = pickC('cuffs') || (SLV ? dk(SLV, 0.76) : null);
+  const SLIM = ch.limb === 'slim';   // แขนขาเรียวยาวแบบตัวละครสายสง่า/เวทมนตร์
+  const LW = SLIM ? 0.72 : 1, HW = SLIM ? 0.85 : 1;
 
   const main = ctx;
   ctx = charCtx;
@@ -5207,26 +5210,49 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       ctx.lineWidth = w + grow;
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, len); ctx.stroke();
     };
-    // ขา: ตอสั้นป้อม (สีกางเกง/รองเท้าตามชุด)
+    // ขา: ตอสั้นป้อม / เรียวยาว (สีกางเกง + รองเท้าตามทรงจริง: บูท/ผ้าใบ/เปลวไฟ)
     const legP = (hip, knee, ox) => {
       ctx.save();
       if (mode === 'fill' && LEGC) { ctx.strokeStyle = LEGC; ctx.fillStyle = LEGC; }
       ctx.translate(ox || 0, -26);
       ctx.rotate(hip);
-      segP(9, 13.5);
+      segP(9, 13.5 * LW);
       ctx.translate(0, 9);
       ctx.rotate(knee * 0.75);
-      segP(9, 12.5);
+      segP(9, 12.5 * LW);
+      const fxq = FRONT ? 0 : 2;
       if (mode === 'fill' && SHOE) ctx.fillStyle = SHOE;
-      if (mode === 'fill') AUTOL = true;   // เท้ามีเส้นขอบของตัวเองแบบสไปรต์จริง
-      ctx.beginPath(); ctx.ellipse(FRONT ? 0 : 2, 10.5, 8.5 + pad, 6 + pad, 0, 0, TAU); ctx.fill();
+      if (mode === 'fill') AUTOL = true;   // เท้า/รองเท้ามีเส้นขอบของตัวเอง
+      if (SHOEST && SHOEST.p === 'flamefeet') {
+        // เท้าเปลวไฟ (วิญญาณเพลิง)
+        ctx.beginPath();
+        ctx.moveTo(-6 - pad, 16 + pad);
+        ctx.quadraticCurveTo(-10 - pad, 5 - pad, fxq, 2 - pad);
+        ctx.quadraticCurveTo(10 + pad, 5 - pad, 7 + pad, 16 + pad);
+        ctx.quadraticCurveTo(3, 10, 1, 15);
+        ctx.quadraticCurveTo(-2, 10, -6 - pad, 16 + pad);
+        ctx.closePath(); ctx.fill();
+      } else if (SHOEST && SHOEST.p === 'bootfeet') {
+        // บูทมีข้อ: แข้งบูท + หัวบูท
+        roundRect(fxq - 5.5 - pad, -pad, 11 + pad * 2, 9 + pad * 2, 3.5); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(fxq + 1, 11, 9 + pad, 5.8 + pad, 0, 0, TAU); ctx.fill();
+      } else {
+        ctx.beginPath(); ctx.ellipse(fxq, 10.5, 8.5 * HW + pad, 6 + pad, 0, 0, TAU); ctx.fill();
+        if (SHOEST && SHOEST.p === 'sneakfeet' && mode === 'fill') {
+          // ผ้าใบ: พื้นขาว + จุดเชือก
+          ctx.fillStyle = '#f4f4f0';
+          ctx.beginPath(); ctx.ellipse(fxq, 13.4, 8.2, 2.7, 0, 0, TAU); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,.9)';
+          ctx.beginPath(); ctx.arc(fxq + (FRONT ? 0 : 3), 7.5, 1.6, 0, TAU); ctx.fill();
+        }
+      }
       AUTOL = false;
-      if (mode === 'fill') {
+      if (mode === 'fill' && !SHOEST) {
         // เงาใต้เท้า (คลิปในรูปเท้า กันเลอะออกนอกเงาตัว)
         ctx.save();
-        ctx.beginPath(); ctx.ellipse(FRONT ? 0 : 2, 10.5, 8.5, 6, 0, 0, TAU); ctx.clip();
+        ctx.beginPath(); ctx.ellipse(fxq, 10.5, 8.5 * HW, 6, 0, 0, TAU); ctx.clip();
         ctx.fillStyle = 'rgba(70,35,10,.16)';
-        ctx.beginPath(); ctx.ellipse(FRONT ? 0 : 2, 14.5, 9.5, 5, 0, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(fxq, 14.5, 9.5, 5, 0, 0, TAU); ctx.fill();
         ctx.restore();
       }
       ctx.restore();
@@ -5242,18 +5268,20 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       if (mode === 'fill' && SLV) { ctx.strokeStyle = SLV; ctx.fillStyle = SLV; }
       ctx.translate(ox || 0, -52);
       ctx.rotate(sh - Math.PI);        // แปลงพิกัด: แขนกางออกหน้า-ข้างแบบสไปรต์
-      segP(9, 16);
+      segP(9, 16 * LW);
       ctx.translate(0, 9);
       ctx.rotate(el * 0.45);
-      segP(9, 13);
+      segP(9, 13 * LW);
       if (mode === 'fill' && SLV) {
         // ปลอกข้อมือเสื้อ (cuff) ก่อนถึงมือ
-        ctx.strokeStyle = CUFF; ctx.lineWidth = 14;
+        ctx.strokeStyle = CUFF; ctx.lineWidth = 14 * LW;
         ctx.beginPath(); ctx.moveTo(0, 4.6); ctx.lineTo(0, 6.8); ctx.stroke();
       }
       if (mode === 'fill') ctx.fillStyle = GLOVE || B;   // มือ = สีคุกกี้/ถุงมือ
       if (mode === 'fill') AUTOL = true;   // มือมีเส้นขอบของตัวเอง
-      ctx.beginPath(); ctx.arc(0, 11, 7.2 + pad, 0, TAU); ctx.fill();
+      // นิ้วโป้งนวมเล็ก ๆ แบบสไปรต์จริง แล้วค่อยวางฝ่ามือทับ
+      ctx.beginPath(); ctx.arc(-4.6 * HW, 13.2, 2.9 * HW + pad, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 11, 7.2 * HW + pad, 0, TAU); ctx.fill();
       AUTOL = false;
       ctx.restore();
     };
