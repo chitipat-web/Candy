@@ -111,12 +111,27 @@ function finishSprite(olc) {
   olOutCtx.globalAlpha = 1;
 }
 
+let screenRot = false;   // หมุนจอ 90° เมื่อถือมือถือแนวตั้ง เพื่อให้เกมแนวนอนเต็มจอ
 function fit() {
-  const s = Math.min(innerWidth / W, innerHeight / H);
-  canvas.style.width  = (W * s) + 'px';
-  canvas.style.height = (H * s) + 'px';
+  const portrait = innerHeight > innerWidth;
+  screenRot = portrait;
+  if (portrait) {
+    // หมุนเกม 90° → ด้านยาวของเกม (960) แมปกับด้านยาวของจอ (สูง) เต็มจอมือถือ
+    const s = Math.min(innerHeight / W, innerWidth / H);
+    canvas.style.width  = (W * s) + 'px';
+    canvas.style.height = (H * s) + 'px';
+    canvas.style.transform = 'rotate(90deg)';
+    canvas.style.transformOrigin = 'center center';
+  } else {
+    const s = Math.min(innerWidth / W, innerHeight / H);
+    canvas.style.width  = (W * s) + 'px';
+    canvas.style.height = (H * s) + 'px';
+    canvas.style.transform = 'none';
+  }
 }
-addEventListener('resize', fit); fit();
+addEventListener('resize', fit);
+addEventListener('orientationchange', fit);
+fit();
 
 /* ---------- helpers ---------- */
 /* แหล่งสุ่มสลับได้: ระหว่างสร้างด่านใช้ seed คงที่ → คอร์สเหมือนเดิมทุกรอบ (ฝึกจำทางได้) */
@@ -1904,6 +1919,13 @@ function uiClick(x, y) {
 }
 function canvasXY(clientX, clientY) {
   const r = canvas.getBoundingClientRect();
+  if (screenRot) {
+    // จอถูกหมุน 90° (rotate) — แปลงพิกัดกลับให้ตรงกับพิกัดเกม
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const cw = parseFloat(canvas.style.width) || (W), ch = parseFloat(canvas.style.height) || (H);
+    const u = (clientY - cy), v = -(clientX - cx);   // อินเวิร์สของ rotate(90deg)
+    return [(u + cw / 2) / cw * W, (v + ch / 2) / ch * H];
+  }
   return [(clientX - r.left) / r.width * W, (clientY - r.top) / r.height * H];
 }
 function pointerDown(x, y, id) {
