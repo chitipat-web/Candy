@@ -4341,9 +4341,15 @@ function runDecos(ch, phase, RIM) {
         ctx.font = 'bold 9px Trebuchet MS'; ctx.textAlign = 'center';
         ctx.fillText('NY', 0, -39.5);
       } else if (p === 'collar') {
-        // เลื่อนลงพ้นคาง (หัวใหญ่ขึ้นตามสัดส่วนจริงแล้วคางอยู่ ~-52)
+        // ปกเสื้อสองแฉกแนบใต้คาง (ไม่ใช่แถบลอยกลางอก)
         ctx.fillStyle = c;
-        roundRect(-13, -50.5, 26, 7, 3.5); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, -51);
+        ctx.quadraticCurveTo(-12, -51, -13, -45);
+        ctx.quadraticCurveTo(-6, -41.5, 0, -46);
+        ctx.quadraticCurveTo(6, -41.5, 13, -45);
+        ctx.quadraticCurveTo(12, -51, 0, -51);
+        ctx.closePath(); ctx.fill();
       } else if (p === 'bowtie') {
         ctx.fillStyle = c;
         ctx.beginPath(); ctx.moveTo(-1, -46); ctx.lineTo(-9, -50); ctx.lineTo(-9, -42); ctx.closePath(); ctx.fill();
@@ -4485,6 +4491,10 @@ function runHeadDecos(ch, RIM, EYE) {
       }
       ctx.lineTo(30, -3);
       ctx.quadraticCurveTo(0.5, -16, -30, -3); ctx.closePath(); ctx.fill();
+      // เส้นแบ่งช่อหนามจากโคน
+      ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 1.9; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-13, -9); ctx.lineTo(-17, -26); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(9, -9); ctx.lineTo(7, -27); ctx.stroke();
     } else if (p === 'bob') {
       // บ๊อบคลุมหัว: หน้าม้าหยัก + ปอยยาวข้างแก้มสองข้าง
       drewHair = true; ctx.fillStyle = c;
@@ -4496,6 +4506,10 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.ellipse(-29.5, 6, 6.5, 14, 0.1, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.ellipse(30.5, 6, 6.5, 14, -0.1, 0, TAU); ctx.fill();
+      // เส้นแบ่งปอยผมตามรอยหน้าม้า
+      ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-13, -26); ctx.quadraticCurveTo(-15, -18, -13, -10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(7, -27); ctx.quadraticCurveTo(6, -18, 7, -10); ctx.stroke();
     } else if (p === 'long') {
       // ผมยาว: คลุมหัว + ม่านผมสองข้างยาวถึงบ่า
       drewHair = true; ctx.fillStyle = c;
@@ -4509,16 +4523,29 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.ellipse(-27, 14, 5.5, 12, 0.14, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.ellipse(28, 14, 5.5, 12, -0.14, 0, TAU); ctx.fill();
+      // แสกกลาง + เส้นม่านผม
+      ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0.5, -33); ctx.quadraticCurveTo(0.5, -26, 3, -20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-24, -2); ctx.quadraticCurveTo(-28, 10, -26, 22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(25, -2); ctx.quadraticCurveTo(29, 10, 27, 22); ctx.stroke();
     } else if (p === 'curl') {
       // ลอนใหญ่เต็มหัว + ลอนข้างแก้ม
       drewHair = true; ctx.fillStyle = c;
       for (const [x, y, r] of [[-18, -16, 11], [-2, -23, 12.5], [14, -18, 11], [-27, -4, 8.5], [27, -6, 8.5], [0, -12, 12]])
         { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+      // ขดก้นหอยในแต่ละลอน
+      ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 1.9; ctx.lineCap = 'round';
+      for (const [x, y, r] of [[-18, -16, 11], [-2, -23, 12.5], [14, -18, 11]])
+        { ctx.beginPath(); ctx.arc(x - r * 0.14, y, r * 0.52, Math.PI * 0.3, Math.PI * 1.7); ctx.stroke(); }
     } else if (p === 'puff') {
       // ผมฟูก้อนเมฆเต็มกบาล
       drewHair = true; ctx.fillStyle = c;
       for (const [x, y, r] of [[-21, -10, 10.5], [-9, -20, 12], [4, -21, 12], [17, -13, 10.5], [25, -3, 8], [-27, -1, 8], [-1, -10, 12.5]])
         { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+      // ร่องแบ่งก้อนปุย
+      ctx.strokeStyle = dk(c, 0.78); ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(-15, -14, 6.5, Math.PI * 1.2, Math.PI * 1.9); ctx.stroke();
+      ctx.beginPath(); ctx.arc(11, -16, 6.5, Math.PI * 1.1, Math.PI * 1.8); ctx.stroke();
     } else if (p === 'messy') {
       // ผมกระเซิงเต็มหัว ปลายแหลมหลายทิศ
       drewHair = true; ctx.fillStyle = c;
@@ -4527,6 +4554,10 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.lineTo(1, -14); ctx.lineTo(9, -33); ctx.lineTo(16, -13);
       ctx.lineTo(25, -25); ctx.lineTo(30, 0);
       ctx.quadraticCurveTo(0.5, -14, -31, 0); ctx.closePath(); ctx.fill();
+      // เส้นปอยกระเซิง
+      ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 1.9; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-14, -10); ctx.lineTo(-19, -20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(12, -10); ctx.lineTo(14, -21); ctx.stroke();
     } else if (p === 'pony') {
       // มัดหางม้า: คลุมหัว + หางยาวสะบัดด้านหลัง
       drewHair = true; ctx.fillStyle = c;
@@ -4536,6 +4567,12 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.ellipse(-29, -14, 8.5, 17, 0.55, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.ellipse(-35, 2, 5.5, 11, 0.25, 0, TAU); ctx.fill();
+      // ยางมัดผม + เส้นปอย
+      ctx.fillStyle = dk(c, 0.66);
+      ctx.save(); ctx.translate(-23, -20); ctx.rotate(0.5);
+      roundRect(-3, -5.5, 6, 11, 3); ctx.fill(); ctx.restore();
+      ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(8, -30); ctx.quadraticCurveTo(-8, -28, -18, -20); ctx.stroke();
     } else if (p === 'twin') {
       // มัดแฝด: คลุมหัว + หางสองข้างยาวถึงไหล่
       drewHair = true; ctx.fillStyle = c;
@@ -4545,6 +4582,14 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.ellipse(-31, 6, 7, 16, 0.22, 0, TAU); ctx.fill();
       ctx.beginPath(); ctx.ellipse(32, 6, 7, 16, -0.22, 0, TAU); ctx.fill();
+      // ยางมัดสองข้าง + แสกกลาง
+      ctx.fillStyle = dk(c, 0.66);
+      for (const sg of [-1, 1]) {
+        ctx.save(); ctx.translate(sg * 29.5, -6); ctx.rotate(sg * 0.22);
+        roundRect(-4.5, -3, 9, 6, 3); ctx.fill(); ctx.restore();
+      }
+      ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0.5, -33); ctx.lineTo(0.5, -24); ctx.stroke();
     } else if (p === 'side') {
       // ผมยาวปัดข้าง: คลุมหัวแล้วสะบัดปลายลงข้างเดียวถึงบ่า
       drewHair = true; ctx.fillStyle = c;
@@ -4558,6 +4603,10 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.quadraticCurveTo(-36, 6, -28, 20);
       ctx.quadraticCurveTo(-22, 10, -24, -2);
       ctx.closePath(); ctx.fill();
+      // เส้นสายผมตามทิศกวาด
+      ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(18, -26); ctx.quadraticCurveTo(-2, -22, -16, -12); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(10, -30); ctx.quadraticCurveTo(-8, -27, -22, -18); ctx.stroke();
     } else if (p === 'flame') {
       // เปลวไฟทั้งเปลวแบบวิญญาณเพลิง: เปลวนอกพลิ้ว + แกนในสว่าง
       drewHair = true; ctx.fillStyle = c;
