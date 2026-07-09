@@ -893,7 +893,7 @@ const LOOK = {
   snowsugar: { limb: 'xslim', deco: ['robe:#ffffff', 'furhood:#ffffff', 'blushdot', 'staff:#7ec8e8'] },
   carol: { body: '#d9a05e', icing: '#2e7a3a', deco: ['dress:#2e7a3a', 'moonpin:#ffd24a', 'dots:#e0453a', 'spiky:#2e7a3a'] },
   blackberry: { limb: 'slim', icing: '#4a3a5e', deco: ['dress:#483078', 'collar:#ffffff', 'maidband:#ffffff', 'long:#241854'] },
-  pinkchoco: { body: '#e8a058', deco: ['heartcheek:#ff5a8a', 'ribbon:#f06c78', 'bob:#f06c78', 'wand:#ff5a8a'] },
+  pinkchoco: { body: '#e8a058', limb: 'slim', deco: ['bootfeet:#e87898', 'flowtail:#f2cf5b', 'tee:#fdfaf8', 'heartchest:#e0202a', 'collar:#f2b8cc', 'hearthood:#f28fae', 'heartcheek:#ff5a8a', 'heartwand:#e0202a'] },
   kiwi: { body: '#a8885a', deco: ['spiky:#7a9a3a', 'band:#3a3a44', 'freckles'] },
   apple: { body: '#f0c890', deco: ['pony:#f2d848', 'fruit:#e0453a', 'freckles', 'blushdot'] },
   werewolf: { body: '#9a949c', deco: ['messy:#e8e4ec', 'wolfears:#b8b4bc', 'fangs', 'claws:#4a4650'] },
@@ -4285,6 +4285,20 @@ function runDecos(ch, phase, RIM) {
         ctx.save(); ctx.translate(-30, -36 + wag * 20); ctx.rotate(-0.5 + wag);
         ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(-5, -6); ctx.lineTo(5, -5); ctx.closePath(); ctx.fill();
         ctx.restore();
+      } else if (p === 'flowtail') {
+        // หางม้าทองพลิ้วโผล่ข้างหลังฮู้ด (พิงก์ช็อกโก)
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(-8, -95);
+        ctx.quadraticCurveTo(-32, -92, -36, -74);
+        ctx.quadraticCurveTo(-38, -58, -28, -48);
+        ctx.quadraticCurveTo(-40, -42, -36, -28);
+        ctx.quadraticCurveTo(-30, -18, -20, -22);
+        ctx.quadraticCurveTo(-26, -38, -20, -54);
+        ctx.quadraticCurveTo(-14, -72, -4, -84);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = dk(c, 0.76); ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-16, -70); ctx.quadraticCurveTo(-28, -56, -27, -40); ctx.stroke();
       } else if (p === 'foxtail') {
         ctx.fillStyle = c;
         ctx.beginPath();
@@ -4320,6 +4334,20 @@ function runDecos(ch, phase, RIM) {
         ctx.fillStyle = c;
         for (const [x, y] of [[-7, -47], [5, -43], [-3, -37], [8, -33], [-8, -31]])
           { ctx.beginPath(); ctx.arc(x, y, 2.2, 0, TAU); ctx.fill(); }
+      } else if (p === 'heartchest') {
+        // หัวใจแดงใหญ่กลางอก
+        ctx.fillStyle = c;
+        ctx.save(); ctx.translate(0, -40);
+        ctx.beginPath();
+        ctx.moveTo(0, -4);
+        ctx.quadraticCurveTo(-2, -8.5, -6, -8.5);
+        ctx.quadraticCurveTo(-11.5, -7, -11.5, -2);
+        ctx.quadraticCurveTo(-11.5, 4, 0, 10.5);
+        ctx.quadraticCurveTo(11.5, 4, 11.5, -2);
+        ctx.quadraticCurveTo(11.5, -7, 6, -8.5);
+        ctx.quadraticCurveTo(2, -8.5, 0, -4);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
       } else if (p === 'starchest') {
         ctx.fillStyle = c;
         ctx.save(); ctx.translate(0, -42);
@@ -4744,6 +4772,33 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.beginPath(); ctx.arc(0.5, 2, 30, Math.PI * 0.86, Math.PI * 2.14); ctx.stroke();
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.arc(0.5, -20, 15, Math.PI, TAU); ctx.fill();
+    } else if (p === 'hearthood') {
+      // ฮู้ดหัวใจสีชมพู เปิดหน้าเป็นช่องรูปหัวใจ (พิงก์ช็อกโก)
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.arc(0.5, -2, 33.5, 0, TAU);
+      ctx.moveTo(0.5, -13);
+      ctx.quadraticCurveTo(-4, -22, -10, -20.5);
+      ctx.quadraticCurveTo(-20, -17, -19, -4);
+      ctx.quadraticCurveTo(-17, 9, 0.5, 16);
+      ctx.quadraticCurveTo(18, 9, 20, -4);
+      ctx.quadraticCurveTo(21, -17, 11, -20.5);
+      ctx.quadraticCurveTo(5, -22, 0.5, -13);
+      ctx.closePath();
+      ctx.fill('evenodd');
+      // เคลือบเงาหยดบนฮู้ด (อยู่สูงพ้นรอยบุ๋มหัวใจ)
+      ctx.fillStyle = shade(c, 30);
+      ctx.beginPath(); ctx.arc(0.5, -27, 14, Math.PI, TAU);
+      ctx.quadraticCurveTo(11, -21, 6, -25);
+      ctx.quadraticCurveTo(0.5, -19, -5, -25);
+      ctx.quadraticCurveTo(-10, -21, -13.5, -27);
+      ctx.closePath(); ctx.fill();
+      // จุกปลายฮู้ดสะบัด
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.moveTo(-3, -33);
+      ctx.quadraticCurveTo(2, -44, 12, -41);
+      ctx.quadraticCurveTo(5, -36, 4, -31);
+      ctx.closePath(); ctx.fill();
     } else if (p === 'band') {
       ctx.fillStyle = c;
       roundRect(-27, -18, 54, 9, 4.5); ctx.fill();
