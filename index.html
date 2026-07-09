@@ -2379,8 +2379,144 @@ const FORM_DRAW = {
     ctx.restore();
   },
 };
+FORM_DRAW.devil = function (anim) {   // 😈 ซูเปอร์เดวิล
+  const fl = Math.sin(G.time * 14) * 0.45;
+  ctx.save(); ctx.translate(0, -60 + Math.sin(G.time * 5) * 7);
+  for (const sg of [-1, 1]) {
+    ctx.save(); ctx.scale(sg, 1); ctx.rotate(-fl);
+    ctx.fillStyle = '#4a1020';
+    ctx.beginPath(); ctx.moveTo(12, 0);
+    ctx.quadraticCurveTo(52, -30, 66, -6);
+    ctx.quadraticCurveTo(52, -2, 50, 10);
+    ctx.quadraticCurveTo(36, 3, 30, 14);
+    ctx.quadraticCurveTo(20, 6, 12, 12);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle = '#f4481a';
+  ctx.beginPath(); ctx.arc(0, 0, 24, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#a02818';
+  ctx.beginPath(); ctx.moveTo(-14, -16); ctx.lineTo(-20, -34); ctx.lineTo(-5, -22); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(14, -16); ctx.lineTo(20, -34); ctx.lineTo(5, -22); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffd24a';
+  ctx.beginPath(); ctx.arc(-8, -3, 4, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(8, -3, 4, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#7a1000'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(0, 6, 7, 0.15, Math.PI - 0.15); ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.moveTo(-5, 9); ctx.lineTo(-3, 14); ctx.lineTo(-1, 9); ctx.closePath(); ctx.fill();
+  ctx.restore();
+};
+FORM_DRAW.moonrabbit = function (anim) {   // 🐰 โมจิยักษ์เด้งดึ๋ง
+  const sq = Math.abs(Math.sin(G.time * 8));
+  ctx.save(); ctx.translate(0, -30 - sq * 14);
+  ctx.scale(1 + sq * 0.08, 1 - sq * 0.1);
+  ctx.fillStyle = '#fdfaf4';
+  ctx.beginPath(); ctx.ellipse(0, 0, 34, 28, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-12, -30, 8, 20, -0.15, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(13, -30, 8, 20, 0.15, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#f4b8cc';
+  ctx.beginPath(); ctx.ellipse(-12, -28, 3.6, 13, -0.15, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(13, -28, 3.6, 13, 0.15, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#d02830';
+  ctx.beginPath(); ctx.arc(-9, -4, 3.4, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(9, -4, 3.4, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#d02830'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(-2, 4, 3.4, 0.2, Math.PI - 0.2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(4, 4, 3.4, 0.2, Math.PI - 0.2); ctx.stroke();
+  ctx.restore();
+};
+FORM_DRAW.banana = function (anim) {   // 🐒 ลิงกล้วยห้อยโหน
+  const sw = Math.sin(G.time * 6) * 0.3;
+  ctx.save(); ctx.translate(0, -44); ctx.rotate(sw);
+  ctx.fillStyle = '#8a5a2e';
+  ctx.beginPath(); ctx.ellipse(0, 0, 20, 24, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -26, 15, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#c89058';
+  ctx.beginPath(); ctx.ellipse(0, -24, 9, 11, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 4, 12, 15, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#8a5a2e';
+  ctx.beginPath(); ctx.arc(-14, -30, 6, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(14, -30, 6, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#8a5a2e'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-14, 4); ctx.quadraticCurveTo(-30, -8, -26, -28); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(14, 4); ctx.quadraticCurveTo(30, 6, 34, 22); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-8, 20); ctx.quadraticCurveTo(-26, 34, -34, 26); ctx.stroke();
+  ctx.fillStyle = '#2e2018';
+  ctx.beginPath(); ctx.arc(-5, -27, 2.2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(5, -27, 2.2, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#f6dc7a';
+  ctx.save(); ctx.translate(30, -40); ctx.rotate(0.6);
+  ctx.beginPath(); ctx.moveTo(0, -12); ctx.quadraticCurveTo(12, 0, 4, 14);
+  ctx.quadraticCurveTo(6, 2, -3, -10); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+};
 /* ร่างเสริม (วาดใต้ตัวปกติ): เซิร์ฟบอร์ด/วิญญาณ/ไอพ่น/ลมหมุน */
 const FORM_UNDER = {
+  kiwi(anim) {   // 🏍 มอเตอร์ไซค์ซิ่ง
+    ctx.save(); ctx.translate(0, -4);
+    ctx.fillStyle = '#2e2e34';
+    for (const wx of [-24, 26]) {
+      ctx.beginPath(); ctx.arc(wx, 0, 12, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#6a6a72';
+      ctx.beginPath(); ctx.arc(wx, 0, 5, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#2e2e34';
+    }
+    ctx.fillStyle = '#4a8a2e';
+    roundRect(-26, -18, 52, 12, 6); ctx.fill();
+    ctx.strokeStyle = '#8a8a92'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(24, -16); ctx.lineTo(34, -30); ctx.stroke();
+    ctx.fillStyle = 'rgba(200,200,210,.5)';
+    for (let q = 0; q < 3; q++) {
+      ctx.beginPath();
+      ctx.arc(-40 - ((G.time * 300 + q * 26) % 60), -6 - q * 4, 7 - q, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  },
+  cocoa(anim) {   // ☕ นั่งถ้วยโกโก้ร้อน
+    ctx.save();
+    ctx.fillStyle = '#fdfaf6';
+    ctx.beginPath(); ctx.moveTo(-34, -34); ctx.lineTo(34, -34);
+    ctx.quadraticCurveTo(30, 4, 0, 4); ctx.quadraticCurveTo(-30, 4, -34, -34);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#c03028'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(-32, -26); ctx.lineTo(32, -26); ctx.stroke();
+    ctx.strokeStyle = '#fdfaf6'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(38, -18, 9, -1.2, 1.2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.moveTo(-12, -40); ctx.quadraticCurveTo(-18, -52, -12, -62); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(10, -42); ctx.quadraticCurveTo(4, -54, 10, -64); ctx.stroke();
+    ctx.restore();
+  },
+  redbean(anim) {   // 🐧 เลื่อนเพนกวิน
+    ctx.save(); ctx.translate(0, -2);
+    ctx.fillStyle = '#2e3440';
+    ctx.beginPath(); ctx.ellipse(-30, -14, 15, 19, 0.15, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#fdfaf6';
+    ctx.beginPath(); ctx.ellipse(-27, -10, 8, 12, 0.15, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#e8b03a';
+    ctx.beginPath(); ctx.moveTo(-22, -20); ctx.lineTo(-12, -17); ctx.lineTo(-22, -14); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#8a5a2e';
+    roundRect(-44, 0, 88, 7, 3.5); ctx.fill();
+    ctx.fillStyle = 'rgba(230,245,255,.8)';
+    for (let q = 0; q < 4; q++) {
+      ctx.beginPath();
+      ctx.arc(-52 - ((G.time * 240 + q * 22) % 40), 2 - q * 3, 5 - q, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+  },
+  skatingq(anim) {   // ⛸ เส้นน้ำแข็ง DASH
+    ctx.strokeStyle = 'rgba(160,225,255,.75)'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-14, 2); ctx.quadraticCurveTo(-46, 8, -84, -6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(6, 2); ctx.quadraticCurveTo(-26, 12, -70, 8); ctx.stroke();
+    ctx.fillStyle = '#dff4ff';
+    for (let q = 0; q < 4; q++) {
+      const xx = -20 - ((G.time * 320 + q * 30) % 70);
+      ctx.save(); ctx.translate(xx, -4 - (q % 2) * 10); ctx.rotate(G.time * 6 + q);
+      ctx.fillRect(-3, -3, 6, 6); ctx.restore();
+    }
+  },
   soda(anim) {
     ctx.save(); ctx.rotate(-0.08);
     ctx.fillStyle = '#28b8ac';
@@ -2472,6 +2608,15 @@ function updateFX(dt) {
   FX.cutT = Math.max(0, FX.cutT - dt * 1.05);
   for (const r of FX.rings) r.t += dt * 2.4;
   FX.rings = FX.rings.filter(r => r.t < 1);
+  // ✨ ออร่าประจำตัวตอนวิ่ง: ประกายสีธีมของแต่ละคุกกี้ (ครบทุกตัว)
+  if (G.state === 'play' && !G.paused) {
+    FX.trailT = (FX.trailT || 0) + dt;
+    if (FX.trailT > 0.14) {
+      FX.trailT = 0;
+      const c2 = CHARS[G.charIdx];
+      sparkle(P.x + rnd(-6, 20), P.y + P.h - rnd(2, 16), 1, Math.random() < 0.5 ? (c2.icing || '#fff8f0') : (c2.button || '#ffd24a'));
+    }
+  }
   // เอมเบอร์ลอยต่อเนื่องระหว่างร่างแปลง
   if (G.formT > 0 && G.state === 'play') {
     FX.emberT += dt;
@@ -2570,6 +2715,19 @@ function drawFX() {
       ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + 24, sy - 36); ctx.stroke();
       ctx.fillStyle = FX.starC;
       ctx.beginPath(); ctx.arc(sx, sy, 4.2, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // 🎊 คอนเฟตตีสีรุ้งตอน BONUS TIME
+  if (G.bonusT > 0.5) {
+    const CC = ['#ff6b8d', '#ffd24a', '#7ec8ff', '#8fd8a0', '#c8a0f0'];
+    for (let q = 0; q < 14; q++) {
+      const cx2 = ((q * 149 + Math.floor(G.time * 1.7) * 83) % (W + 40)) - 20;
+      const cy2 = ((G.time * 260 + q * 173) % (H + 40)) - 20;
+      ctx.save(); ctx.translate(cx2, cy2); ctx.rotate(G.time * 5 + q);
+      ctx.fillStyle = CC[q % 5]; ctx.globalAlpha = 0.85;
+      ctx.fillRect(-4, -2.5, 8, 5);
+      ctx.restore();
     }
     ctx.globalAlpha = 1;
   }
