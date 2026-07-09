@@ -1221,39 +1221,127 @@ const AudioSys = {
   buy()    { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>this.beep(f,0.1,'triangle',0.22),i*55)); },
   deny()   { this.beep(180, 0.18, 'sawtooth', 0.18, -60); },
 
-  musicTimer: null, step: 0,
-  melody: [
-    523,0,659,0, 784,0,659,523, 587,0,659,587, 523,0,392,0,
-    523,0,659,0, 784,0,880,784, 659,587,523,587, 659,0,523,0,
-    440,0,523,0, 659,0,523,440, 494,0,587,494, 392,0,330,0,
-    440,0,523,659, 784,0,659,523, 587,659,587,494, 523,0,0,0
-  ],
-  bass: [131,0,196,0, 165,0,196,0, 147,0,196,0, 131,0,196,0,
-         131,0,196,0, 165,0,196,0, 147,0,175,0, 196,0,196,0],
+  skill()  { [784,988,1319].forEach((f,i)=>setTimeout(()=>this.beep(f,0.12,'sawtooth',0.16,120),i*45)); },
+  star()   { [1047,1319,1568].forEach((f,i)=>setTimeout(()=>this.beep(f,0.14,'triangle',0.22),i*90)); },
+  clear()  { [523,659,784,1047,1319,1047,1319,1568].forEach((f,i)=>setTimeout(()=>this.beep(f,0.16,'square',0.18),i*110)); },
+  finish() { [659,784,1047].forEach((f,i)=>setTimeout(()=>this.beep(f,0.13,'square',0.2),i*60)); },
+
+  /* ---------- BGM ต่อธีม (ทำนองต้นฉบับ แต่งเอง) ----------
+     แต่ละแทร็ก = { m:เมโลดี้, b:เบส, wave, tempo, drum } */
+  TRACKS: {
+    menu: {
+      wave: 'triangle', tempo: 150, drum: 0,
+      m: [523,0,659,784, 880,0,784,659, 587,0,659,784, 659,0,0,0,
+          523,0,659,784, 1047,0,880,784, 659,587,523,494, 523,0,0,0],
+      b: [262,0,0,0, 349,0,0,0, 294,0,0,0, 330,0,0,0,
+          262,0,0,0, 349,0,0,0, 294,0,330,0, 262,0,0,0],
+    },
+    oven: {   // ตื่นเต้น หนีไฟ
+      wave: 'square', tempo: 118, drum: 1,
+      m: [523,0,523,659, 784,0,659,0, 587,0,587,698, 523,0,0,0,
+          523,0,659,784, 880,784,659,587, 523,587,659,587, 523,0,392,0],
+      b: [131,131,196,0, 165,165,196,0, 147,147,196,0, 131,131,196,0],
+    },
+    jungle: {   // สดใส กระโดดโลดเต้น
+      wave: 'triangle', tempo: 128, drum: 1,
+      m: [659,0,784,880, 988,0,880,784, 659,0,587,659, 784,0,0,0,
+          880,0,784,659, 587,659,784,880, 988,880,784,659, 659,0,0,0],
+      b: [165,0,247,0, 196,0,247,0, 147,0,220,0, 165,0,196,0],
+    },
+    dragon: {   // เข้ม ดุดัน
+      wave: 'sawtooth', tempo: 112, drum: 1,
+      m: [440,0,440,523, 587,0,523,440, 392,0,392,466, 440,0,0,0,
+          440,523,587,698, 784,698,587,523, 440,466,523,466, 440,0,330,0],
+      b: [110,110,165,0, 131,131,165,0, 98,98,147,0, 110,110,165,0],
+    },
+    wizard: {   // ลึกลับ พิศวง
+      wave: 'triangle', tempo: 108, drum: 0,
+      m: [523,0,622,0, 740,0,622,523, 466,0,523,622, 523,0,0,0,
+          622,0,740,880, 988,0,880,740, 622,587,523,466, 523,0,0,0],
+      b: [131,0,196,0, 156,0,196,0, 117,0,175,0, 131,0,175,0],
+    },
+    dessert: {   // หวานน่ารัก
+      wave: 'triangle', tempo: 138, drum: 1,
+      m: [784,0,880,988, 1047,0,988,880, 784,0,698,784, 880,0,0,0,
+          1047,0,988,880, 784,880,988,1047, 1175,1047,988,880, 880,0,0,0],
+      b: [196,0,262,0, 220,0,294,0, 175,0,262,0, 196,0,247,0],
+    },
+    bonus: {   // เร่งเร้าสนุกสุด
+      wave: 'square', tempo: 92, drum: 2,
+      m: [1047,988,1047,1175, 1319,0,1175,1047, 988,880,988,1047, 1047,0,0,0,
+          1319,1175,1047,988, 1047,1175,1319,1568, 1319,1175,1047,988, 1047,0,0,0],
+      b: [262,262,392,0, 330,330,392,0, 294,294,392,0, 262,262,392,0],
+    },
+  },
+  musicTimer: null, step: 0, curTrack: 'menu',
+  drumHit(t, kind) {
+    // kind: 0 ปิด, 1 kick+hat, 2 kick+hat หนัก
+    if (!kind) return;
+    if (this.step % 4 === 0) {   // kick
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(150, t);
+      o.frequency.exponentialRampToValueAtTime(50, t + 0.12);
+      g.gain.setValueAtTime(0.16 * kind, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+      o.connect(g); g.connect(this.musicGain); o.start(t); o.stop(t + 0.14);
+    }
+    if (this.step % 2 === 1) {   // hi-hat
+      const len = Math.floor(this.ctx.sampleRate * 0.03);
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const g = this.ctx.createGain(); g.gain.value = 0.05 * kind;
+      src.connect(g); g.connect(this.musicGain); src.start(t);
+    }
+  },
+  pickTrack() {
+    if (typeof G === 'undefined') return 'menu';
+    if (G.state !== 'play') return 'menu';
+    if (G.bonusT > 0) return 'bonus';
+    if (G.mode === 'coins') return 'jungle';
+    if (G.mode === 'tower') return 'wizard';
+    if (G.mode === 'normal' || G.mode === 'story') {
+      if (ovenAmt > 0.5) return 'oven';
+      return (EP() && EP().id && this.TRACKS[EP().id]) ? EP().id : 'jungle';
+    }
+    return 'oven';
+  },
   startMusic() {
     if (!this.ctx || this.musicTimer) return;
     this.step = 0;
     const tick = () => {
       if (this.muted) { this.step++; return; }
+      const want = this.pickTrack();
+      if (want !== this.curTrack && this.step % 8 === 0) this.curTrack = want;   // สลับเพลงที่ห้องเพลง
+      const tr = this.TRACKS[this.curTrack] || this.TRACKS.menu;
       const t = this.ctx.currentTime;
-      const m = this.melody[this.step % this.melody.length];
-      const b = this.bass[this.step % this.bass.length];
+      const m = tr.m[this.step % tr.m.length];
+      const b = tr.b[this.step % tr.b.length];
       if (m) {
         const o = this.ctx.createOscillator(), g = this.ctx.createGain();
-        o.type = 'square'; o.frequency.value = m;
-        g.gain.setValueAtTime(0.05, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
-        o.connect(g); g.connect(this.musicGain); o.start(t); o.stop(t + 0.15);
+        o.type = tr.wave; o.frequency.value = m;
+        g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+        o.connect(g); g.connect(this.musicGain); o.start(t); o.stop(t + 0.16);
+        // harmony ชั้นบางเบา
+        const o2 = this.ctx.createOscillator(), g2 = this.ctx.createGain();
+        o2.type = 'sine'; o2.frequency.value = m * 1.5;
+        g2.gain.setValueAtTime(0.02, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+        o2.connect(g2); g2.connect(this.musicGain); o2.start(t); o2.stop(t + 0.13);
       }
       if (b) {
         const o = this.ctx.createOscillator(), g = this.ctx.createGain();
         o.type = 'triangle'; o.frequency.value = b;
-        g.gain.setValueAtTime(0.09, t);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-        o.connect(g); g.connect(this.musicGain); o.start(t); o.stop(t + 0.18);
+        g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.17);
+        o.connect(g); g.connect(this.musicGain); o.start(t); o.stop(t + 0.19);
       }
+      this.drumHit(t, tr.drum);
       this.step++;
+      // ปรับจังหวะตามเพลง
+      const target = tr.tempo;
+      if (this._tempo !== target) { this._tempo = target; clearInterval(this.musicTimer);
+        this.musicTimer = setInterval(tick, target); }
     };
+    this._tempo = 130;
     this.musicTimer = setInterval(tick, 130);
   },
   stopMusic() { clearInterval(this.musicTimer); this.musicTimer = null; }
@@ -1929,6 +2017,7 @@ function levelClear() {
   cloudSave(true);
   setState('clear'); G.clearT = 0;
   P.dead = false;
+  AudioSys.finish(); setTimeout(() => AudioSys.clear(), 400);
   FX.flashT = 0.5; FX.flashC = '#ffe98e'; FX.raysT = 0.9; FX.raysC = '#ffd24a';
   for (let q = 0; q < 4; q++) FX.rings.push({ t: -q * 0.1, c: q % 2 ? '#ffd24a' : '#ffffff', x: P.x + 28, y: P.y + P.h / 2 });
   sparkle(P.x + 28, P.y + 20, 50, '#ffd24a');
@@ -2625,6 +2714,7 @@ function skillBurst(color, big) {
                 { t: -0.09, c: color, x: P.x + 28, y: P.y + P.h / 2 },
                 { t: -0.18, c: '#fff6c8', x: P.x + 28, y: P.y + P.h / 2 });
   FX.raysT = big ? 0.7 : 0.45; FX.raysC = color;
+  AudioSys.skill();
   FX.linesT = big ? 0.5 : 0.3;
   G.shake = Math.max(G.shake || 0, big ? 16 : 10);
   FX.stopT = big ? 0.15 : 0.08;    // หยุดเวลาแวบเดียวแบบเกมจริง
