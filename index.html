@@ -44,6 +44,10 @@
 const W = 960, H = 540;
 const canvas = document.getElementById('game');
 let ctx = canvas.getContext('2d');
+// เรนเดอร์ตามความละเอียดจอจริง (retina) ให้ภาพคมชัด ไม่เบลอตอนขยายเต็มจอ
+const DPR = Math.min(window.devicePixelRatio || 1, 2.5);
+canvas.width = Math.round(W * DPR);
+canvas.height = Math.round(H * DPR);
 
 /* offscreen canvas สำหรับเรนเดอร์ตัวละครแบบ unified silhouette
    (วาดรวมเป็นก้อนเดียว → ไล่แสงทั้งตัวพาสเดียว → ภาพเนียนไร้รอยต่อ) */
@@ -4151,6 +4155,7 @@ function updateParticles(dt) {
 function draw() {
   uiButtons = [];
   if (window.__poseTest) { drawPoseSheet(); return; }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);   // สเกลฐานตามความละเอียดจอ → ทุกอย่างคมชัด
   ctx.save();
   if (G.shake > 0) ctx.translate(rnd(-G.shake, G.shake) * 0.5, rnd(-G.shake, G.shake) * 0.5);
   if (FX.zoomT > 0 && G.state === 'play') {
