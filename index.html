@@ -8017,63 +8017,90 @@ function drawMenu() {
   drawGemChip(W - 20, 52);
   drawPowderChip(W - 20, 90);
 
-  /* ---------- โซนโชว์ตัวละคร (ซ้าย) บนเวทีขนม ---------- */
-  const stageX = 210, stageY = 428;
-  // สปอตไลต์ส่องลงเวที
-  const _spg = ctx.createLinearGradient(stageX, 196, stageX, stageY);
-  _spg.addColorStop(0, 'rgba(255,240,190,.13)'); _spg.addColorStop(1, 'rgba(255,240,190,0)');
-  ctx.fillStyle = _spg;
-  ctx.beginPath(); ctx.moveTo(stageX - 42, 196); ctx.lineTo(stageX + 42, 196);
-  ctx.lineTo(stageX + 152, stageY); ctx.lineTo(stageX - 152, stageY); ctx.closePath(); ctx.fill();
-  // เวที (แท่นวงรี)
-  ctx.fillStyle = 'rgba(120,70,30,.5)';
-  ctx.beginPath(); ctx.ellipse(stageX, stageY + 6, 128, 30, 0, 0, TAU); ctx.fill();
-  ctx.fillStyle = 'rgba(255,220,160,.16)';
-  ctx.beginPath(); ctx.ellipse(stageX, stageY, 150, 40, 0, 0, TAU); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,210,120,.5)'; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.ellipse(stageX, stageY, 150, 40, 0, 0, TAU); ctx.stroke();
-  // สัตว์เลี้ยง
+  /* ---------- กรอบเวทีตัวละคร ธีมกลางคืน (แบบหน้าโฮมเกมจริง) ---------- */
+  const fx0 = 46, fy0 = 172, fw = 336, fh = 226;
+  const cxm = fx0 + fw / 2, floorY = fy0 + fh - 34;
   ctx.save();
-  ctx.translate(stageX - 96, 356 + Math.sin(G.time * 4) * 10);
-  ctx.scale(1.22, 1.22);
-  drawPet(PT());
-  ctx.restore();
-  // ตัวละครวิ่งโชว์บนเวที
-  ctx.save();
-  ctx.translate(stageX, stageY - 20 + Math.abs(Math.sin(G.time * 3)) * -18);
-  ctx.scale(1.35, 1.35);
-  drawCookieRun(P.anim);
-  ctx.restore();
-  // ป้ายชื่อ + เลเวล
-  drawPanel(stageX - 98, stageY + 18, 196, 30, 12);
-  ctx.font = 'bold 15px Trebuchet MS'; ctx.textAlign = 'center';
+  roundRect(fx0, fy0, fw, fh, 18); ctx.clip();
+  // ท้องฟ้ากลางคืน
+  const nsg = ctx.createLinearGradient(0, fy0, 0, fy0 + fh);
+  nsg.addColorStop(0, '#1b2652'); nsg.addColorStop(0.62, '#31407a'); nsg.addColorStop(1, '#3a4a2e');
+  ctx.fillStyle = nsg; ctx.fillRect(fx0, fy0, fw, fh);
+  // ดาวกระพริบ
   ctx.fillStyle = '#fff';
-  ctx.fillText(CH().name + '  Lv.' + (G.charLv[G.charIdx] || 1), stageX, stageY + 38);
-  // สถิติสูงสุด (เหนือเวที)
-  if (G.best > 0) {
-    ctx.font = 'bold 17px Trebuchet MS'; ctx.textAlign = 'center';
-    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(60,30,0,.85)';
-    ctx.strokeText('🏆 สถิติ ' + G.best.toLocaleString(), stageX, 210);
-    ctx.fillStyle = '#ffd24a';
-    ctx.fillText('🏆 สถิติ ' + G.best.toLocaleString(), stageX, 210);
+  for (let s = 0; s < 28; s++) {
+    const sx = fx0 + ((s * 71 + 20) % fw), sy = fy0 + ((s * 47 + 12) % (fh - 70));
+    ctx.globalAlpha = 0.35 + Math.abs(Math.sin(G.time * 2 + s)) * 0.55;
+    ctx.beginPath(); ctx.arc(sx, sy, s % 4 === 0 ? 1.8 : 1, 0, TAU); ctx.fill();
   }
+  ctx.globalAlpha = 1;
+  // พระจันทร์เสี้ยว
+  ctx.fillStyle = '#f6edd2';
+  ctx.beginPath(); ctx.arc(fx0 + fw - 46, fy0 + 44, 22, 0, TAU); ctx.fill();
+  ctx.fillStyle = nsg;
+  ctx.beginPath(); ctx.arc(fx0 + fw - 38, fy0 + 38, 20, 0, TAU); ctx.fill();
+  // ดาวตก
+  const shoot = (G.time * 0.55) % 4.5;
+  if (shoot < 1) {
+    const sxp = fx0 + 60 + shoot * 190, syp = fy0 + 24 + shoot * 66;
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(sxp, syp); ctx.lineTo(sxp - 34, syp - 14); ctx.stroke();
+  }
+  // พื้นหิน
+  ctx.fillStyle = '#465a32'; ctx.fillRect(fx0, floorY, fw, fh - (floorY - fy0));
+  ctx.fillStyle = 'rgba(120,145,80,.6)'; ctx.fillRect(fx0, floorY, fw, 5);
+  // สถิติสูงสุด (มุมซ้ายบนในกรอบ)
+  if (G.best > 0) {
+    ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'left'; ctx.fillStyle = '#ffd24a';
+    ctx.fillText('🏆 ' + G.best.toLocaleString(), fx0 + 12, fy0 + 22);
+  }
+  // สัตว์เลี้ยง + ตัวละครยืนบนพื้น
+  ctx.save();
+  ctx.translate(cxm - 96, floorY - 42 + Math.sin(G.time * 4) * 8);
+  ctx.scale(1.12, 1.12); drawPet(PT()); ctx.restore();
+  ctx.save();
+  ctx.translate(cxm + 8, floorY + 2 + Math.abs(Math.sin(G.time * 3)) * -14);
+  ctx.scale(1.42, 1.42); drawCookieRun(P.anim); ctx.restore();
+  ctx.restore();   // ยกเลิก clip
+  // ขอบกรอบ 2 ชั้น
+  ctx.strokeStyle = '#7a4a24'; ctx.lineWidth = 6;
+  roundRect(fx0, fy0, fw, fh, 18); ctx.stroke();
+  ctx.strokeStyle = '#c99a5a'; ctx.lineWidth = 2.5;
+  roundRect(fx0 + 3.5, fy0 + 3.5, fw - 7, fh - 7, 15); ctx.stroke();
+  // ป้าย Combi Bonus ใต้ตัวละคร (ถ้าสัตว์เลี้ยงเข้าคู่)
+  if (PT().id === CH().mate) {
+    const cbTxt = '💞 COMBI +15% · ' + combiCatOf(CH()).label;
+    ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center';
+    const cbw = ctx.measureText(cbTxt).width + 20;
+    ctx.fillStyle = 'rgba(20,45,12,.82)';
+    roundRect(cxm - cbw / 2, fy0 + fh - 26, cbw, 21, 9); ctx.fill();
+    ctx.fillStyle = '#a6ff8f'; ctx.fillText(cbTxt, cxm, fy0 + fh - 11);
+  }
+  // ป้ายชื่อ + เลเวล (คาดบนกรอบ)
+  drawPanel(cxm - 92, fy0 - 8, 184, 28, 12);
+  ctx.font = 'bold 14px Trebuchet MS'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+  ctx.fillText(CH().name + '  Lv.' + (G.charLv[G.charIdx] || 1), cxm, fy0 + 11);
+  // แถบเลือกด่วน: สัตว์เลี้ยง | ตัวละคร | สมบัติ (แบบแถบ Pet|Cookie|Treasure)
+  const qy = fy0 + fh + 12, qw = (fw - 8) / 3;
+  drawBtn(fx0, qy, qw, 40, '🐥 สัตว์เลี้ยง', () => setState('pets'), { color: '#7bd94a', dark: '#57a832', font: 13 });
+  drawBtn(fx0 + qw + 4, qy, qw, 40, '🍪 ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 13 });
+  drawBtn(fx0 + qw * 2 + 8, qy, qw, 40, '💎 สมบัติ', () => setState('treasure'), { color: '#e8b23c', dark: '#c08d1e', font: 13 });
 
-  /* ---------- แผงเมนู (ขวา) ---------- */
+  /* ---------- แผงเมนู (ขวา) — เน้นโหมดเล่น ---------- */
   const mx = 424, mw = 512;
   drawPanel(mx - 8, 150, mw + 16, 320, 18);
   // ปุ่ม PLAY ใหญ่เด่น
-  drawBtn(mx, 164, mw, 58, '▶  เริ่มวิ่ง!', () => { G.boostSel = {}; setState('prep'); }, { color: '#ffb02e', dark: '#e07b12', font: 26 });
+  drawBtn(mx, 164, mw, 66, '▶  เริ่มวิ่ง!', () => { G.boostSel = {}; setState('prep'); }, { color: '#7bd94a', dark: '#57a832', font: 28 });
   const sb = (G.starBest || [0,0,0,0,0]).reduce((a, b) => a + b, 0);
-  drawBtn(mx, 230, mw, 42, '🗺️ โหมดผจญภัย  (ดาว ' + sb + '/15)', () => setState('advmap'), { color: '#e8913a', dark: '#c06a1a', font: 16 });
-  // กริดเมนู 2 คอลัมน์
+  drawBtn(mx, 238, mw, 46, '🗺️ โหมดผจญภัย  (ดาว ' + sb + '/15)', () => setState('advmap'), { color: '#e8913a', dark: '#c06a1a', font: 17 });
+  // โหมดพิเศษ 2 คอลัมน์
   const gw = (mw - 12) / 2, gx2 = mx + gw + 12;
-  drawBtn(mx, 280, gw, 46, '🍪 ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 16 });
-  drawBtn(gx2, 280, gw, 46, '🐥 สัตว์เลี้ยง', () => setState('pets'), { color: '#7bd94a', dark: '#57a832', font: 16 });
-  drawBtn(mx, 332, gw, 46, '💎 สมบัติ', () => setState('treasure'), { color: '#e8b23c', dark: '#c08d1e', font: 16 });
-  drawBtn(gx2, 332, gw, 46, '🛍 ร้านค้า', () => setState('shop'), { color: '#5cb8e8', dark: '#3d92c4', font: 16 });
-  drawBtn(mx, 384, gw, 40, '🏴‍☠️ เกาะเหรียญ', () => startGame('coins'), { color: '#c9a227', dark: '#a17d12', font: 14 });
-  drawBtn(gx2, 384, gw, 40, '🧊 หอคอย ' + (G.towerBest > 0 ? '(' + G.towerBest + ')' : ''), () => startGame('tower'), { color: '#6fb8d8', dark: '#4d92b4', font: 14 });
-  drawBtn(mx, 430, mw, 34, '🏆 ตารางอันดับ (ออนไลน์)', () => { fetchOnline(); setState('rank'); }, { color: '#9d7ee0', dark: '#7a5cc0', font: 15 });
+  drawBtn(mx, 292, gw, 48, '🏴‍☠️ เกาะเหรียญ', () => startGame('coins'), { color: '#c9a227', dark: '#a17d12', font: 15 });
+  drawBtn(gx2, 292, gw, 48, '🧊 หอคอย ' + (G.towerBest > 0 ? '(' + G.towerBest + ')' : ''), () => startGame('tower'), { color: '#6fb8d8', dark: '#4d92b4', font: 15 });
+  drawBtn(mx, 348, gw, 48, '🛍 ร้านค้า', () => setState('shop'), { color: '#5cb8e8', dark: '#3d92c4', font: 16 });
+  drawBtn(gx2, 348, gw, 48, '🏆 อันดับ', () => { fetchOnline(); setState('rank'); }, { color: '#9d7ee0', dark: '#7a5cc0', font: 16 });
+  // เช็กอินรายวัน (เต็มแถบ)
+  drawBtn(mx, 404, mw, 44, '🎁 เช็กอินรายวัน  รับของฟรีทุกวัน!', () => { G.dailyShow = true; }, { color: '#e0699a', dark: '#bb4a7d', font: 15 });
 
   // ป้ายภารกิจปัจจุบัน (ล่างซ้าย)
   const m = MISSIONS[G.missionIdx];
