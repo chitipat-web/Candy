@@ -883,14 +883,14 @@ const REAL = {
   lime: { desc: ['ปาบอลชายหาดสร้างไลม์', 'ทำลายสิ่งกีดขวาง'], mate: 'limeguard', cfx: { k: 'destroyIv', iv: 10, jelly: 1, tag: '🏐 ไลม์!' } },
   peppermint: { desc: ['เรียกวาฬเปปเปอร์มินต์', 'สร้างเยลลี่ฟองทะเล'], mate: 'boatman', cfx: { k: 'spawnSp', iv: 9, n: 4, tag: '🐋 วาฬ' } },
   jujube: { desc: ['ควบม้าพุทราแดง', 'ฟันทำลายสิ่งกีดขวาง'], mate: 'hotteacup', cfx: { k: 'destroyIv', iv: 8, tag: '🐎 ฟัน!' } },
-  peach: { desc: ['บุกป่าไผ่สู้นักฆ่าไผ่', 'เก็บแต้มต่อเนื่อง'], mate: 'pandadump', cfx: { k: 'spawnSp', iv: 10, n: 4, tag: '🎋 ป่าไผ่' } },
+  peach: { desc: ['บุกป่าไผ่ นักฆ่าไผ่', 'ฟันทำลายสิ่งกีดขวาง+เยลลี่'], mate: 'pandadump', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🎋 ป่าไผ่' } },
   onion: { desc: ['เข้าบ้านผีสิงทะลุ', 'สิ่งกีดขวางได้'], mate: 'onionfish', cfx: { k: 'transform', iv: 20, dur: 4, tag: '👻 บ้านผีสิง' } },
   cinnamon: { desc: ['เล่นมายากลไพ่เสกเยลลี่', '+เวทคืนชีพ 1 ครั้ง'], mate: 'cinnabunny', revives: 2, cfx: { k: 'spawnSp', iv: 9, n: 3, tag: '🃏 มายากล' } },
   macaron: { desc: ['ขบวนพาเหรดมาการอง', 'ทำลายสิ่งกีดขวาง+เยลลี่'], mate: 'castanets', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🥁 พาเหรด' } },
   redbean: { desc: ['ขี่เลื่อนเพนกวิน', 'พุ่งเป็นระยะ'], mate: 'sweetseal', cfx: { k: 'transform', iv: 22, dur: 4, tag: '🐧 เลื่อนเพนกวิน' } },
   herb: { desc: ['เยลลี่สายฝน-แสงแดด', 'ผลิบานเป็นระยะ'], mate: 'herbpot', drainMul: 0.9, cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🌱 ผลิบาน' } },
   whitechoco: { desc: ['ลุกจากสไลด์ฟาดทำลาย', 'สิ่งกีดขวางรอบตัว'], mate: 'watchref', cfx: { k: 'destroyIv', iv: 9, tag: '🤺 ฟาด!' } },
-  dinosour: { desc: ['วิ่งกับเจลลี่ไดโนเสาร์', 'กระโดดปลูกเยลลี่'], mate: 'dinoegg', cfx: { k: 'spawnSp', iv: 8, n: 3, tag: '🦕 ไดโนฟุต' } },
+  dinosour: { desc: ['เข้าโหมดยักษ์ไดโน', 'เหยียบทำลาย+วิ่งเร็วขึ้น'], mate: 'dinoegg', cfx: { k: 'transform', iv: 20, dur: 4, tag: '🦖 GIANT DINO' } },
   cottoncandy: { desc: ['BONUS TIME พิเศษนานขึ้น', '+เยลลี่หัวใจจดหมายรัก'], mate: 'ccbird', btPlus: 2.2, cfx: { k: 'spawnSp', iv: 10, n: 3, tag: '💌 จดหมายรัก' } },
   rollcake: { desc: ['ค้อนโรลเค้กทุบทำลาย', 'สิ่งกีดขวาง+เยลลี่'], mate: 'lightbros', cfx: { k: 'destroyIv', iv: 8, jelly: 1, tag: '🔨 ทุบ!' } },
   banana: { desc: ['แปลงร่างลิงลอดห่วง', 'เก็บเหรียญ'], mate: 'savlion', coinMul: 1.1, cfx: { k: 'transform', iv: 20, dur: 4, tag: '🐒 ลิงกล้วย' } },
@@ -902,8 +902,8 @@ const REAL = {
   kajukatli: { desc: ['ขว้างหอกทำลายสิ่งกีดขวาง', 'เกิดเยลลี่เพชร'], mate: 'whitedrop', cfx: { k: 'destroyIv', iv: 8, jelly: 1, tag: '🔱 หอก!' } },
   marshbunny: { desc: ['อุโมงค์กระต่ายฟื้นพลัง', '+โปรยเหรียญ'], mate: 'marshham', hpBonus: 10, cfx: { k: 'coinIv', iv: 10, n: 3, tag: '🕳 อุโมงค์' } },
   cucumber: { desc: ['เหวี่ยงเบ็ดทุบสิ่งกีดขวาง', 'ตกเยลลี่ปลา'], mate: 'garlic', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '🎣 ตกปลา' } },
-  sikhye: { desc: ['เกจเต็มแล้วสร้างบ้าน', 'หมากเยลลี่เก็บแต้ม'], mate: 'sweetseal', cfx: { k: 'spawnSp', iv: 9, n: 4, tag: '⚪ หมากล้อม' } },
-  sujeonggwa: { desc: ['เกจเต็มแล้วสร้างบ้าน', 'หมากเยลลี่เก็บแต้ม'], mate: 'cinnabunny', cfx: { k: 'spawnSp', iv: 9, n: 4, tag: '⚫ หมากล้อม' } },
+  sikhye: { desc: ['เกจเต็มวางหมากล้อม', 'ทำลายสิ่งกีดขวาง+เยลลี่'], mate: 'sweetseal', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '⚪ หมากล้อม' } },
+  sujeonggwa: { desc: ['เกจเต็มวางหมากล้อม', 'ทำลายสิ่งกีดขวาง+เยลลี่'], mate: 'cinnabunny', cfx: { k: 'destroyIv', iv: 9, jelly: 1, tag: '⚫ หมากล้อม' } },
   bari: { desc: ['เก็บเยลลี่ครบ 15 ชิ้น', 'เข้าโหมดเดินทางวิญญาณอมตะ'], mate: 'flowerpod', revives: 2, cfx: { k: 'transform', trig: 'jelly', n: 15, dur: 5, tag: '🌺 เดินทางวิญญาณ' } },
   gimbap: { desc: ['กองทัพคิมบับบุกทำลาย', 'สิ่งกีดขวาง+เยลลี่'], mate: 'boatman', cfx: { k: 'destroyIv', iv: 7, jelly: 1, tag: '⚓ กองทัพ' } },
   pinemonk: { desc: ['คลี่คัมภีร์เสกเยลลี่ใบสน', 'ขับไล่ภูตผี'], mate: 'herbpot', drainMul: 0.85, cfx: { k: 'spawnSp', iv: 7, n: 4, tag: '📿 คัมภีร์' } },
@@ -2690,6 +2690,39 @@ FORM_DRAW.moonrabbit = function (anim) {   // 🐰 โมจิยักษ์�
   ctx.strokeStyle = '#d02830'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.arc(-2, 4, 3.4, 0.2, Math.PI - 0.2); ctx.stroke();
   ctx.beginPath(); ctx.arc(4, 4, 3.4, 0.2, Math.PI - 0.2); ctx.stroke();
+  ctx.restore();
+};
+FORM_DRAW.dinosour = function (anim) {   // 🦖 ไดโนยักษ์เหยียบ
+  const st = Math.abs(Math.sin(anim * 2.2));
+  ctx.save(); ctx.translate(6, -30 - st * 4); ctx.scale(1.18, 1.18);
+  // หาง
+  ctx.fillStyle = '#3a9ae0';
+  ctx.beginPath(); ctx.moveTo(-24, 4); ctx.quadraticCurveTo(-52, -4, -58, 14);
+  ctx.quadraticCurveTo(-46, 12, -24, 16); ctx.closePath(); ctx.fill();
+  // ลำตัว
+  ctx.beginPath(); ctx.ellipse(0, 0, 30, 26, 0, 0, TAU); ctx.fill();
+  // ขาหลังเหยียบ
+  ctx.fillStyle = '#2e7ac0';
+  ctx.beginPath(); ctx.ellipse(10 + st * 6, 22, 9, 12, 0, 0, TAU); ctx.fill();
+  // คอ+หัว
+  ctx.fillStyle = '#3a9ae0';
+  ctx.beginPath(); ctx.moveTo(14, -12); ctx.quadraticCurveTo(34, -30, 42, -18);
+  ctx.quadraticCurveTo(48, -8, 40, 0); ctx.quadraticCurveTo(26, 4, 14, -2); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(40, -12, 13, 0, TAU); ctx.fill();
+  // หนามหลัง
+  ctx.fillStyle = '#7ecbff';
+  for (const [dx, dy] of [[-16, -20], [-4, -24], [8, -22]])
+    { ctx.beginPath(); ctx.moveTo(dx - 4, dy + 8); ctx.lineTo(dx, dy - 6); ctx.lineTo(dx + 4, dy + 8); ctx.closePath(); ctx.fill(); }
+  // ปากอ้า+ฟัน
+  ctx.fillStyle = '#2a1010';
+  ctx.beginPath(); ctx.ellipse(46, -8, 8, 5, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.moveTo(42, -11); ctx.lineTo(44, -5); ctx.lineTo(46, -11); ctx.closePath(); ctx.fill();
+  // ตาดุ
+  ctx.fillStyle = '#ffe066';
+  ctx.beginPath(); ctx.arc(44, -18, 4.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#2a1010';
+  ctx.beginPath(); ctx.arc(45, -18, 2.2, 0, TAU); ctx.fill();
   ctx.restore();
 };
 FORM_DRAW.banana = function (anim) {   // 🐒 ลิงกล้วยห้อยโหน
