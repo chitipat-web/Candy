@@ -1676,7 +1676,7 @@ function doJump() {
       G.cfxCount = (G.cfxCount || 0) + 1;
       if (G.cfxCount >= CFX().n) {
         G.cfxCount = 0;
-        G.formT = CFX().dur; skillBurst('#ffd76e', true);
+        G.formT = CFX().dur; skillBurst('#ffd76e', true); skillCut(CFX().tag || '✨ แปลงร่าง!', '#ffd76e');
         G.shake = 6; AudioSys.power();
         banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#ffd24a');
       }
@@ -1822,7 +1822,7 @@ function gameOver() {
     spawnActor('pillar', { c: 'rgba(255,240,180,.55)' });
     skillBurst('#ffe9a0', true);
     if (CFX().trig === 'revive') {
-      G.formT = CFX().dur; skillBurst('#ffd76e', true);
+      G.formT = CFX().dur; skillBurst('#ffd76e', true); skillCut(CFX().tag || '✨ แปลงร่าง!', '#ffd76e');
       banner((CFX().tag || '🔥') + ' คืนชีพพร้อมพลัง! อมตะ ' + CFX().dur + ' วิ!', '#ff9d2e');
     }
     if (CFX().k === 'reviveHp') G.hp = Math.min(G.hpMax, G.hp + CFX().v);
@@ -2427,7 +2427,7 @@ const FORM_UNDER = {
   },
 };
 
-const FX = { flashT: 0, flashC: '#ffffff', rings: [], waveT: 0, circleT: 0, circleC: '#8fd8ff', starT: 0, starC: '#ffe98e', beamT: 0, beamC: '#ff6f9f', raysT: 0, raysC: '#ffd24a', linesT: 0, emberT: 0 };
+const FX = { flashT: 0, flashC: '#ffffff', rings: [], waveT: 0, circleT: 0, circleC: '#8fd8ff', starT: 0, starC: '#ffe98e', beamT: 0, beamC: '#ff6f9f', raysT: 0, raysC: '#ffd24a', linesT: 0, emberT: 0, stopT: 0, zoomT: 0, cutT: 0, cutText: '', cutC: '#ffd24a', cutIdx: 0 };
 function skillBurst(color, big) {
   FX.flashT = big ? 0.55 : 0.35; FX.flashC = color;
   FX.rings.push({ t: 0, c: '#ffffff', x: P.x + 28, y: P.y + P.h / 2 },
@@ -2436,6 +2436,8 @@ function skillBurst(color, big) {
   FX.raysT = big ? 0.7 : 0.45; FX.raysC = color;
   FX.linesT = big ? 0.5 : 0.3;
   G.shake = Math.max(G.shake || 0, big ? 16 : 10);
+  FX.stopT = big ? 0.15 : 0.08;    // หยุดเวลาแวบเดียวแบบเกมจริง
+  FX.zoomT = big ? 0.45 : 0.28;    // ซูมกล้องกระแทก
   sparkle(P.x + 30, P.y + 20, big ? 34 : 20, color);
   sparkle(P.x + 30, P.y + 10, big ? 18 : 10, '#ffffff');
 }
@@ -2451,6 +2453,10 @@ const SKILL_SIG = {
   dancheong: () => { FX.starT = 1; FX.starC = '#ffb0c8'; skillBurst('#ffb0c8'); },
   pinkchoco: () => { FX.beamT = 0.7; FX.beamC = '#ff6f9f'; skillBurst('#ff9dbb'); },
 };
+function skillCut(text, color) {
+  if (!text) return;
+  FX.cutT = 0.95; FX.cutText = text; FX.cutC = color || '#ffd24a'; FX.cutIdx = G.charIdx;
+}
 function skillFX(id, fallback, big) {
   (SKILL_SIG[id] || (() => skillBurst(fallback || '#ffd24a', big)))();
 }
@@ -2462,6 +2468,8 @@ function updateFX(dt) {
   FX.beamT = Math.max(0, FX.beamT - dt * 1.6);
   FX.raysT = Math.max(0, FX.raysT - dt * 1.4);
   FX.linesT = Math.max(0, FX.linesT - dt * 2);
+  FX.zoomT = Math.max(0, FX.zoomT - dt * 1.7);
+  FX.cutT = Math.max(0, FX.cutT - dt * 1.05);
   for (const r of FX.rings) r.t += dt * 2.4;
   FX.rings = FX.rings.filter(r => r.t < 1);
   // เอมเบอร์ลอยต่อเนื่องระหว่างร่างแปลง
@@ -2856,6 +2864,7 @@ function hurt(amount) {
 }
 
 function update(dt) {
+  if (FX.stopT > 0) { FX.stopT -= dt; dt *= 0.18; }   // สโลว์โมชันแวบตอนสกิลออก
   G.time += dt;
   if (G.bannerT < 99) G.bannerT += dt;
   G.shake = Math.max(0, G.shake - dt * 40);
@@ -2944,10 +2953,12 @@ function update(dt) {
         sparkle(P.x + 60, P.y + 20, 10, '#ff9db8');
         floatText(P.x + 40, P.y - 24, '✨ ' + (cf.tag || 'เยลลี่พิเศษ') + '!', '#ff9db8');
         skillFX(CHARS[G.charIdx].id, '#ff9db8');
+        skillCut(cf.tag, '#ff9db8');
         const spA = SPAWN_ACT[CHARS[G.charIdx].id];
         if (spA) spA();
       } else if (cf.k === 'destroyIv') {
         skillFX(CHARS[G.charIdx].id, '#ffd24a');   // เอฟเฟกต์ลายเซ็นออกทุกครั้งที่สกิลทำงาน
+        skillCut(cf.tag, '#ffd24a');
         const oT = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 20; });
         const actF = ACTOR_MAP[CHARS[G.charIdx].id];
         if (actF) actF(oT ? oT.x - worldX : W * 0.72);
@@ -2968,6 +2979,7 @@ function update(dt) {
         G.coins += cf.n;
         spawnActor('coins', { x0: P.x + 28, y0: P.y + 10 });
         skillBurst('#ffd24a');
+        skillCut(cf.tag, '#ffd24a');
         AudioSys.jelly(10);
         sparkle(P.x + 50, P.y, 12, '#ffd700');
         floatText(P.x + 40, P.y - 24, (cf.tag || '🪙') + ' +' + cf.n, '#ffd24a', true);
@@ -3004,6 +3016,7 @@ function update(dt) {
       } else {
         G.formT = cf.dur;
         skillBurst('#ffd76e', true);
+        skillCut(cf.tag || '✨ แปลงร่าง!', '#ffd76e');
         G.shake = 6; AudioSys.power();
         banner((cf.tag || '✨ แปลงร่าง!') + ' อมตะ ' + cf.dur + ' วิ!', '#ffd24a');
       }
@@ -3336,7 +3349,7 @@ function collectJelly(j, jx) {
         G.cfxCount = (G.cfxCount || 0) + 1;
         if (G.cfxCount >= CFX().n) {
           G.cfxCount = 0;
-          G.formT = CFX().dur; skillBurst('#ffd76e', true);
+          G.formT = CFX().dur; skillBurst('#ffd76e', true); skillCut(CFX().tag || '✨ แปลงร่าง!', '#ffd76e');
           G.shake = 6; AudioSys.power();
           banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#ffd24a');
         }
@@ -3381,7 +3394,7 @@ function collectJelly(j, jx) {
       G.hp = Math.min(G.hpMax, G.hp + 30 * (1 + (CFX().k === 'potionPlus' ? CFX().v : 0)));
       if (CFX().k === 'potionPlus') spawnActor('heal', { c: '#7bff9b' });
       if (CFX().trig === 'potion') {
-        G.formT = CFX().dur; skillBurst('#ffd76e', true);
+        G.formT = CFX().dur; skillBurst('#ffd76e', true); skillCut(CFX().tag || '✨ แปลงร่าง!', '#ffd76e');
         banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#7ecbff');
       }
       AudioSys.potion();
@@ -3477,6 +3490,10 @@ function draw() {
   if (window.__poseTest) { drawPoseSheet(); return; }
   ctx.save();
   if (G.shake > 0) ctx.translate(rnd(-G.shake, G.shake) * 0.5, rnd(-G.shake, G.shake) * 0.5);
+  if (FX.zoomT > 0 && G.state === 'play') {
+    const z = 1 + FX.zoomT * 0.075;
+    ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  }
 
   drawSky();
   drawBackHills();
@@ -3536,6 +3553,41 @@ function draw() {
     ctx.globalAlpha = Math.min(1, FX.flashT * 2.2) * 0.3;
     ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 1;
+  }
+  if (FX.cutT > 0 && G.state === 'play') {
+    // 🎬 คัตอินชื่อสกิล + หน้าตัวละคร พาดกลางจอแบบเกมจริง
+    const k = 1 - FX.cutT / 0.95;
+    const fadeIn = Math.min(1, k / 0.14);
+    const fadeOut = k > 0.82 ? 1 - (k - 0.82) / 0.18 : 1;
+    const al = fadeIn * fadeOut;
+    ctx.save();
+    ctx.globalAlpha = al * 0.4;
+    ctx.fillStyle = '#140a04';
+    ctx.fillRect(0, 0, W, H);            // หรี่ฉากให้คัตอินเด่น
+    ctx.globalAlpha = al;
+    ctx.translate(0, 168);
+    ctx.rotate(-0.045);
+    const grd = ctx.createLinearGradient(0, 0, W, 0);
+    grd.addColorStop(0, 'rgba(24,12,6,0)');
+    grd.addColorStop(0.16, 'rgba(24,12,6,.9)');
+    grd.addColorStop(0.84, 'rgba(24,12,6,.9)');
+    grd.addColorStop(1, 'rgba(24,12,6,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(-40, -50, W + 80, 100);
+    ctx.fillStyle = FX.cutC;
+    ctx.fillRect(-40, -55, W + 80, 5);
+    ctx.fillRect(-40, 50, W + 80, 5);
+    try {
+      const pc = cookiePortrait(FX.cutIdx);
+      ctx.drawImage(pc, lerp(-200, 120, fadeIn) - 55, -62, 112, 129);
+    } catch (e) {}
+    const tx2 = lerp(W + 240, W / 2 + 70, fadeIn);
+    ctx.font = 'bold 42px Trebuchet MS'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+    ctx.lineWidth = 9; ctx.strokeStyle = '#2e1608';
+    ctx.strokeText(FX.cutText, tx2, 16);
+    ctx.fillStyle = FX.cutC;
+    ctx.fillText(FX.cutText, tx2, 16);
+    ctx.restore();
   }
 
   if (G.state === 'play') drawHUD();
