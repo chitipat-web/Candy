@@ -1682,6 +1682,7 @@ function doJump() {
       }
     }
     if (CFX().k === 'jumpPts') {
+      FX.rings.push({ t: 0, c: '#bfe8ff', x: P.x + 28, y: P.y + 30 });
       const jp = Math.round(CFX().v * lvMul());
       G.score += jp;
       floatText(P.x + 30, P.y - 16, '+' + jp + ' ✨', '#aee4ff');
@@ -1818,6 +1819,8 @@ function gameOver() {
   if (G.state !== 'play') return true;
   if (G.revives > 0) {
     G.revives--;
+    spawnActor('pillar', { c: 'rgba(255,240,180,.55)' });
+    skillBurst('#ffe9a0', true);
     if (CFX().trig === 'revive') {
       G.formT = CFX().dur; skillBurst('#ffd76e', true);
       banner((CFX().tag || '🔥') + ' คืนชีพพร้อมพลัง! อมตะ ' + CFX().dur + ' วิ!', '#ff9d2e');
@@ -1968,6 +1971,20 @@ const ACTOR_MAP = {
   wizard: ox => spawnActor('bolt', { tx: ox, c: '#7ea8ff' }),
   alchemist: ox => spawnActor('bolt', { tx: ox, c: '#b07ae0' }),
 };
+const SPAWN_ACT = {
+  blackberry: () => spawnActor('fly', { icon: 'ghost', c: '#e8e4f4', x0: P.x + 20, y0: P.y - 10 }),
+  alchemist: () => spawnActor('fly', { icon: 'flask', c: '#8ad02e', x0: P.x + 20, y0: P.y - 6 }),
+  cinnamon: () => spawnActor('fly', { icon: 'card', c: '#f4f0e8', x0: P.x + 20, y0: P.y - 6 }),
+  creampuff: () => spawnActor('fly', { icon: 'magic', c: '#ffd76e', x0: P.x + 20, y0: P.y - 6 }),
+  peppermint: () => spawnActor('fly', { icon: 'whale', c: '#4ac8e8', x0: P.x - 30, y0: P.y + 10 }),
+  dancheong: () => spawnActor('fly', { icon: 'fan', c: '#3a90c0', x0: P.x + 20, y0: P.y - 6 }),
+  cherryblossom: () => spawnActor('drift', { shape: 'petal', c: '#f8b8d0', n: 6, x0: P.x + 20, y0: P.y }),
+  rockstar: () => spawnActor('drift', { shape: 'note', c: '#f2f0ec', n: 4, x0: P.x + 20, y0: P.y }),
+  apple: () => spawnActor('drift', { shape: 'bubble', c: '#bfe4ff', n: 5, x0: P.x + 20, y0: P.y }),
+  herb: () => spawnActor('drift', { shape: 'leaf', c: '#8ac838', n: 5, x0: P.x + 20, y0: P.y }),
+  peach: () => spawnActor('drift', { shape: 'leaf', c: '#4aa84a', n: 4, x0: P.x + 20, y0: P.y }),
+  bright: () => spawnActor('drift', { shape: 'note', c: '#ffd0e0', n: 4, x0: P.x + 20, y0: P.y }),
+};
 function updateActors(dt) {
   for (const a of ACTORS) {
     a.t += dt;
@@ -1984,6 +2001,20 @@ function updateActors(dt) {
       if (a.t >= 0.35) a.dead = true;
     } else if (a.type === 'army') {
       if (a.t >= 1.7) a.dead = true;
+    } else if (a.type === 'fly') {
+      if (a.t >= (a.icon === 'whale' ? 1.1 : 0.9)) a.dead = true;
+    } else if (a.type === 'drift') {
+      if (a.t >= 1.1) a.dead = true;
+    } else if (a.type === 'coins') {
+      if (a.t >= 0.9) a.dead = true;
+    } else if (a.type === 'pillar') {
+      if (a.t >= 0.7) a.dead = true;
+    } else if (a.type === 'shield') {
+      if (a.t >= 0.45) a.dead = true;
+    } else if (a.type === 'heal') {
+      if (a.t >= 0.7) a.dead = true;
+    } else if (a.type === 'slam') {
+      if (a.t >= 0.5) a.dead = true;
     }
   }
   for (let i = ACTORS.length - 1; i >= 0; i--) if (ACTORS[i].dead) ACTORS.splice(i, 1);
@@ -2077,6 +2108,157 @@ function drawActors() {
         ctx.lineTo(a.tx - 8, GROUND_Y * 0.35); ctx.lineTo(a.tx + 10, GROUND_Y * 0.55);
         ctx.lineTo(a.tx - 6, GROUND_Y - 40);
         ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    } else if (a.type === 'fly') {
+      const life = a.icon === 'whale' ? 1.1 : 0.9;
+      const k = a.t / life;
+      const x = a.x0 + k * (a.icon === 'whale' ? 620 : 480);
+      const y = a.icon === 'whale' ? a.y0 - Math.sin(k * Math.PI) * 170
+                                   : a.y0 + Math.sin(a.t * 7) * 22 - k * 30;
+      ctx.save(); ctx.translate(x, y);
+      ctx.globalAlpha = Math.min(1, (1 - k) * 3);
+      if (a.icon === 'ghost') {
+        ctx.fillStyle = a.c;
+        ctx.beginPath(); ctx.arc(0, -6, 13, Math.PI, 0);
+        ctx.lineTo(13, 8);
+        for (let q2 = 0; q2 < 3; q2++) ctx.quadraticCurveTo(9 - q2 * 8, 14 - (q2 % 2) * 5, 4 - q2 * 8, 8);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#3a2a4a';
+        ctx.beginPath(); ctx.arc(-4, -6, 2.2, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, -6, 2.2, 0, TAU); ctx.fill();
+      } else if (a.icon === 'flask') {
+        ctx.rotate(Math.sin(a.t * 9) * 0.3);
+        ctx.fillStyle = a.c;
+        ctx.beginPath(); ctx.moveTo(-4, -12); ctx.lineTo(-4, -4);
+        ctx.quadraticCurveTo(-12, 6, -6, 12); ctx.lineTo(7, 12);
+        ctx.quadraticCurveTo(13, 6, 5, -4); ctx.lineTo(5, -12);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#c8a05e';
+        ctx.fillRect(-6, -15, 12, 4);
+      } else if (a.icon === 'card') {
+        ctx.rotate(a.t * 6);
+        ctx.fillStyle = a.c;
+        roundRect(-8, -11, 16, 22, 3); ctx.fill();
+        ctx.fillStyle = '#c02830';
+        ctx.beginPath(); ctx.arc(0, 0, 4, 0, TAU); ctx.fill();
+      } else if (a.icon === 'magic') {
+        ctx.rotate(a.t * 4);
+        ctx.fillStyle = a.c;
+        for (let q2 = 0; q2 < 5; q2++) {
+          const aa = q2 * TAU / 5;
+          ctx.beginPath(); ctx.ellipse(Math.cos(aa) * 10, Math.sin(aa) * 10, 5, 3, aa, 0, TAU); ctx.fill();
+        }
+      } else if (a.icon === 'whale') {
+        ctx.rotate(-Math.cos(k * Math.PI) * 0.5);
+        ctx.fillStyle = a.c;
+        ctx.beginPath(); ctx.ellipse(0, 0, 34, 17, 0, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-30, -4); ctx.quadraticCurveTo(-46, -16, -42, 2);
+        ctx.quadraticCurveTo(-46, 14, -30, 6); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#eafcff';
+        ctx.beginPath(); ctx.ellipse(6, 8, 22, 7, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#1e3a50';
+        ctx.beginPath(); ctx.arc(18, -5, 2.6, 0, TAU); ctx.fill();
+      } else if (a.icon === 'fan') {
+        ctx.rotate(Math.sin(a.t * 8) * 0.5);
+        ctx.fillStyle = a.c;
+        ctx.beginPath(); ctx.moveTo(0, 8); ctx.arc(0, 8, 20, -Math.PI * 0.85, -Math.PI * 0.15);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.6;
+        for (const aa of [-0.7, -0.5, -0.3]) {
+          ctx.beginPath(); ctx.moveTo(0, 8);
+          ctx.lineTo(Math.cos(aa * Math.PI) * 19, 8 + Math.sin(aa * Math.PI) * 19); ctx.stroke();
+        }
+      }
+      ctx.restore(); ctx.globalAlpha = 1;
+    } else if (a.type === 'drift') {
+      for (let i = 0; i < a.n; i++) {
+        const xt = a.x0 + i * 26 + a.t * 110 + Math.sin(a.t * 5 + i * 2) * 14;
+        const yt = a.y0 - a.t * 85 - i * 9;
+        ctx.globalAlpha = Math.max(0, 1 - a.t / 1.1) * 0.9;
+        ctx.fillStyle = a.c;
+        ctx.save(); ctx.translate(xt, yt);
+        if (a.shape === 'petal') {
+          ctx.rotate(a.t * 4 + i);
+          ctx.beginPath(); ctx.ellipse(0, 0, 6.5, 3.6, 0, 0, TAU); ctx.fill();
+        } else if (a.shape === 'note') {
+          ctx.beginPath(); ctx.ellipse(-2, 4, 4.4, 3.2, -0.3, 0, TAU); ctx.fill();
+          ctx.strokeStyle = a.c; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(1.6, 3); ctx.lineTo(1.6, -9); ctx.quadraticCurveTo(7, -8, 8, -4); ctx.stroke();
+        } else if (a.shape === 'bubble') {
+          ctx.globalAlpha *= 0.7;
+          ctx.beginPath(); ctx.arc(0, 0, 6 + (i % 3) * 2, 0, TAU); ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(-2, -2.5, 1.8, 0, TAU); ctx.fill();
+        } else {
+          ctx.rotate(a.t * 3 + i);
+          ctx.beginPath(); ctx.ellipse(0, 0, 7, 3, 0.6, 0, TAU); ctx.fill();
+        }
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    } else if (a.type === 'coins') {
+      for (let i = 0; i < 7; i++) {
+        const ang = -1.9 + i * 0.32, sp = 300 + (i % 3) * 70;
+        const x = a.x0 + Math.cos(ang) * sp * a.t;
+        const y = a.y0 + Math.sin(ang) * sp * a.t + 640 * a.t * a.t;
+        ctx.globalAlpha = Math.max(0, 1 - a.t / 0.9);
+        ctx.fillStyle = '#ffd24a';
+        ctx.save(); ctx.translate(x, y);
+        ctx.scale(Math.abs(Math.sin(a.t * 12 + i)) * 0.7 + 0.3, 1);
+        ctx.beginPath(); ctx.arc(0, 0, 7.5, 0, TAU); ctx.fill();
+        ctx.strokeStyle = '#c8951e'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, 4.4, 0, TAU); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    } else if (a.type === 'pillar') {
+      const al = Math.max(0, 1 - a.t / 0.7);
+      const wdt = 60 * (1 - a.t * 0.6);
+      const g2 = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+      g2.addColorStop(0, 'rgba(255,250,220,0)');
+      g2.addColorStop(0.5, a.c);
+      g2.addColorStop(1, 'rgba(255,250,220,.1)');
+      ctx.globalAlpha = al * 0.7;
+      ctx.fillStyle = g2;
+      ctx.fillRect(P.x + 28 - wdt / 2, 0, wdt, GROUND_Y);
+      ctx.fillStyle = '#fff8d8';
+      for (let q2 = 0; q2 < 6; q2++) {
+        const yy = GROUND_Y - ((a.t * 500 + q2 * 90) % GROUND_Y);
+        ctx.beginPath(); ctx.arc(P.x + 28 + Math.sin(q2 * 2.4) * wdt * 0.4, yy, 3.4, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    } else if (a.type === 'shield') {
+      const al = Math.max(0, 1 - a.t / 0.45);
+      ctx.save(); ctx.translate(P.x + 28, P.y + P.h / 2);
+      ctx.globalAlpha = al * 0.85;
+      ctx.strokeStyle = a.c; ctx.lineWidth = 4.4;
+      ctx.beginPath(); ctx.ellipse(0, 0, 58 + a.t * 30, 64 + a.t * 30, 0, 0, TAU); ctx.stroke();
+      ctx.globalAlpha = al * 0.25;
+      ctx.fillStyle = a.c;
+      ctx.beginPath(); ctx.ellipse(0, 0, 58 + a.t * 30, 64 + a.t * 30, 0, 0, TAU); ctx.fill();
+      ctx.restore(); ctx.globalAlpha = 1;
+    } else if (a.type === 'heal') {
+      ctx.fillStyle = a.c;
+      for (let q2 = 0; q2 < 5; q2++) {
+        const yy = P.y + 30 - a.t * 120 - q2 * 14;
+        const xx = P.x + 10 + q2 * 12 + Math.sin(a.t * 8 + q2) * 8;
+        ctx.globalAlpha = Math.max(0, 1 - a.t / 0.7) * 0.9;
+        ctx.fillRect(xx - 1.7, yy - 5.5, 3.4, 11);
+        ctx.fillRect(xx - 5.5, yy - 1.7, 11, 3.4);
+      }
+      ctx.globalAlpha = 1;
+    } else if (a.type === 'slam') {
+      const k = a.t / 0.5;
+      ctx.globalAlpha = 1 - k;
+      ctx.strokeStyle = a.c; ctx.lineWidth = 8 * (1 - k) + 2;
+      ctx.beginPath(); ctx.ellipse(P.x + 28, GROUND_Y - 4, 30 + k * 130, 12 + k * 20, 0, 0, TAU); ctx.stroke();
+      ctx.fillStyle = 'rgba(200,160,106,.7)';
+      for (let q2 = 0; q2 < 6; q2++) {
+        const aa = q2 * TAU / 6;
+        ctx.beginPath();
+        ctx.arc(P.x + 28 + Math.cos(aa) * (40 + k * 110), GROUND_Y - 8 - Math.sin(k * Math.PI) * 26, 5 * (1 - k), 0, TAU);
+        ctx.fill();
       }
       ctx.globalAlpha = 1;
     }
@@ -2608,7 +2790,10 @@ function hurt(amount) {
     P.invT = Math.max(P.invT, 0.8);
     return;
   }
-  if (cf.k === 'hitGuard') amount *= cf.v;   // เจ้าหญิง/กล้ามโต/แฟรี่: ลดดาเมจชน
+  if (cf.k === 'hitGuard') {
+    amount *= cf.v;   // เจ้าหญิง/กล้ามโต/แฟรี่: ลดดาเมจชน
+    spawnActor('shield', { c: '#7ec8ff' });
+  }
   G.hp -= amount;
   G.combo = 0;
   P.invT = 2.0;
@@ -2680,8 +2865,15 @@ function update(dt) {
   /* ---- ความสามารถพิเศษประจำคุกกี้ (ตามเกมต้นฉบับ) ---- */
   const cf = CFX();
   G.noHitT = (G.noHitT || 0) + dt;
-  if (cf.k === 'slamLand' && slideHeld && !P.onGround && G.bonusT <= 0 && !P.fallingPit)
+  if (cf.k === 'slamLand' && slideHeld && !P.onGround && G.bonusT <= 0 && !P.fallingPit) {
     P.vy = Math.max(P.vy, 1500);   // กบฏ: กดสไลด์กลางอากาศ = ดิ่งลงพื้นทันที
+    P.slamMark = true;
+  }
+  if (P.slamMark && P.onGround) {
+    P.slamMark = false;
+    spawnActor('slam', { c: '#c8a06a' });
+    G.shake = Math.max(G.shake || 0, 10);
+  }
   G.formT = Math.max(0, (G.formT || 0) - dt);
   updateFX(dt);
   updateActors(dt);
@@ -2701,6 +2893,8 @@ function update(dt) {
         sparkle(P.x + 60, P.y + 20, 10, '#ff9db8');
         floatText(P.x + 40, P.y - 24, '✨ ' + (cf.tag || 'เยลลี่พิเศษ') + '!', '#ff9db8');
         skillFX(CHARS[G.charIdx].id, '#ff9db8');
+        const spA = SPAWN_ACT[CHARS[G.charIdx].id];
+        if (spA) spA();
       } else if (cf.k === 'destroyIv') {
         skillFX(CHARS[G.charIdx].id, '#ffd24a');   // เอฟเฟกต์ลายเซ็นออกทุกครั้งที่สกิลทำงาน
         const oT = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 20; });
@@ -2721,6 +2915,8 @@ function update(dt) {
         }
       } else if (cf.k === 'coinIv') {
         G.coins += cf.n;
+        spawnActor('coins', { x0: P.x + 28, y0: P.y + 10 });
+        skillBurst('#ffd24a');
         AudioSys.jelly(10);
         sparkle(P.x + 50, P.y, 12, '#ffd700');
         floatText(P.x + 40, P.y - 24, (cf.tag || '🪙') + ' +' + cf.n, '#ffd24a', true);
@@ -2744,6 +2940,7 @@ function update(dt) {
           banner('🎵 เพลงแห่งความอุดม +4🪙', '#ffd24a');
         }
         AudioSys.jelly(14);
+        spawnActor('drift', { shape: 'note', c: ['#7bff9b', '#8fd8c8', '#ffd24a'][G.songIdx], n: 5, x0: P.x + 20, y0: P.y });
       } else if (cf.k === 'streak') {
         // มินต์ช็อกโก: ไม่ชนต่อเนื่อง = สีไวโอลินเสกเหรียญ (ชนแล้วสตรีคขาด)
         if (G.noHitT > 6) {
@@ -2751,6 +2948,7 @@ function update(dt) {
           G.score += Math.round(100 * lvMul());
           sparkle(P.x + 40, P.y + 10, 8, '#8fd8c8');
           floatText(P.x + 30, P.y - 20, '🎻 สตรีค +3🪙', '#8fd8c8');
+          spawnActor('drift', { shape: 'note', c: '#8fd8c8', n: 3, x0: P.x + 20, y0: P.y });
         }
       } else {
         G.formT = cf.dur;
@@ -3130,6 +3328,7 @@ function collectJelly(j, jx) {
     }
     case 'potion':
       G.hp = Math.min(G.hpMax, G.hp + 30 * (1 + (CFX().k === 'potionPlus' ? CFX().v : 0)));
+      if (CFX().k === 'potionPlus') spawnActor('heal', { c: '#7bff9b' });
       if (CFX().trig === 'potion') {
         G.formT = CFX().dur; skillBurst('#ffd76e', true);
         banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#7ecbff');
