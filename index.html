@@ -1481,6 +1481,7 @@ const P = {
   invT: 0, giantT: 0, magnetT: 0, boostT: 0,
   anim: 0, dead: false, fallingPit: false,
   squash: 0,      // squash & stretch (บวก = ย่อ, ลบ = ยืด)
+  castT: 0,       // ท่าร่ายสกิล
   stumbleT: 0,    // เซถลาตอนโดนชน
 };
 const Pet = { x: 90, y: 300, wing: 0 };
@@ -2950,8 +2951,21 @@ function skillCut(text, color) {
   if (!text) return;
   FX.cutT = 0.95; FX.cutText = text; FX.cutC = color || '#ffd24a'; FX.cutIdx = G.charIdx;
 }
+// ลายเซ็นตามสายสกิล (ใช้เมื่อไม่มีลายเซ็นเฉพาะตัว) — เติมสีจากพาเลตของคุกกี้เอง ทำให้ทุกตัวมีเอกลักษณ์
+const CAT_SIG = {
+  strike: c => { FX.linesT = 0.6; FX.raysC = c; skillBurst(c, true); },
+  heal:   c => { FX.circleT = 0.95; FX.circleC = c; skillBurst(c, true); },
+  dash:   c => { FX.linesT = 0.75; skillBurst(c, true); },
+  gold:   c => { FX.starT = 0.95; FX.starC = '#ffd24a'; skillBurst(c, true); },
+  blast:  c => { FX.circleT = 0.95; FX.circleC = c; FX.rings.push({ t: -0.12, c, x: P.x + 28, y: P.y + P.h / 2 }); skillBurst(c, true); },
+  bless:  c => { FX.starT = 1.05; FX.starC = c; skillBurst(c, true); },
+};
 function skillFX(id, fallback, big) {
-  (SKILL_SIG[id] || (() => skillBurst(fallback || '#ffd24a', big)))();
+  if (SKILL_SIG[id]) { SKILL_SIG[id](); return; }
+  const ch = CHARS[G.charIdx];
+  const cat = ch && CAT_SIG[ch.sk];
+  if (cat) cat(ch.button || fallback || '#ffd24a');
+  else skillBurst(fallback || '#ffd24a', big);
 }
 function updateFX(dt) {
   FX.flashT = Math.max(0, FX.flashT - dt);
@@ -3159,6 +3173,7 @@ function trySelectChar(i) {
 function skillCinematic(color, cutText) {
   skillFX(CH().id, color, true);   // ลายเซ็นเฉพาะตัว (ถ้ามี) ไม่งั้นเบิร์สต์ใหญ่
   skillCut(cutText, color);
+  P.castT = 0.42;   // ท่าร่ายสกิล: ยืดตัว-โพสท่า
   FX.stopT = Math.max(FX.stopT, 0.2);   // หยุดเวลากระแทกนานขึ้นตอนกดสกิลเอง
   FX.zoomT = Math.max(FX.zoomT, 0.5);
   FX.linesT = Math.max(FX.linesT, 0.5);
@@ -3464,6 +3479,7 @@ function update(dt) {
   ovenAmt += (ovTarget - ovenAmt) * Math.min(1, 1.3 * dt);
   if (ovTarget === 1 && ovenAmt > 0.99) ovenAmt = 1;
   P.squash += (0 - P.squash) * Math.min(1, 10 * dt);
+  P.castT = Math.max(0, P.castT - dt);
   P.stumbleT = Math.max(0, P.stumbleT - dt);
   for (const t of trail) {
     t.t += dt;
@@ -5683,6 +5699,12 @@ function drawPlayer() {
   // squash & stretch (จุดหมุนอยู่ที่เท้า)
   if (Math.abs(P.squash) > 0.01 && !P.sliding)
     ctx.scale(1 + P.squash * 0.45, 1 - P.squash * 0.4);
+  // ท่าร่ายสกิล: ยืดตัวสูง + เอนหลังแวบหนึ่ง (แบบเกมจริง)
+  if (P.castT > 0 && !P.sliding && !P.dead) {
+    const cp = P.castT / 0.42;
+    ctx.scale(1 - cp * 0.12, 1 + cp * 0.20);
+    ctx.rotate(-cp * 0.13);
+  }
   if (P.giantT > 0 && P.giantT < 1.2 && Math.floor(G.time * 10) % 2 === 0)
     ctx.globalAlpha = 0.6;
 
@@ -5714,6 +5736,18 @@ function drawPlayer() {
     ctx.rotate(clamp(P.vy * 0.0007, -0.32, 0.32));   // เอียงหัวตามทิศบิน
 
   const run = P.anim;
+  // 👻 afterimage เงาซ้อนตอนพุ่งเร็ว (dash/boost/ยักษ์/ร่างแปลง) — เบลอการเคลื่อนไหว
+  if (!P.dead && !P.fallingPit && (P.boostT > 0 || G.scoreMulT > 0 || P.giantT > 0 || G.bonusT > 0)) {
+    for (let i = 1; i <= 2; i++) {
+      ctx.save();
+      ctx.globalAlpha = 0.15 * (3 - i);
+      ctx.translate(-i * 15, 0);
+      if (P.sliding) drawCookieSlide(run);
+      else if (!P.onGround) drawCookieJump(P.jumps >= 2);
+      else drawCookieRun(run);
+      ctx.restore();
+    }
+  }
   if (P.dead) {
     // ล้มคว่ำหมุนตัวตอนพลังหมด (แบบเกมจริง)
     const t = clamp(G.overT * 1.5, 0, 1);
