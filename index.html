@@ -8521,18 +8521,24 @@ function drawTreasure() {
     } else ctx.fillText(dwords, x + cw / 2, y + 82);
     ctx.font = 'bold 11px Trebuchet MS';
     ctx.fillStyle = equipped ? '#7bd94a' : owned ? '#aee4ff' : '#ffd24a';
-    ctx.fillText(equipped ? '✓ สวมอยู่' : owned ? 'แตะเพื่อสวม' : '🪙 ' + t.cost.toLocaleString(), x + cw / 2, y + chh - 8);
+    // ของที่มีแล้ว: ดันสถานะขึ้นเหนือปุ่มอัปเกรด / ของที่ยังไม่ซื้อ: โชว์ราคาตรงล่าง
+    const statusY = owned ? y + chh - 32 : y + chh - 8;
+    ctx.fillText(equipped ? '✓ สวมอยู่ (แตะถอด)' : owned ? 'แตะการ์ดเพื่อสวม' : '🪙 ' + t.cost.toLocaleString(), x + cw / 2, statusY);
     drawBtn(x, y, cw, chh, '', () => tryTreasure(i), { invisible: true });
     // อัปเกรดสมบัติ +0 → +9 (เหมือนต้นฉบับ) — ผลไต่ถึง 2 เท่าที่ +9
     if (owned) {
       const st = G.trStar[i] || 0;
-      ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'left';
-      ctx.fillStyle = st >= TR_MAXLV ? '#ff8ad0' : '#ffd24a';
-      ctx.fillText('+' + st, x + 6, y + 16);
-      ctx.textAlign = 'center';
+      // ป้ายเลเวลมุมซ้ายบน (พิลล์เด่น)
+      ctx.fillStyle = st >= TR_MAXLV ? '#ff5aa0' : '#7a4ab0';
+      roundRect(x + 6, y + 6, 34, 18, 6); ctx.fill();
+      ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+      ctx.fillText('+' + st, x + 23, y + 19);
       if (st < TR_MAXLV) {
         const evCost = trLvCost(i, st);
-        drawBtn(x + cw - 44, y + 4, 40, 20, '+' + (st + 1), () => {
+        const shortC = evCost >= 1000 ? (evCost / 1000).toFixed(1) + 'k' : evCost;
+        const canUp = G.bank >= evCost;
+        // ปุ่มอัปเกรดเต็มแถบล่าง โชว์ราคาชัดเจน
+        drawBtn(x + 8, y + chh - 26, cw - 16, 22, '⬆ อัป +' + (st + 1) + '  🪙' + shortC, () => {
           if (G.bank >= evCost) {
             G.bank -= evCost;
             G.trStar[i] = st + 1;
@@ -8544,10 +8550,10 @@ function drawTreasure() {
             AudioSys.deny();
             floatText(W / 2, 100, 'อัปเกรดต้องใช้ 🪙 ' + evCost.toLocaleString(), '#ff8888', true);
           }
-        }, { color: '#b06ae0', dark: '#8a4ac0', font: 10 });
+        }, canUp ? { color: '#b06ae0', dark: '#8a4ac0', font: 10 } : { color: '#8a8178', dark: '#6e675f', font: 10 });
       } else {
-        ctx.font = 'bold 9px Trebuchet MS'; ctx.textAlign = 'right'; ctx.fillStyle = '#ff8ad0';
-        ctx.fillText('MAX', x + cw - 6, y + 15); ctx.textAlign = 'center';
+        ctx.fillStyle = '#ff8ad0'; ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'center';
+        ctx.fillText('★ อัปเต็ม +9 MAX', x + cw / 2, y + chh - 10);
       }
     }
   });
