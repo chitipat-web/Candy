@@ -65,6 +65,11 @@ const olOutCtx = olOut.getContext('2d');
 const olRim = document.createElement('canvas');
 olRim.width = charCanvas.width; olRim.height = charCanvas.height;
 const olRimCtx = olRim.getContext('2d');
+/* แคชสไปรต์สัตว์เลี้ยงตัวตามในเกม */
+const petCC = document.createElement('canvas');
+petCC.width = charCanvas.width; petCC.height = charCanvas.height;
+const petCCtx = petCC.getContext('2d');
+let petCCid = null, petCCt = -1;
 function finishSprite(olc) {
   // 1) เงาดำรูปเดียวกับตัวละคร — สีขอบดึงจากสีตัวคุกกี้ (hue เดียวกัน เข้มกว่า)
   olTmpCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -859,18 +864,20 @@ const LOOK = {
   gclaus: { icing: '#c8342a', deco: ['suit:#c8342a', 'belt:#3a3028', 'collar:#ffffff', 'gloves:#ffffff', 'cuffs:#ffffff', 'sack:#b02a20', 'santa:#e0453a', 'beard:#ffffff', 'candycane'] },
   coffee: { body: '#5a3a26', eyeS: 'sharp', deco: ['vest:#6a5a9a', 'sleeves:#6a5a9a', 'collar:#ffffff', 'nytag', 'side:#d9a05e', 'mug:#e8e0d0'] },
   angel: { deco: ['curl:#f2d977', 'icing:#ffffff', 'blushdot'] },
-  skater: { deco: ['cap:#3a86c8', 'icing:#ffffff'] },
+  skater: { deco: ['tee:#2e2a30', 'icing:#ffffff', 'cap:#3a86c8'] },
   princess: { icing: '#ff9ec0', deco: ['dress:#ff9ec0', 'frillhem:#fff4f8', 'drills:#f2d848', 'crown:#ffd24a', 'blushdot', 'heartwand:#ff5a8a'] },
   knight: { body: '#c8b090', deco: ['armor:#aab6c4', 'helmet:#aab6c4', 'gloves:#9aa6b4', 'sword:#dfe8f2'] },
-  muscle: { body: '#a8683a', deco: ['band:#e0453a', 'vest:#f2ecd8', 'blushdot'] },
-  pirate: { deco: ['bandana:#e0453a', 'piratehat:#2a2a34', 'patch', 'jawbeard:#5a4028', 'sword:#dfe8f2'] },
+  muscle: { body: '#7a4a2a', eyeS: 'sharp', deco: ['messy:#2e2018'] },
+  pirate: { deco: ['messy:#5a3a26', 'suit:#26262e', 'collar:#ffffff', 'piratehat:#22222c', 'patch', 'sword:#dfe8f2'] },
   skatingq: { deco: ['dress:#dff2ff', 'tiara:#bfe8ff', 'long:#f2f8ff', 'wand:#7ec8e8'] },
   hero: { deco: ['suit:#3f6fd0', 'cape:#e0453a', 'heromask:#3f6fd0', 'gloves:#ffffff', 'glasses'] },
   sforce: { body: '#9a7a4e', deco: ['suit:#4a5a3a', 'beret:#4a5a3a', 'facepaint:#37472c'] },
   cheer: { deco: ['skirt:#3a86c8', 'pony:#f2d848', 'stripes:#3a86c8', 'pompom:#7ec8ff'] },
   kumiho: { body: '#fdf2ec', deco: ['foxears:#fdf2ec', 'foxtail:#fdf2ec', 'blushdot', 'lollipop:#ff9db8'] },
   devil: { body: '#e0483a', icing: '#8a1e14', eye: '#ffd24a', deco: ['deviltail:#a02818', 'horns:#a02818', 'batwings:#3a2a34', 'fangs', 'trident:#8a1e14'] },
-  fairy: { body: '#cfeee0' },
+  fairy: { body: '#cfeee0', deco: ['fairywings:#eafff2', 'swirl:#b8d848', 'dress:#66d8bc', 'lilyflower:#e8b0d8'] },
+  firespirit: { deco: ['flamehair:#ffb03a', 'robe:#6a2016', 'staff:#e0453a'] },
+  windarcher: { deco: ['batwings:#3f8a4a', 'leafhood:#3f8a4a', 'bowweapon:#6b4423'] },
   zombie: { deco: ['messy:#6a8a4a', 'stitch:#5a7a3a', 'zombieeye', 'bone:#f2ecdc'] },
   wizard: { deco: ['robe:#3f5fc0', 'wizhat:#3f5fc0', 'hatstars:#f2e060', 'bigbeard:#e8e4da', 'staff:#8a5a2e'] },
   rockstar: { deco: ['spiky:#f2f0ec', 'guitar:#e0453a', 'glasses', 'vest:#3a3a44'] },
@@ -3265,8 +3272,21 @@ function drawPlatforms() {
 
 function drawPet(pet) {
   const p = pet || PT();
+  /* เรนเดอร์ผ่านไปป์ไลน์สไปรต์เดียวกับคุกกี้:
+     เซลเชด+ขอบรายชิ้น (AUTOL) → ขอบรอบตัวสีตามตัว → ไล่แสง → ริมไลต์
+     ตัวตามในเกมใช้แคช (วาดใหม่ทุก ~0.09 วิ) กันเฟรมตก */
+  const useCache = !pet;
+  const nowS = performance.now() / 1000;
+  const fresh = !useCache || petCCid !== p.id || nowS - petCCt > 0.09;
+  const mainCtx = ctx;
+  if (fresh) {
+  ctx = charCtx;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, charCanvas.width, charCanvas.height);
+  ctx.setTransform(CSS, 0, 0, CSS, C_OX * CSS, 100 * CSS);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  AUTOL = true;
   ctx.save();
-  if (!pet) ctx.translate(Pet.x, Pet.y);
   const flap = Math.sin(Pet.wing) * 0.7;
   const C1 = p.c1 || '#ffd24a', C2 = p.c2 || '#ffffff', C3 = p.c3 || '#4a2410', ex = p.ex || 0;
   const line = (w, c) => { ctx.strokeStyle = c; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; };
@@ -3796,6 +3816,19 @@ function drawPet(pet) {
     ctx.strokeStyle = C3; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.arc(fx2 + 1, fy + 1, 3, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
   }
+  ctx.restore();
+  AUTOL = false;
+  finishSprite(dk(p.c1 || '#ffd24a', 0.42));
+  if (useCache) {
+    petCCtx.clearRect(0, 0, petCC.width, petCC.height);
+    petCCtx.drawImage(olOut, 0, 0);
+    petCCid = p.id; petCCt = nowS;
+  }
+  }
+  ctx = mainCtx;
+  ctx.save();
+  if (!pet) ctx.translate(Pet.x, Pet.y);
+  ctx.drawImage(useCache ? petCC : olOut, -C_OX, -100, 200, 205);
   ctx.restore();
 }
 
@@ -4408,6 +4441,13 @@ function runDecos(ch, phase, RIM) {
         ctx.fillStyle = c;
         roundRect(-14.5, -58, 8, 28, 4); ctx.fill();
         roundRect(6.5, -58, 8, 28, 4); ctx.fill();
+      } else if (p === 'tee') {
+        // เสื้อยืดคลุมลำตัว + แขนสั้น (ท่อนแขนล่างโผล่สีคุกกี้)
+        ctx.fillStyle = c;
+        roundRect(-15.5, -58, 31, 23, 10); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, -34, 17.5, 9.5, 0, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(-14.5, -50, 7.5, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(14.5, -50, 7.5, 0, TAU); ctx.fill();
       }
     }
   }
