@@ -229,7 +229,11 @@ if (ACTIVE !== null && !PROFILES.some(pf => pf.id === ACTIVE)) ACTIVE = PROFILES
 const profPrefix = () => 'cr_' + (ACTIVE ? ACTIVE + '_' : '');
 const SAVE = {
   get(k, d) { return ACTIVE === null ? d : rawGet(profPrefix() + k, d); },
-  set(k, v) { if (ACTIVE !== null) rawSet(profPrefix() + k, v); }
+  set(k, v) {
+    if (ACTIVE === null) return;
+    rawSet(profPrefix() + k, v);
+    queueCloudSave();   // ทุกการเซฟสำคัญ → ซิงก์ขึ้นคลาวด์อัตโนมัติ (ดีบาวน์ซ์)
+  }
 };
 function loginProfile(id) {
   if (id === ACTIVE) { setState('menu'); AudioSys.click(); return; }
@@ -238,11 +242,12 @@ function loginProfile(id) {
 }
 /* ---------- บัญชีคลาวด์: ล็อกอินอีเมล (Gmail) + PIN ซิงก์เซฟข้ามเครื่อง ---------- */
 const cloudSession = () => rawGet('cr_cloud', null);
-function cloudApi(body) {
+function cloudApi(body, keepalive) {
   return fetch('/api/account', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    keepalive: !!keepalive,   // ให้ request รอดตอนปิดแท็บ/สลับแอป
   }).then(r => r.json());
 }
 function collectSaveData() {
@@ -255,22 +260,61 @@ function collectSaveData() {
     if (pre === 'cr_' && /^cr_p[0-9a-z]+_/.test(k)) continue;   // legacy: ข้ามคีย์ของโปรไฟล์อื่น
     out[k.slice(pre.length)] = rawGet(k, null);
   }
+  out.__t = Date.now();   // ตราเวลาเซฟ ใช้ตัดสินว่าข้อมูลฝั่งไหนใหม่กว่า
   return out;
 }
 let cloudBusy = false;
-function cloudSave(silent) {
+function cloudSave(silent, keepalive) {
   const cs = cloudSession();
   if (!cs || ACTIVE === null || cloudBusy) return;
   const pf = PROFILES.find(q => q.id === ACTIVE);
   if (!pf || pf.email !== cs.email) return;   // ซิงก์เฉพาะโปรไฟล์ที่ผูกอีเมลนี้
   cloudBusy = true;
-  cloudApi({ action: 'save', email: cs.email, pin: cs.pin, data: collectSaveData() })
+  rawSet(profPrefix() + '__t', Date.now());
+  cloudApi({ action: 'save', email: cs.email, pin: cs.pin, data: collectSaveData() }, keepalive)
     .then(r => {
       cloudBusy = false;
       if (!silent) floatText(W / 2, 110, r.ok ? '☁️ ซิงก์เซฟขึ้นคลาวด์แล้ว!' : '☁️ ซิงก์ไม่สำเร็จ', r.ok ? '#7ec8ff' : '#ff8888', true);
     })
     .catch(() => { cloudBusy = false; });
 }
+/* ซิงก์อัตโนมัติ: ทุกครั้งที่มีการเซฟสำคัญ (ซื้อของ/อัปเกรด/จบเกม/เช็กอิน)
+   รอ 2.5 วิให้การเปลี่ยนแปลงชุดเดียวกันรวมกันก่อนค่อยอัปโหลด */
+let cloudQT = null;
+function queueCloudSave() {
+  if (!rawGet('cr_cloud', null)) return;
+  clearTimeout(cloudQT);
+  cloudQT = setTimeout(() => cloudSave(true), 2500);
+}
+/* สลับแอป/ปิดแท็บ → รีบอัปโหลดทันที (keepalive ให้ request รอด) */
+addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { clearTimeout(cloudQT); cloudBusy = false; cloudSave(true, true); }
+});
+addEventListener('pagehide', () => { clearTimeout(cloudQT); cloudBusy = false; cloudSave(true, true); });
+/* เปิดเกม → ดึงเซฟล่าสุดจากคลาวด์มาเทียบ ใครใหม่กว่าใช้อันนั้น
+   (แก้ปัญหา "ล็อกอินเครื่องอื่นแล้วข้อมูลหาย") */
+function cloudPullOnBoot() {
+  const cs = cloudSession();
+  if (!cs || ACTIVE === null) return;
+  const pf = PROFILES.find(q => q.id === ACTIVE);
+  if (!pf || pf.email !== cs.email) return;
+  cloudApi({ action: 'load', email: cs.email, pin: cs.pin }).then(r => {
+    if (!r.ok || !r.data || !Object.keys(r.data).length) { cloudSave(true); return; }
+    const localT = rawGet(profPrefix() + '__t', 0) || 0;
+    const cloudT = r.data.__t || 0;
+    if (cloudT > localT + 1500) {
+      // คลาวด์ใหม่กว่า → ดึงลงมาทับ แล้วโหลดใหม่ (กันวนด้วย sessionStorage)
+      if (sessionStorage.getItem('cr_pulled') === String(cloudT)) return;
+      const pre = profPrefix();
+      Object.keys(r.data).forEach(k => rawSet(pre + k, r.data[k]));
+      sessionStorage.setItem('cr_pulled', String(cloudT));
+      location.reload();
+    } else if (localT > cloudT + 1500) {
+      cloudSave(true);   // เครื่องนี้ใหม่กว่า → อัปขึ้นแทน
+    }
+  }).catch(() => {});
+}
+setTimeout(cloudPullOnBoot, 600);
 function cloudLogin() {
   const prev = cloudSession() || {};
   const email = prompt('อีเมล (Gmail) ของคุณ:', prev.email || '');
@@ -295,9 +339,15 @@ function cloudLogin() {
       rawSet('cr_' + pf.id + '_name', pf.name);
     }
     if (r.data && Object.keys(r.data).length) {
-      // มีเซฟบนคลาวด์ → ดึงมาทับเซฟของโปรไฟล์นี้
+      // มีเซฟบนคลาวด์ → ทับเฉพาะเมื่อคลาวด์ใหม่กว่าเซฟในเครื่อง
       const pre = 'cr_' + (pf.id ? pf.id + '_' : '');
-      Object.keys(r.data).forEach(k => rawSet(pre + k, r.data[k]));
+      const localT = rawGet(pre + '__t', 0) || 0;
+      const cloudT = r.data.__t || 0;
+      if (cloudT >= localT) {
+        Object.keys(r.data).forEach(k => rawSet(pre + k, r.data[k]));
+        sessionStorage.setItem('cr_pulled', String(cloudT));
+      }
+      // ถ้าเครื่องนี้ใหม่กว่า → เก็บของเครื่องไว้ เดี๋ยว cloudPullOnBoot อัปขึ้นให้เอง
     }
     rawSet('cr_active', pf.id);
     location.reload();
