@@ -162,11 +162,28 @@ CanvasRenderingContext2D.prototype.fill = function (...a) {
   if (!AUTOL) return;
   const fs = this.fillStyle;
   if (typeof fs !== 'string' || fs.startsWith('rgba')) return;  // ข้ามไล่เฉด/สีโปร่งแสง
+  const p2 = a[0] instanceof Path2D ? a[0] : null;
   this.save();
+  // 1) เส้นขอบสี hue เดียวกันเข้มกว่า (กฎจากผลวัดสไปรต์จริง)
   this.strokeStyle = dk(fs, 0.68);
   this.lineWidth = 2.2;
   this.lineJoin = 'round'; this.lineCap = 'round';
-  if (a[0] instanceof Path2D) this.stroke(a[0]); else this.stroke();
+  p2 ? this.stroke(p2) : this.stroke();
+  // 2) เซลเชดรายชิ้น: แถบไฮไลต์ขอบบน + เงาขอบล่าง ตามรูปทรงของชิ้นนั้น
+  //    ใช้เกรเดียนต์แนวดิ่งทั้งสไปรต์ แปลงพิกัดกลับด้วย inverse transform
+  try {
+    p2 ? this.clip(p2) : this.clip();
+    const m = this.getTransform().invertSelf();
+    const Hc = this.canvas.height;
+    const g = this.createLinearGradient(m.e, m.f, m.c * Hc + m.e, m.d * Hc + m.f);
+    g.addColorStop(0, 'rgba(255,255,255,.34)');
+    g.addColorStop(0.36, 'rgba(255,255,255,.05)');
+    g.addColorStop(0.52, 'rgba(70,35,10,0)');
+    g.addColorStop(1, 'rgba(70,35,10,.30)');
+    this.strokeStyle = g;
+    this.lineWidth = 6.5;
+    p2 ? this.stroke(p2) : this.stroke();
+  } catch (e) {}
   this.restore();
 };
 
@@ -823,16 +840,16 @@ const LOOK = {
   cream: { body: '#f0e0c8', deco: ['puff:#ffffff', 'sprinkles:#5a3a26', 'collar:#e8d0b0', 'staff:#8a5a2e', 'heldfruit:#8fbf4a'] },
   cloudc: { body: '#f2d048', eye: '#4a9fe0', deco: ['puff:#bfe4f8', 'starchest:#ffffff', 'hookstaff:#5aa8e0'] },
   bcchoco: { body: '#6a4028', deco: ['swirl:#f6e8d0', 'buttons:#f2d8b0'] },
-  gclaus: { icing: '#c8342a', deco: ['suit:#c8342a', 'belt:#3a3028', 'collar:#ffffff', 'gloves:#ffffff', 'sack:#b02a20', 'santa:#e0453a', 'beard:#ffffff', 'candycane'] },
+  gclaus: { icing: '#c8342a', deco: ['suit:#c8342a', 'belt:#3a3028', 'collar:#ffffff', 'gloves:#ffffff', 'cuffs:#ffffff', 'sack:#b02a20', 'santa:#e0453a', 'beard:#ffffff', 'candycane'] },
   coffee: { body: '#5a3a26', eyeS: 'sharp', deco: ['vest:#6a5a9a', 'sleeves:#6a5a9a', 'collar:#ffffff', 'nytag', 'side:#d9a05e', 'mug:#e8e0d0'] },
   angel: { deco: ['curl:#f2d977', 'icing:#ffffff'] },
   skater: { deco: ['cap:#3a86c8', 'icing:#ffffff'] },
   princess: { icing: '#ff9ec0', deco: ['dress:#ff9ec0', 'frillhem:#fff4f8', 'drills:#f2d848', 'crown:#ffd24a', 'blushdot', 'heartwand:#ff5a8a'] },
-  knight: { body: '#c8b090', deco: ['armor:#aab6c4', 'helmet:#aab6c4', 'sword:#dfe8f2'] },
+  knight: { body: '#c8b090', deco: ['armor:#aab6c4', 'helmet:#aab6c4', 'gloves:#9aa6b4', 'sword:#dfe8f2'] },
   muscle: { body: '#a8683a', deco: ['band:#e0453a', 'vest:#f2ecd8', 'blushdot'] },
   pirate: { deco: ['bandana:#e0453a', 'piratehat:#2a2a34', 'patch', 'jawbeard:#5a4028', 'sword:#dfe8f2'] },
   skatingq: { deco: ['dress:#dff2ff', 'tiara:#bfe8ff', 'long:#f2f8ff', 'wand:#7ec8e8'] },
-  hero: { deco: ['suit:#3f6fd0', 'cape:#e0453a', 'heromask:#3f6fd0', 'glasses'] },
+  hero: { deco: ['suit:#3f6fd0', 'cape:#e0453a', 'heromask:#3f6fd0', 'gloves:#ffffff', 'glasses'] },
   sforce: { body: '#9a7a4e', deco: ['suit:#4a5a3a', 'beret:#4a5a3a', 'facepaint:#37472c'] },
   cheer: { deco: ['skirt:#3a86c8', 'pony:#f2d848', 'stripes:#3a86c8', 'pompom:#7ec8ff'] },
   kumiho: { body: '#fdf2ec', deco: ['foxears:#fdf2ec', 'foxtail:#fdf2ec', 'blushdot', 'lollipop:#ff9db8'] },
@@ -4322,6 +4339,10 @@ function runDecos(ch, phase, RIM) {
         ctx.beginPath(); ctx.arc(16, -52, 6.5, 0, TAU); ctx.fill();
         ctx.fillStyle = 'rgba(255,255,255,.4)';
         roundRect(-11, -56, 8, 4, 2); ctx.fill();
+        // หมุดย้ำเกราะ
+        ctx.fillStyle = dk(c, 0.68);
+        ctx.beginPath(); ctx.arc(-10, -51, 1.6, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(10, -51, 1.6, 0, TAU); ctx.fill();
       } else if (p === 'suit') {
         // บอดี้สูทคลุมตัว+ขา (ฮีโร่/หน่วยรบ) — เหลือหัว/มือเป็นสีคุกกี้
         ctx.fillStyle = c;
@@ -4332,6 +4353,10 @@ function runDecos(ch, phase, RIM) {
         ctx.beginPath(); ctx.moveTo(7.5, -26); ctx.lineTo(8, 0); ctx.stroke();
         ctx.fillStyle = 'rgba(255,255,255,.25)';
         roundRect(-10, -54, 7, 10, 3.5); ctx.fill();
+        // ตะเข็บกลาง + เข็มขัดจาง ๆ
+        ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(0, -55); ctx.lineTo(0, -30); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-13, -34); ctx.lineTo(13, -34); ctx.stroke();
       } else if (p === 'skirt') {
         // กระโปรงสั้นบาน (เชียร์ลีดเดอร์/ไบรต์)
         const DK = shade(c, -35);
@@ -4471,6 +4496,20 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.quadraticCurveTo(-22, 10, -24, -2);
       ctx.closePath(); ctx.fill();
     }
+  }
+  /* ----- ไฮไลต์เงาบนผม (มิติแบบสไปรต์จริง) ----- */
+  if (drewHair) for (const d of ds) {
+    const p = d.p;
+    if (!['bob', 'long', 'side', 'pony', 'twin', 'curl', 'puff', 'messy', 'spiky'].includes(p)) continue;
+    ctx.strokeStyle = shade(d.c, 46); ctx.lineCap = 'round';
+    if (p === 'curl') { ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(-6, -27, 7, Math.PI * 0.95, Math.PI * 1.55); ctx.stroke(); }
+    else if (p === 'puff') { ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(-13, -24, 7.5, Math.PI * 0.95, Math.PI * 1.55); ctx.stroke(); }
+    else if (p === 'spiky' || p === 'messy') {
+      ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.moveTo(-16, -24); ctx.lineTo(-12, -11); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-3, -26); ctx.lineTo(0, -12); ctx.stroke();
+    } else { ctx.lineWidth = 3.2; ctx.beginPath(); ctx.arc(0.5, -5, 25, Math.PI * 1.08, Math.PI * 1.42); ctx.stroke(); }
+    break;
   }
   /* ----- หมวก/เครื่องหัว + หน้า (วาดทับผม) ----- */
   for (const d of ds) {
@@ -4950,6 +4989,7 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   const LEGC = pickC('pants', 'suit', 'robe', 'overalls');
   const SHOE = pickC('shoes', 'boots') || (LEGC ? dk(LEGC, 0.72) : null);
   const GLOVE = pickC('gloves');
+  const CUFF = pickC('cuffs') || (SLV ? dk(SLV, 0.76) : null);
 
   const main = ctx;
   ctx = charCtx;
@@ -5015,6 +5055,14 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       segP(9, 12.5);
       if (mode === 'fill' && SHOE) ctx.fillStyle = SHOE;
       ctx.beginPath(); ctx.ellipse(FRONT ? 0 : 2, 10.5, 8.5 + pad, 6 + pad, 0, 0, TAU); ctx.fill();
+      if (mode === 'fill') {
+        // เงาใต้เท้า (คลิปในรูปเท้า กันเลอะออกนอกเงาตัว)
+        ctx.save();
+        ctx.beginPath(); ctx.ellipse(FRONT ? 0 : 2, 10.5, 8.5, 6, 0, 0, TAU); ctx.clip();
+        ctx.fillStyle = 'rgba(70,35,10,.16)';
+        ctx.beginPath(); ctx.ellipse(FRONT ? 0 : 2, 14.5, 9.5, 5, 0, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
       ctx.restore();
     };
     if (FRONT) { legP(0.1, 0, -7.5); legP(-0.1, 0, 7.5); }
@@ -5032,6 +5080,11 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       ctx.translate(0, 9);
       ctx.rotate(el * 0.45);
       segP(9, 13);
+      if (mode === 'fill' && SLV) {
+        // ปลอกข้อมือเสื้อ (cuff) ก่อนถึงมือ
+        ctx.strokeStyle = CUFF; ctx.lineWidth = 14;
+        ctx.beginPath(); ctx.moveTo(0, 4.6); ctx.lineTo(0, 6.8); ctx.stroke();
+      }
       if (mode === 'fill') ctx.fillStyle = GLOVE || B;   // มือ = สีคุกกี้/ถุงมือ
       ctx.beginPath(); ctx.arc(0, 11, 7.2 + pad, 0, TAU); ctx.fill();
       ctx.restore();
@@ -5092,6 +5145,16 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
   ctx.save();
   ctx.translate(0, -84 + headBob);
   ctx.scale(HS, HS);
+  // เชดหัวแบบสไปรต์จริง: ไฮไลต์โค้งบนกบาล + เงาพระจันทร์เสี้ยวใต้คาง (คลิปในหัว)
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0.5, 0, 32, 28.5, 0, 0, TAU); ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,.13)';
+  ctx.beginPath(); ctx.ellipse(-2, -16, 26, 15, 0.08, 0, TAU); ctx.fill();
+  ctx.fillStyle = B; // กลบส่วนกลางให้เหลือเป็นแถบโค้งบน
+  ctx.beginPath(); ctx.ellipse(-1, -11, 24.5, 13, 0.08, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(70,35,10,.10)';
+  ctx.beginPath(); ctx.ellipse(0.5, 24, 30, 12, 0, 0, TAU); ctx.fill();
+  ctx.restore();
 
   if (ch.id === 'berry') {
     ctx.fillStyle = '#e8506e';
