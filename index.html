@@ -1648,6 +1648,7 @@ function doJump() {
         const ox = obstacles[i].x - worldX;
         if (ox > P.x + 30 && ox < W + 40) {
           sparkle(ox, GROUND_Y - 26, 16, '#ff8ab0');
+          debris(ox, GROUND_Y - 26, 13, '#8a5a2e');
           obstacles.splice(i, 1); nd++;
         }
       }
@@ -2815,6 +2816,7 @@ function useSkill() {
       const ox = obstacles[i].x - worldX;
       if (ox > -40 && ox < W + 60) {
         sparkle(ox, GROUND_Y - 28, 16, '#c9a2ff');
+        debris(ox, GROUND_Y - 28, 12, '#8a5a2e');
         obstacles.splice(i, 1); n++;
       }
     }
@@ -2984,6 +2986,20 @@ function sparkle(x, y, n, c) {
     particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60, life: rnd(0.35, 0.7), t: 0, c, r: rnd(2, 5), star: true });
   }
 }
+/* เศษแตกกระเด็น: ก้อนเหลี่ยมหมุนตกกระดอน (สิ่งกีดขวางพัง) */
+function debris(x, y, n, c = '#8a5a2e') {
+  for (let i = 0; i < n; i++) {
+    const a = rnd(-Math.PI * 0.9, -0.1), sp = rnd(160, 420);
+    particles.push({ x, y: y - rnd(0, 20), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: rnd(0.5, 1.0),
+      t: 0, c, r: rnd(3, 7), chunk: true, rot: rnd(0, TAU), vr: rnd(-14, 14), bounce: 1 });
+  }
+}
+/* ควันฝุ่นแบน ๆ ฟุ้งบนพื้น */
+function dust(x, y, n = 5) {
+  for (let i = 0; i < n; i++)
+    particles.push({ x: x + rnd(-14, 6), y, vx: rnd(-140, -30), vy: rnd(-30, -4), life: rnd(0.3, 0.55),
+      t: 0, c: 'rgba(210,180,130,.7)', r: rnd(5, 11), smoke: true });
+}
 function floatText(x, y, text, c = '#fff', big = false) {
   floaters.push({ x, y, text, c, t: 0, big });
 }
@@ -3015,7 +3031,7 @@ function hurt(amount) {
   G.combo = 0;
   P.invT = 2.0;
   P.stumbleT = 0.5;
-  G.shake = 12; G.flash = 0.5;
+  G.shake = 20; G.flash = 0.6; FX.stopT = 0.28; FX.flashC = '#ff4040'; FX.flashT = 0.4;
   AudioSys.crash();
   sparkle(P.x + P.w / 2, P.y + P.h / 2, 14, '#ff6b6b');
   if (G.hp <= 0) { G.hp = 0; gameOver(); }
@@ -3254,6 +3270,7 @@ function update(dt) {
           const ox = o.x - worldX;
           if (pf.c) { G.coins += pf.c; floatText(ox, GROUND_Y - 86, '🪙 +' + pf.c, '#ffd24a'); }
           sparkle(ox, GROUND_Y - 26, 20, '#ff9d2e');
+          debris(ox, GROUND_Y - 26, 16, '#8a5a2e'); dust(ox, GROUND_Y - 4, 7);
           floatText(ox, GROUND_Y - 60, '💥 เพื่อนซี้เคลียร์ทาง!', '#ff9d2e', true);
         }
       }
@@ -3397,7 +3414,7 @@ function update(dt) {
           if (footX > px && footX < px + pl.w &&
               prevFoot <= pl.y + 10 && P.y + ph >= pl.y) {
             P.y = pl.y - ph;
-            if (!P.onGround) { puff(footX, pl.y, 4); P.squash = 0.32; }
+            if (!P.onGround) { puff(footX, pl.y, 4); dust(footX, pl.y, 6); P.squash = 0.32; G.shake = Math.max(G.shake||0, 4); }
             P.vy = 0; P.onGround = true; P.jumps = 0; landed = true;
             break;
           }
@@ -3409,7 +3426,7 @@ function update(dt) {
           AudioSys.fall();
         } else {
           P.y = GROUND_Y - ph;
-          if (!P.onGround) { puff(P.x + pw / 2, GROUND_Y, 4); P.squash = 0.32; }
+          if (!P.onGround) { puff(P.x + pw / 2, GROUND_Y, 4); dust(P.x + pw / 2, GROUND_Y, P.giantT > 0 ? 12 : 6); P.squash = 0.32; G.shake = Math.max(G.shake||0, P.giantT > 0 ? 12 : 4); }
           P.vy = 0; P.onGround = true; P.jumps = 0; landed = true;
         }
       }
@@ -3503,6 +3520,12 @@ function collectJelly(j, jx) {
   switch (j.type) {
     case 'bar': case 'coin': case 'pink': case 'bear': {
       G.combo++; G.comboTimer = CH().comboT + (PFX().k === 'combo' ? PFX().v * petFxMul() : 0) + trV('combo');
+      if (G.combo > 0 && G.combo % 10 === 0) {
+        FX.rings.push({ t: 0, c: '#ffd24a', x: P.x + 28, y: P.y + P.h / 2 }, { t: -0.1, c: '#fff6c8', x: P.x + 28, y: P.y + P.h / 2 });
+        sparkle(P.x + 28, P.y + 20, 30, '#ffd24a'); sparkle(P.x + 28, P.y + 20, 16, '#fff6c8');
+        FX.flashT = 0.22; FX.flashC = '#ffe98e'; G.shake = Math.max(G.shake||0, 8);
+        floatText(P.x + 28, P.y - 40, '🔥 ' + G.combo + ' COMBO!', '#ffd24a', true);
+      }
       if (CFX().trig === 'jelly') {
         G.cfxCount = (G.cfxCount || 0) + 1;
         if (G.cfxCount >= CFX().n) {
@@ -3623,6 +3646,10 @@ function startBonusTime() {
   bonusLetterQueue = ['B','O','N','U','S'];
   bonusBearSpawned = false;
   G.bonusT = 6.5 + G.upg.bonus * 0.7 + (CH().btPlus || 0) + trV('bt') + (PFX().k === 'bt' ? PFX().v * petFxMul() : 0);
+  FX.flashT = 0.5; FX.flashC = '#ffe98e'; FX.raysT = 0.8; FX.raysC = '#ffd24a'; FX.linesT = 0.6;
+  FX.zoomT = 0.5; G.shake = Math.max(G.shake||0, 12);
+  for (let q = 0; q < 4; q++) FX.rings.push({ t: -q * 0.08, c: q % 2 ? '#ffd24a' : '#ffffff', x: P.x + 28, y: P.y + P.h / 2 });
+  sparkle(P.x + 28, P.y + 20, 40, '#ffd24a');
   P.vy = -120;
   AudioSys.bear();
   banner('🎉 BONUSTIME ครบ! ค้างปุ่มบิน ขึ้น/ลง 🎉', '#ffe066');
@@ -3632,7 +3659,12 @@ function updateParticles(dt) {
   for (const p of particles) {
     p.t += dt;
     p.x += p.vx * dt; p.y += p.vy * dt;
-    p.vy += 500 * dt;
+    p.vy += (p.smoke ? 0 : p.chunk ? 900 : 500) * dt;
+    if (p.chunk) {
+      p.rot += p.vr * dt;
+      if (p.y > GROUND_Y - 4 && p.bounce > 0 && p.vy > 0) { p.vy *= -0.42; p.vx *= 0.6; p.bounce--; }
+    }
+    if (p.smoke) { p.r += 26 * dt; p.vx *= 0.92; }
     p.x -= (G.state === 'play' ? G.speed * 0.5 : 0) * dt;
   }
   particles = particles.filter(p => p.t < p.life);
@@ -6870,7 +6902,13 @@ function drawParticles() {
     const a = 1 - p.t / p.life;
     ctx.globalAlpha = a;
     ctx.fillStyle = p.c;
-    if (p.star) {
+    if (p.chunk) {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot || 0);
+      ctx.fillRect(-p.r, -p.r * 0.8, p.r * 2, p.r * 1.6);
+      ctx.restore();
+    } else if (p.smoke) {
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.fill();
+    } else if (p.star) {
       ctx.save();
       ctx.translate(p.x, p.y); ctx.rotate(p.t * 6);
       ctx.fillRect(-p.r, -p.r/3, p.r*2, p.r/1.5);
