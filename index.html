@@ -875,9 +875,9 @@ const LOOK = {
   cheer: { deco: ['skirt:#3a86c8', 'pony:#f2d848', 'stripes:#3a86c8', 'pompom:#7ec8ff'] },
   kumiho: { body: '#fdf2ec', deco: ['foxears:#fdf2ec', 'foxtail:#fdf2ec', 'blushdot', 'lollipop:#ff9db8'] },
   devil: { body: '#e0483a', icing: '#8a1e14', eye: '#ffd24a', deco: ['deviltail:#a02818', 'horns:#a02818', 'batwings:#3a2a34', 'fangs', 'trident:#8a1e14'] },
-  fairy: { body: '#cfeee0', deco: ['fairywings:#eafff2', 'swirl:#b8d848', 'dress:#66d8bc', 'lilyflower:#e8b0d8'] },
-  firespirit: { deco: ['flamehair:#ffb03a', 'robe:#6a2016', 'staff:#e0453a'] },
-  windarcher: { deco: ['batwings:#3f8a4a', 'leafhood:#3f8a4a', 'bowweapon:#6b4423'] },
+  fairy: { body: '#cfeee0', deco: ['fairywings:#eafff2', 'spiralbun:#c8d848', 'dress:#66d8bc', 'lilyflower:#f2d848'] },
+  firespirit: { deco: ['flame:#ff7a1e', 'robe:#6a2016', 'staff:#e0453a'] },
+  windarcher: { deco: ['batwings:#3f8a4a', 'leafswept:#3f8a4a', 'bowweapon:#6b4423'] },
   zombie: { deco: ['messy:#6a8a4a', 'stitch:#5a7a3a', 'zombieeye', 'bone:#f2ecdc'] },
   wizard: { deco: ['robe:#3f5fc0', 'wizhat:#3f5fc0', 'hatstars:#f2e060', 'bigbeard:#e8e4da', 'staff:#8a5a2e'] },
   rockstar: { deco: ['spiky:#f2f0ec', 'guitar:#e0453a', 'glasses', 'vest:#3a3a44'] },
@@ -4551,6 +4551,69 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.quadraticCurveTo(-36, 6, -28, 20);
       ctx.quadraticCurveTo(-22, 10, -24, -2);
       ctx.closePath(); ctx.fill();
+    } else if (p === 'flame') {
+      // เปลวไฟทั้งเปลวแบบวิญญาณเพลิง: เปลวนอกพลิ้ว + แกนในสว่าง
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.moveTo(-27, -4);
+      ctx.quadraticCurveTo(-34, -20, -22, -30);
+      ctx.quadraticCurveTo(-28, -44, -12, -47);
+      ctx.quadraticCurveTo(-14, -60, 3, -64);
+      ctx.quadraticCurveTo(-1, -52, 9, -47);
+      ctx.quadraticCurveTo(22, -52, 18, -40);
+      ctx.quadraticCurveTo(30, -34, 24, -20);
+      ctx.quadraticCurveTo(31, -10, 26, -4);
+      ctx.quadraticCurveTo(0.5, -14, -27, -4);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = shade(c, 52);
+      ctx.beginPath();
+      ctx.moveTo(-14, -8);
+      ctx.quadraticCurveTo(-20, -22, -8, -30);
+      ctx.quadraticCurveTo(-10, -42, 1, -48);
+      ctx.quadraticCurveTo(6, -38, 12, -32);
+      ctx.quadraticCurveTo(16, -18, 12, -8);
+      ctx.quadraticCurveTo(0, -14, -14, -8);
+      ctx.closePath(); ctx.fill();
+    } else if (p === 'leafswept') {
+      // ผมใบไม้กวาดแหลมแบบนักธนูสายลม + ใบซ้อนสว่าง + เพชรหน้าผาก
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.moveTo(-31, 0);
+      ctx.quadraticCurveTo(-42, -14, -30, -26);
+      ctx.quadraticCurveTo(-20, -32, -14, -28);
+      ctx.quadraticCurveTo(-18, -44, -2, -46);
+      ctx.quadraticCurveTo(0, -38, 6, -34);
+      ctx.quadraticCurveTo(14, -46, 22, -38);
+      ctx.quadraticCurveTo(20, -28, 24, -22);
+      ctx.quadraticCurveTo(34, -18, 28, -6);
+      ctx.quadraticCurveTo(0.5, -16, -31, 0);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = shade(c, 35);
+      ctx.beginPath();
+      ctx.moveTo(-24, -8);
+      ctx.quadraticCurveTo(-26, -22, -12, -26);
+      ctx.quadraticCurveTo(-2, -28, 2, -22);
+      ctx.quadraticCurveTo(-8, -18, -24, -8);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#4adcb8';
+      ctx.beginPath();
+      ctx.moveTo(0.5, -15); ctx.lineTo(4.5, -9); ctx.lineTo(0.5, -3); ctx.lineTo(-3.5, -9);
+      ctx.closePath(); ctx.fill();
+    } else if (p === 'spiralbun') {
+      // มวยผมก้นหอยแบบแฟรี่ + ปอยหยิกข้าง
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -6, 30.5, Math.PI * 0.98, Math.PI * 2.02); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.arc(0.5, -34, 14.5, 0, TAU); ctx.fill();
+      line(2.8, shade(c, -42));
+      ctx.beginPath();
+      for (let a2 = 0; a2 < 14.4; a2 += 0.25) {
+        const rr = 1 + a2 * 0.78;
+        const px = 0.5 + Math.cos(a2 + 1.2) * rr, py = -34 + Math.sin(a2 + 1.2) * rr * 0.9;
+        a2 === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      line(4.4, c);
+      ctx.beginPath(); ctx.arc(28, -18, 6, Math.PI * 0.7, Math.PI * 2.4); ctx.stroke();
     }
   }
   /* ----- ไฮไลต์เงาบนผม (มิติแบบสไปรต์จริง) ----- */
