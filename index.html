@@ -1445,6 +1445,19 @@ const petTPdesc = idx => {
   if (k === 'dur') return '⏱ สมบัติ +' + Math.round(v * 100) + '% เวลาไอเทมพลัง';
   return '';
 };
+
+/* COMBI พิเศษเฉพาะคู่ (แบบเกมต้นฉบับ) — โบนัสต่างกันตามสายสกิลของคุกกี้
+   ทุกคู่ยังได้แต้ม +15% พื้นฐาน แล้วบวกโบนัสเฉพาะทางนี้เพิ่ม */
+const COMBI_FX = {
+  gold:   { k: 'coin',  v: 0.25, label: 'เหรียญ +25%' },
+  bless:  { k: 'bt',    v: 1.5,  label: 'BONUS TIME +1.5 วิ' },
+  heal:   { k: 'drain', v: 0.12, label: 'พลังลดช้าลง 12%' },
+  dash:   { k: 'skill', v: 0.40, label: 'เกจสกิลเร็ว +40%' },
+  strike: { k: 'skill', v: 0.40, label: 'เกจสกิลเร็ว +40%' },
+  blast:  { k: 'skill', v: 0.40, label: 'เกจสกิลเร็ว +40%' },
+};
+const combiCatOf = ch => COMBI_FX[ch.sk] || { k: 'pts', v: 0.10, label: 'แต้ม +10%' };
+const combiV = k => { if (!G.combi) return 0; const m = combiCatOf(CH()); return m.k === k ? m.v : 0; };
 const PFX = () => PT().fx || { k: '', v: 0 };
 const CFX = () => CH().cfx || { k: '' };
 
@@ -2053,7 +2066,7 @@ function levelClear() {
   if (!G.starBest) G.starBest = [0,0,0,0,0];
   if (G.stars > (G.starBest[G.episode] || 0)) { G.starBest[G.episode] = G.stars; SAVE.set('starBest', G.starBest); }
   if (G.dist > G.distBest) { G.distBest = Math.floor(G.dist); SAVE.set('distBest', G.distBest); }
-  G.earned = Math.floor((G.coins + Math.floor(G.score / 400)) * (1 + trV('coin') + petTPv('coinEnd')) * (CH().coinMul || 1)) + G.stars * 100;
+  G.earned = Math.floor((G.coins + Math.floor(G.score / 400)) * (1 + trV('coin') + petTPv('coinEnd') + combiV('coin')) * (CH().coinMul || 1)) + G.stars * 100;
   G.bank += G.earned; SAVE.set('coins', G.bank);
   G.crystals += G.stars; SAVE.set('crystals', G.crystals);   // รางวัลคริสตัลตามดาว
   const st = G.stats; st.runs++; st.dist += Math.floor(G.dist); st.jellies += G.jellies; SAVE.set('stats', st);
@@ -2100,7 +2113,7 @@ function settleGameOver() {
     if (Math.random() < 0.2 * (1 + trV('gem'))) G.boxGems++;
   }
   if (G.boxGems > 0) { G.crystals += G.boxGems; SAVE.set('crystals', G.crystals); }
-  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (1 + trV('coin') + petTPv('coinEnd')) * (G.runBoost.coin ? 2 : 1) * (CH().coinMul || 1));
+  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (1 + trV('coin') + petTPv('coinEnd') + combiV('coin')) * (G.runBoost.coin ? 2 : 1) * (CH().coinMul || 1));
   G.bank += G.earned;
   SAVE.set('coins', G.bank);
   const entry = { s: G.score, d: Math.floor(G.dist), c: G.charIdx, t: Date.now() };
@@ -3621,7 +3634,7 @@ function update(dt) {
       }
     }
   }
-  if (G.bonusT <= 0) G.hp -= G.hpDrain * (1 - trV('drain')) * (CH().drainMul || 1) * (PFX().k === 'drain' ? 1 - (1 - PFX().v) * petFxMul() : 1) * dt;
+  if (G.bonusT <= 0) G.hp -= G.hpDrain * (1 - trV('drain') - combiV('drain')) * (CH().drainMul || 1) * (PFX().k === 'drain' ? 1 - (1 - PFX().v) * petFxMul() : 1) * dt;
   if (G.hp <= 0) {
     G.hp = 0;
     if (gameOver()) return;
@@ -3891,7 +3904,7 @@ function collectJelly(j, jx) {
       let pts = (base + comboBonus) * mult;
       pts *= 1 + G.upg.jelly * 0.06;                         // เยลลี่พลัส
       pts *= lvMul();                                        // เลเวลคุกกี้
-      pts *= (CH().ptMul || 1) * (1 + trV('pt')) * (G.combi ? 1.15 : 1);   // ความสามารถคุกกี้ + สมบัติ + Combi
+      pts *= (CH().ptMul || 1) * (1 + trV('pt')) * (G.combi ? 1.15 + combiV('pts') : 1);   // ความสามารถคุกกี้ + สมบัติ + Combi (โบนัสเฉพาะคู่)
       if (j.type !== 'coin' && j.type !== 'bear') pts *= (CH().jellyMul || 1) * (1 + trV('jelly'));
       if (PFX().k === 'score') pts *= 1 + (PFX().v - 1) * petFxMul();
       if (G.bonusT > 0 && PFX().k === 'btgrow') pts *= 1 + PFX().v * petFxMul();   // ปุยเมฆโตใน Bonus Time
@@ -3901,7 +3914,7 @@ function collectJelly(j, jx) {
       if (j.type !== 'coin') pts += petTPv('jpts');          // สมบัติสัตว์เลี้ยง: +แต้มโบนัสต่อเยลลี่
       pts = Math.round(pts);
       G.score += pts; G.jellies++;
-      G.skill = Math.min(100, G.skill + 1.7 * (1 + trV('skill')) * (CH().skillFast || 1));   // ชาร์จเกจสกิล
+      G.skill = Math.min(100, G.skill + 1.7 * (1 + trV('skill') + combiV('skill')) * (CH().skillFast || 1));   // ชาร์จเกจสกิล + Combi
       G.maxCombo = Math.max(G.maxCombo, G.combo);
       if (j.type === 'coin')
         G.coins += PFX().k === 'coin' ? 1 + Math.round(PFX().v * petFxMul()) : 1;
@@ -3996,7 +4009,7 @@ function startBonusTime() {
   G.runStars++;
   bonusLetterQueue = ['B','O','N','U','S'];
   bonusBearSpawned = false;
-  G.bonusT = 6.5 + G.upg.bonus * 0.7 + (CH().btPlus || 0) + trV('bt') + (PFX().k === 'bt' ? PFX().v * petFxMul() : 0);
+  G.bonusT = 6.5 + G.upg.bonus * 0.7 + (CH().btPlus || 0) + trV('bt') + combiV('bt') + (PFX().k === 'bt' ? PFX().v * petFxMul() : 0);
   FX.flashT = 0.5; FX.flashC = '#ffe98e'; FX.raysT = 0.8; FX.raysC = '#ffd24a'; FX.linesT = 0.6;
   FX.zoomT = 0.5; G.shake = Math.max(G.shake||0, 12);
   for (let q = 0; q < 4; q++) FX.rings.push({ t: -q * 0.08, c: q % 2 ? '#ffd24a' : '#ffffff', x: P.x + 28, y: P.y + P.h / 2 });
@@ -8235,17 +8248,18 @@ function drawGrid(LIST, kind) {
     if (tpd) { ctx.font = 'bold 12px Trebuchet MS'; ctx.fillStyle = '#ff9dd0';
       ctx.fillText(tpd + (gdCur > 0 ? '' : ' (อัปเกรดเพื่อเพิ่ม)'), 112, dy + 71); }
   }
-  // คู่ซี้ Combi
+  // คู่ซี้ Combi — โบนัสพิเศษเฉพาะคู่ (ต่างกันตามสายสกิลคุกกี้)
+  ctx.font = '12px Trebuchet MS';
   if (isChar && cur.mate && PET_BY_ID[cur.mate]) {
     const mateOn = PT().id === cur.mate && focus === curIdx;
     ctx.fillStyle = mateOn ? '#7bd94a' : '#c8b8a0';
-    ctx.fillText((mateOn ? '💞 COMBI กับ ' : '🤍 คู่ซี้: ') + PET_BY_ID[cur.mate].name + ' (แต้ม +15%)', 112, dy + 72);
+    ctx.fillText((mateOn ? '💞 COMBI: ' : '🤍 คู่ซี้: ') + PET_BY_ID[cur.mate].name + ' — แต้ม +15% · ' + combiCatOf(cur).label, 112, dy + 72);
   } else if (!isChar) {
     const mate = CHARS.find(c2 => c2.mate === cur.id);
     if (mate) {
       const on = CH().mate === cur.id && focus === curIdx;
       ctx.fillStyle = on ? '#7bd94a' : '#c8b8a0';
-      ctx.fillText((on ? '💞 COMBI กับ ' : '🤍 คู่ซี้: ') + mate.name + ' (แต้ม +15%)', 112, dy + 72);
+      ctx.fillText((on ? '💞 COMBI: ' : '🤍 คู่ซี้: ') + mate.name + ' — แต้ม +15% · ' + combiCatOf(mate).label, 112, dy + 86);
     }
   }
 
