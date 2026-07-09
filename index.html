@@ -1151,7 +1151,9 @@ const TREASURES = [
   { icon: '🔔', name: 'กระดิ่งเรียกโชค',   cost: 4600, fx: { k: 'letter', v: 1 }, desc: 'อักษร BONUSTIME โผล่บ่อยขึ้น' },
 ];
 /* รวมค่าผลของสมบัติที่สวมอยู่ */
-const trStarMul = i => 1 + (G.trStar[i] || 0) * 0.5;   // วิวัฒนาการสมบัติ: ผลแรงขึ้นครึ่งเท่าต่อดาว
+const TR_MAXLV = 9;                                    // อัปเกรดสมบัติ +0 → +9 แบบเกมต้นฉบับ
+const trLvCost = (i, lv) => Math.round(TREASURES[i].cost * 0.45 * (lv + 1));  // ค่าอัปเกรดไต่ขึ้นต่อเลเวล
+const trStarMul = i => 1 + (G.trStar[i] || 0) * (1 / TR_MAXLV);   // ผลไต่จนถึง 2 เท่าที่ +9 (เหมือนอัปสมบัติเต็มของจริง)
 const trV = k => G.trEquip.reduce((sum, i) => sum + (TREASURES[i] && TREASURES[i].fx.k === k ? TREASURES[i].fx.v * trStarMul(i) : 0), 0);
 
 /* ============================================================
@@ -8258,7 +8260,7 @@ function drawTreasure() {
   drawCoinChip(W - 20, 22, G.bank.toLocaleString());
   ctx.font = 'bold 14px Trebuchet MS'; ctx.textAlign = 'center';
   ctx.fillStyle = '#ffe9b8';
-  ctx.fillText('สวมได้สูงสุด 3 ชิ้น — กำลังสวม ' + G.trEquip.length + '/3 · แตะเพื่อซื้อ/สวม/ถอด', W / 2, 76);
+  ctx.fillText('สวมได้สูงสุด 3 ชิ้น — กำลังสวม ' + G.trEquip.length + '/3 · แตะเพื่อซื้อ/สวม · อัปเกรด +0→+9 ผลไต่ถึง 2 เท่า', W / 2, 76);
 
   const cw = 150, chh = 122, gap = 6;
   const x0 = (W - (cw * 6 + gap * 5)) / 2;
@@ -8292,27 +8294,31 @@ function drawTreasure() {
     ctx.fillStyle = equipped ? '#7bd94a' : owned ? '#aee4ff' : '#ffd24a';
     ctx.fillText(equipped ? '✓ สวมอยู่' : owned ? 'แตะเพื่อสวม' : '🪙 ' + t.cost.toLocaleString(), x + cw / 2, y + chh - 8);
     drawBtn(x, y, cw, chh, '', () => tryTreasure(i), { invisible: true });
-    // วิวัฒนาการสมบัติ: ⭐ สูงสุด 3 ดาว ผล +50% ต่อดาว
+    // อัปเกรดสมบัติ +0 → +9 (เหมือนต้นฉบับ) — ผลไต่ถึง 2 เท่าที่ +9
     if (owned) {
       const st = G.trStar[i] || 0;
       ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffd24a';
-      ctx.fillText('⭐'.repeat(st), x + 6, y + 16);
+      ctx.fillStyle = st >= TR_MAXLV ? '#ff8ad0' : '#ffd24a';
+      ctx.fillText('+' + st, x + 6, y + 16);
       ctx.textAlign = 'center';
-      if (st < 3) {
-        const evCost = t.cost * (st + 1) * 2;
-        drawBtn(x + cw - 42, y + 4, 38, 20, '⭐+', () => {
+      if (st < TR_MAXLV) {
+        const evCost = trLvCost(i, st);
+        drawBtn(x + cw - 44, y + 4, 40, 20, '+' + (st + 1), () => {
           if (G.bank >= evCost) {
             G.bank -= evCost;
             G.trStar[i] = st + 1;
             SAVE.set('coins', G.bank); SAVE.set('trStar', G.trStar);
             AudioSys.buy();
-            floatText(W / 2, 100, '⭐ ' + t.name + ' วิวัฒนาการขั้น ' + (st + 1) + '! (ผล +' + ((st + 1) * 50) + '%)', '#ffd24a', true);
+            const pc = Math.round((st + 1) * (100 / TR_MAXLV));
+            floatText(W / 2, 100, '⬆ ' + t.name + ' +' + (st + 1) + '! (ผลรวม +' + pc + '%)', '#ffd24a', true);
           } else {
             AudioSys.deny();
-            floatText(W / 2, 100, 'วิวัฒนาการต้องใช้ 🪙 ' + evCost.toLocaleString(), '#ff8888', true);
+            floatText(W / 2, 100, 'อัปเกรดต้องใช้ 🪙 ' + evCost.toLocaleString(), '#ff8888', true);
           }
         }, { color: '#b06ae0', dark: '#8a4ac0', font: 10 });
+      } else {
+        ctx.font = 'bold 9px Trebuchet MS'; ctx.textAlign = 'right'; ctx.fillStyle = '#ff8ad0';
+        ctx.fillText('MAX', x + cw - 6, y + 15); ctx.textAlign = 'center';
       }
     }
   });
