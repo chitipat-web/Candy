@@ -7587,38 +7587,60 @@ function drawFloaters() {
 function drawBtn(x, y, w, h, label, cb, opt = {}) {
   uiButtons.push({ x, y, w, h, cb, disabled: opt.disabled });
   if (opt.invisible) return;   // พื้นที่คลิกล่องหน (การ์ดกริด)
-  const base = opt.disabled ? '#8a8178' : (opt.color || '#ff8b3d');
+  const base = opt.disabled ? '#928982' : (opt.color || '#ff8b3d');
   const dark = opt.disabled ? '#6e675f' : (opt.dark || '#d96a1e');
-  // เงา
-  ctx.fillStyle = 'rgba(60,25,0,.4)';
-  roundRect(x, y + 4, w, h, h / 2.4); ctx.fill();
-  // ปุ่ม
+  const r = Math.min(h / 2.3, 24);
+  // เงาทิ้งนุ่ม
+  ctx.fillStyle = 'rgba(35,16,0,.30)';
+  roundRect(x + 1, y + 5, w, h, r); ctx.fill();
+  // ขอบเข้มรอบนอก (ให้ปุ่มคม-เด้ง)
+  ctx.fillStyle = dk(dark, 0.66);
+  roundRect(x - 1.5, y - 1.5, w + 3, h + 3, r + 1.5); ctx.fill();
+  // เนื้อปุ่ม ไล่เฉด 3 สเตป (เจลลี่/ลูกอม)
   const g = ctx.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, base); g.addColorStop(1, dark);
+  g.addColorStop(0, dk(base, 1.16)); g.addColorStop(0.48, base); g.addColorStop(1, dark);
   ctx.fillStyle = g;
-  roundRect(x, y, w, h, h / 2.4); ctx.fill();
-  // ไฮไลต์บน
-  ctx.fillStyle = 'rgba(255,255,255,.35)';
-  roundRect(x + 6, y + 4, w - 12, h * 0.32, h * 0.16); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,.55)';
-  ctx.lineWidth = 2;
-  roundRect(x, y, w, h, h / 2.4); ctx.stroke();
+  roundRect(x, y, w, h, r); ctx.fill();
+  // เงาวับบน + เงาในล่าง (คลิปในรูปปุ่ม)
+  ctx.save(); roundRect(x, y, w, h, r); ctx.clip();
+  const hg = ctx.createLinearGradient(0, y, 0, y + h * 0.55);
+  hg.addColorStop(0, 'rgba(255,255,255,.55)'); hg.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hg; roundRect(x + 4, y + 3, w - 8, h * 0.46, r * 0.7); ctx.fill();
+  const sg = ctx.createLinearGradient(0, y + h * 0.55, 0, y + h);
+  sg.addColorStop(0, 'rgba(0,0,0,0)'); sg.addColorStop(1, 'rgba(0,0,0,.20)');
+  ctx.fillStyle = sg; ctx.fillRect(x, y + h * 0.5, w, h * 0.5);
+  ctx.restore();
+  // ริมไลต์บาง
+  ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1.4;
+  roundRect(x + 1.2, y + 1.2, w - 2.4, h - 2.4, r - 1); ctx.stroke();
   // ตัวหนังสือ
   ctx.font = `bold ${opt.font || 21}px Trebuchet MS`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(80,35,0,.7)';
+  ctx.lineWidth = 4.5; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(70,32,0,.72)';
   ctx.strokeText(label, x + w / 2, y + h / 2 + 1);
-  ctx.fillStyle = opt.disabled ? '#d5cfc8' : '#fff';
+  ctx.fillStyle = opt.disabled ? '#e6e0d8' : '#fff';
   ctx.fillText(label, x + w / 2, y + h / 2 + 1);
   ctx.textBaseline = 'alphabetic';
 }
 
 function drawPanel(x, y, w, h, r = 18) {
-  ctx.fillStyle = 'rgba(58,30,8,.82)';
+  // เงาทิ้ง
+  ctx.fillStyle = 'rgba(24,11,0,.32)';
+  roundRect(x + 2, y + 5, w, h, r); ctx.fill();
+  // ขอบไม้เข้มรอบนอก
+  ctx.fillStyle = '#3a2109';
+  roundRect(x - 1.5, y - 1.5, w + 3, h + 3, r + 1.5); ctx.fill();
+  // พื้นไล่เฉด
+  const g = ctx.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, 'rgba(92,54,22,.93)'); g.addColorStop(1, 'rgba(50,27,10,.93)');
+  ctx.fillStyle = g;
   roundRect(x, y, w, h, r); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,220,160,.4)';
-  ctx.lineWidth = 2.5;
-  roundRect(x + 3, y + 3, w - 6, h - 6, r - 3); ctx.stroke();
+  // เส้นไฮไลต์ขอบใน (เบเวล)
+  ctx.strokeStyle = 'rgba(255,222,168,.42)'; ctx.lineWidth = 2;
+  roundRect(x + 3.5, y + 3.5, w - 7, h - 7, Math.max(2, r - 3)); ctx.stroke();
+  // ประกายเส้นบนสุด
+  ctx.strokeStyle = 'rgba(255,244,214,.22)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x + r, y + 3); ctx.lineTo(x + w - r, y + 3); ctx.stroke();
 }
 
 function drawGemChip(x, y) {
@@ -7672,13 +7694,24 @@ function drawCoinChip(x, y, text) {
 function drawTitleText(text, x, y, size, fill1 = '#ffe9a0', fill2 = '#ff8b2e') {
   ctx.textAlign = 'center';
   ctx.font = `bold ${size}px Trebuchet MS`;
-  ctx.lineWidth = size * 0.19;
-  ctx.strokeStyle = '#5a2e10';
-  ctx.strokeText(text, x, y);
-  const grad = ctx.createLinearGradient(0, y - size * 0.8, 0, y + size * 0.15);
-  grad.addColorStop(0, fill1); grad.addColorStop(1, fill2);
+  ctx.lineJoin = 'round';
+  // เงานุ่มด้านหลัง
+  ctx.fillStyle = 'rgba(35,16,0,.3)';
+  ctx.fillText(text, x + size * 0.03, y + size * 0.06);
+  // ขอบเข้ม 2 ชั้น (นอกหนา + ใน)
+  ctx.lineWidth = size * 0.22; ctx.strokeStyle = '#4a2409'; ctx.strokeText(text, x, y);
+  ctx.lineWidth = size * 0.12; ctx.strokeStyle = '#7a3f16'; ctx.strokeText(text, x, y);
+  // เนื้อไล่เฉด
+  const grad = ctx.createLinearGradient(0, y - size * 0.85, 0, y + size * 0.15);
+  grad.addColorStop(0, '#fff7d6'); grad.addColorStop(0.5, fill1); grad.addColorStop(1, fill2);
   ctx.fillStyle = grad;
   ctx.fillText(text, x, y);
+  // แถบประกายบนตัวอักษร
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x - 900, y - size, 1800, size * 0.4); ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,.4)';
+  ctx.fillText(text, x, y);
+  ctx.restore();
 }
 
 /* ---------- HUD ---------- */
@@ -7939,7 +7972,10 @@ function drawLogin() {
 }
 
 function drawMenu() {
-  ctx.fillStyle = 'rgba(40,20,5,.45)';
+  // พื้นหลังอบอุ่น + ขอบมืด (vignette) ให้แผงเด่น
+  const bg = ctx.createRadialGradient(W / 2, H * 0.42, 60, W / 2, H * 0.42, W * 0.72);
+  bg.addColorStop(0, 'rgba(70,38,12,.32)'); bg.addColorStop(1, 'rgba(24,11,2,.66)');
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
   if (G.dailyLast !== todayStr() && !G.dailyShow) G.dailyShow = true;
   {
