@@ -51,7 +51,7 @@ const charCanvas = document.createElement('canvas');
 const CSS = 2;                       // ซูเปอร์แซมเปิล 2x ให้ขอบคม
 const C_OX = 100, C_OY = 160;        // จุดกำเนิด (กึ่งกลางเท้า) ในพิกัด offscreen
 const HS = 1.12;                     // สเกลหัว (ผลวัดสไปรต์จริง: หัว ≈58% ของความสูง)
-const SQ = 0.9;                      // บีบแนวตั้งรวม → สัดส่วนป้อมแบบสไปรต์จริง
+const SQ = 0.88;                     // บีบแนวตั้งรวม → สัดส่วนป้อมแบบสไปรต์จริง
 charCanvas.width = 200 * CSS;
 charCanvas.height = 205 * CSS;
 const charCtx = charCanvas.getContext('2d');
@@ -176,7 +176,7 @@ const NO_OL = new Set(['freckles', 'stubble', 'blushdot', 'tear', 'fangs', 'face
 /* โหมดยืนหันหน้าตรงแบบภาพทางการ: แขน-ขาสมมาตร + หน้าอยู่กึ่งกลางหัว
    (ท่าวิ่งในเกมยังเป็นมุมข้างเหมือนเดิม) */
 let FRONT = false;
-const FACE_P = new Set(['glasses', 'patch', 'freckles', 'blushdot', 'fangs', 'tear', 'stubble', 'facepaint', 'beard']);
+const FACE_P = new Set(['glasses', 'patch', 'freckles', 'blushdot', 'fangs', 'tear', 'stubble', 'facepaint', 'beard', 'mustache', 'jawbeard']);
 const _protoFill = CanvasRenderingContext2D.prototype.fill;
 CanvasRenderingContext2D.prototype.fill = function (...a) {
   _protoFill.apply(this, a);
@@ -894,14 +894,14 @@ const LOOK = {
   carol: { body: '#d9a05e', icing: '#2e7a3a', deco: ['hood:#204a22', 'robe:#204a22', 'dots:#e0453a', 'moonpin:#f8d838'] },
   blackberry: { limb: 'slim', icing: '#4a3a5e', deco: ['dress:#483078', 'collar:#ffffff', 'maidband:#ffffff', 'long:#241854'] },
   pinkchoco: { body: '#e8a058', limb: 'slim', deco: ['bootfeet:#e87898', 'flowtail:#f2cf5b', 'tee:#fdfaf8', 'heartchest:#e0202a', 'collar:#f2b8cc', 'hearthood:#f28fae', 'heartcheek:#ff5a8a', 'heartwand:#e0202a'] },
-  kiwi: { body: '#a8885a', deco: ['spiky:#7a9a3a', 'band:#3a3a44', 'freckles'] },
+  kiwi: { body: '#a8885a', eyeS: 'sharp', deco: ['bootfeet:#3a2e22', 'side:#5a9a2e', 'batwings:#242430', 'vest:#2e2e34', 'pants:#26262a', 'freckles'] },
   apple: { body: '#f0c890', deco: ['pony:#f2d848', 'fruit:#e0453a', 'freckles', 'blushdot'] },
-  werewolf: { body: '#9a949c', deco: ['messy:#e8e4ec', 'wolfears:#b8b4bc', 'fangs', 'claws:#4a4650'] },
+  werewolf: { body: '#9a949c', eye: '#4ac8e8', eyeS: 'sharp', deco: ['messy:#56505a', 'wolfears:#6a646e', 'scarfB:#f2f0ea', 'pants:#2e2a30', 'fangs', 'claws:#3a3640'] },
   mintchoco: { body: '#6a4a34', deco: ['spiky:#8fd8c8', 'bowtie:#2e2018', 'bow2:#8a5a2e', 'collar:#f2ecd8'] },
   cocoa: { body: '#5a3018', deco: ['bob:#503018', 'tophat:#fdfaf6', 'scarfB:#fdfaf6', 'skirt:#fdfaf6', 'mug:#c03028', 'blushdot'] },
   creampuff: { deco: ['puff:#f2cf8e', 'wand:#e8b03a', 'glasses'] },
   gumball: { deco: ['suit:#2e5ad8', 'helmet:#2e5ad8', 'gumpack', 'bazooka:#c81e28', 'freckles'] },
-  peppermint: { body: '#eaf8f4', deco: ['cap:#ffffff', 'stripes:#3a86c8', 'collar:#3a86c8'] },
+  peppermint: { body: '#eaf8f4', deco: ['cap:#fbfbf8', 'stripes:#4ac8e8', 'swirl:#5ad8f0', 'collar:#4ac8e8', 'heldfruit:#38b0e0', 'blushdot'] },
   jujube: { body: '#a84a3a', deco: ['bootfeet:#5a1e14', 'armor:#8a2e1e', 'generalhat:#6a1e14', 'longbeard:#3a2a1a', 'spear:#8a5a2e'] },
   peach: { body: '#f8d0c0', deco: ['twin:#fc9078', 'fruit:#ff9a7a', 'blushdot', 'spear:#8a5a2e'] },
   onion: { deco: ['dress:#f4f0fa', 'hood:#f4f0fa', 'sprout:#8fbf4a', 'tear:#9ecfff'] },
@@ -926,12 +926,15 @@ const LOOK = {
   dancheong: { limb: 'slim', body: '#e86a8a', deco: ['dress:#e0563a', 'dancheongcrown:#e0563a', 'long:#3a2a1a', 'fanitem:#3a90c0'] },  bari: { limb: 'slim', deco: ['robe:#fff4f4', 'long:#f8f0ec', 'ribbon:#e86a8a', 'crown:#ffffff'] },
   gimbap: { limb: 'xslim', deco: ['bootfeet:#1c1c22', 'armor:#2a2a2a', 'admiralhat:#2a2a2a', 'ricecollar:#f2ecd8', 'sword:#dfe8f2'] },
   seafairy: { limb: 'slim', body: '#f0c084', deco: ['dress:#90c0fc', 'seawave:#4a90dc', 'crystal:#7ee8dc'] },
-  lemon: { limb: 'slim', body: '#e0a850', deco: ['side:#f8e824', 'vest:#fbfbf0', 'pants:#26262e'] },
-  orange: { limb: 'slim', body: '#e8a050', deco: ['sneakfeet:#ffffff', 'pony:#f08018', 'cap:#f08820', 'skirt:#f09030'] },
+  lemon: { limb: 'slim', body: '#e0a850', eyeS: 'sharp', deco: ['side:#f8e824', 'vest:#fbfbf0', 'pants:#26262e'] },
+  orange: { limb: 'slim', body: '#e8a050', eyeS: 'sharp', deco: ['sneakfeet:#ffffff', 'pony:#f08018', 'cap:#f08820', 'skirt:#f09030'] },
   ninja: { limb: 'slim' },
   banana: { deco: ['sliceears:#f6dc7a', 'bob:#ecc244', 'vest:#fdfaf4', 'freckles'] },
   cherryblossom: { body: '#e8a058', deco: ['twin:#f89fc4', 'flowercrown:#f8c8dc', 'dress:#f8d0e0', 'blushdot', 'lollipop:#f0a8c8'] },
-  lime: { body: '#e0a050', deco: ['twin:#8ade2e', 'sliceears:#b8ec5a', 'dress:#9ade4a', 'blushdot'] },
+  lime: { body: '#e0a050', eyeS: 'sharp', deco: ['twin:#8ade2e', 'sliceears:#b8ec5a', 'dress:#9ade4a', 'blushdot'] },
+  pancake: { eye: '#8040c0', eyeS: 'round', deco: ['hood:#c87840', 'beret:#d08838', 'drip:#e8b03a', 'blushdot'] },
+  cucumber: { eyeS: 'happy', deco: ['beret:#55982e', 'puff:#e8f0d8', 'vest:#c89040', 'skirt:#5a9a3a', 'staff:#6a4a2e'] },
+  moonrabbit: { body: '#f6f2ec', eye: '#d02830', eyeS: 'round', deco: ['hood:#fdfaf6', 'bunnyears:#fdfaf6', 'skirt:#f0d8b8', 'blushdot'] },
 };
 
 CHARS.forEach(c => {
@@ -4312,7 +4315,7 @@ function runDecos(ch, phase, RIM) {
         ctx.restore();
       } else if (p === 'gumpack') {
         // ถังลูกกัมบอลสะพายหลัง (กัมบอล)
-        ctx.save(); ctx.translate(-24, -40);
+        ctx.save(); ctx.translate(-30, -42);
         ctx.fillStyle = 'rgba(228,240,250,.6)';
         ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.fill();
         for (const [gx, gy, gc] of [[-4, -4, '#e0453a'], [5, -2, '#3a86c8'], [-1, 5, '#f2d848'], [-7, 3, '#4aa84a'], [4, 7, '#f078a0']])
@@ -4837,8 +4840,12 @@ function runHeadDecos(ch, RIM, EYE) {
         ctx.beginPath(); ctx.arc(sg * 31, -14, 13, 0, TAU); ctx.fill();
         ctx.strokeStyle = dk(c, 0.72); ctx.lineWidth = 2.4;
         ctx.beginPath(); ctx.arc(sg * 31, -14, 9.5, 0, TAU); ctx.stroke();
-        ctx.strokeStyle = '#6a4018'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.arc(sg * 31, -17, 6, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+        // น้ำตาลไหม้ราดหยดบนแผ่น
+        ctx.strokeStyle = '#6a4018'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.arc(sg * 31, -16, 7, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
+        ctx.fillStyle = '#6a4018';
+        ctx.beginPath(); ctx.arc(sg * 31 - 3, -11, 2, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(sg * 31 + 4, -12, 1.7, 0, TAU); ctx.fill();
       }
     } else if (p === 'cloudpuff') {
       // ผมสายไหมปุยยักษ์ล้อมรอบหัว (สายไหม)
@@ -5082,9 +5089,12 @@ function runHeadDecos(ch, RIM, EYE) {
         ctx.closePath(); ctx.fill(); ctx.restore();
       }
     } else if (p === 'mustache') {
-      line(3.4, c);
-      ctx.beginPath(); ctx.moveTo(10, 7); ctx.quadraticCurveTo(4, 10, 0, 7); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(12, 7); ctx.quadraticCurveTo(18, 10, 22, 7); ctx.stroke();
+      // หนวดโค้งม้วนปลายหนาแบบสุภาพบุรุษ
+      line(4.4, c);
+      ctx.beginPath(); ctx.moveTo(10.5, 6.5); ctx.quadraticCurveTo(2, 11, -3, 5.5);
+      ctx.quadraticCurveTo(-6, 2, -3, 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(12.5, 6.5); ctx.quadraticCurveTo(21, 11, 26, 5.5);
+      ctx.quadraticCurveTo(29, 2, 26, 0.5); ctx.stroke();
     } else if (p === 'beard') {
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.arc(11, 12, 15, Math.PI * 1.9, Math.PI * 1.1);
