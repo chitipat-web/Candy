@@ -1410,6 +1410,41 @@ const petGradeNow = () => G.petGrade[G.petIdx] || 0;
 const petGradeCost = (i, g) => Math.round(280 * (g + 1) * (1 + g * 0.15));   // ค่าอัปเกรดไต่ขึ้นต่อขั้น
 // พลังรวม = สกิลเลเวล (1–8) + เกรดสมบัติ (+0→+9 เพิ่มผลพาสซีฟ ไต่ถึง +0.5 เท่าที่ +9)
 const petFxMul = () => 1 + (petLvNow() - 1) * 0.12 + petGradeNow() * (0.5 / PET_MAXGRADE);
+
+/* เอฟเฟกต์พาสซีฟ "สมบัติสัตว์เลี้ยง" บรรทัดที่สอง (แบบเกมต้นฉบับ LINE)
+   จับคู่จากชนิดสกิลหลักของสัตว์เลี้ยง → ค่าที่ +9 (สูงสุด) แล้วไต่ตามเกรด */
+const TP_BY_FX = {
+  jpts:    { k: 'jpts',    v: 60 },   // +แต้มโบนัสต่อเยลลี่
+  coinEnd: { k: 'coinEnd', v: 0.12 }, // +% เหรียญท้ายรอบ
+  crash:   { k: 'crash',   v: 0.10 }, // ลดดาเมจตอนชน %
+  energy:  { k: 'energy',  v: 40 },   // +พลังเริ่มต้น
+  dur:     { k: 'dur',     v: 0.12 }, // +ระยะเวลาไอเทมพลัง %
+};
+const TP_MAP = {
+  give: 'jpts', jelly: 'jpts', pts: 'jpts', score: 'jpts', destroy: 'jpts',
+  bearify: 'jpts', scout: 'jpts', skill: 'jpts', combo: 'jpts', c2p: 'jpts',
+  coinrain: 'coinEnd', magnet: 'coinEnd', coin: 'coinEnd', p2c: 'coinEnd',
+  lift: 'crash', spd: 'crash', boost: 'crash',
+  regen: 'energy', revive: 'energy', hp: 'energy', drain: 'energy',
+  btgrow: 'dur', bt: 'dur', item: 'dur',
+};
+// ค่าเอฟเฟกต์พาสซีฟของสัตว์เลี้ยง idx ตามหมวด k (0 ถ้าไม่ตรง) — ไต่ +0=50% → +9=100%
+const petTPof = (idx, k) => {
+  const cat = TP_MAP[((PETS[idx] || {}).fx || {}).k]; if (!cat || TP_BY_FX[cat].k !== k) return 0;
+  return TP_BY_FX[cat].v * (0.5 + 0.5 * (G.petGrade[idx] || 0) / PET_MAXGRADE);
+};
+const petTPv = k => petTPof(G.petIdx, k);   // ของสัตว์เลี้ยงที่สวมอยู่
+// คำอธิบายพาสซีฟสมบัติของสัตว์เลี้ยง idx (โชว์ในหน้าเลือก)
+const petTPdesc = idx => {
+  const cat = TP_MAP[((PETS[idx] || {}).fx || {}).k]; if (!cat) return '';
+  const k = TP_BY_FX[cat].k, v = TP_BY_FX[cat].v * (0.5 + 0.5 * (G.petGrade[idx] || 0) / PET_MAXGRADE);
+  if (k === 'jpts') return '🍬 สมบัติ +' + Math.round(v) + ' แต้ม/เยลลี่';
+  if (k === 'coinEnd') return '🪙 สมบัติ +' + Math.round(v * 100) + '% เหรียญท้ายรอบ';
+  if (k === 'crash') return '🛡 สมบัติ ลดดาเมจชน ' + Math.round(v * 100) + '%';
+  if (k === 'energy') return '💗 สมบัติ +' + Math.round(v) + ' พลังเริ่มต้น';
+  if (k === 'dur') return '⏱ สมบัติ +' + Math.round(v * 100) + '% เวลาไอเทมพลัง';
+  return '';
+};
 const PFX = () => PT().fx || { k: '', v: 0 };
 const CFX = () => CH().cfx || { k: '' };
 
@@ -1905,7 +1940,7 @@ function startGame(mode, boosts) {
   G.time = G.time; G.dist = 0; G.score = 0; G.coins = 0; G.jellies = 0;
   G.combo = 0; G.comboTimer = 0;
   G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12 + (G.runBoost.energy ? 40 : 0)
-          + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0) + trV('hp');
+          + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0) + trV('hp') + Math.round(petTPv('energy'));
   G.combi = PT().id === CH().mate;   // คู่ซี้คุกกี้-สัตว์เลี้ยง = แต้ม +15%
   G.formT = 0; G.cfxT = 0;
   G.obSmashLeft = CFX().k === 'obSmash' ? CFX().v : 0;
@@ -1968,7 +2003,7 @@ function gameOver() {
     G.obSmashLeft = CFX().k === 'obSmash' ? CFX().v : 0;
     G.combi = PT().id === CH().mate;
     G.hpMax = 100 + CH().hpBonus + G.upg.hp * 12 + (G.runBoost.energy ? 40 : 0)
-            + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0) + trV('hp');
+            + (PFX().k === 'hp' ? Math.round(PFX().v * petFxMul()) : 0) + trV('hp') + Math.round(petTPv('energy'));
     G.hp = G.hpMax;
     P.invT = 3; P.dead = false; P.fallingPit = false;
     P.y = Math.min(P.y, GROUND_Y - P.h - 120); P.vy = 0;
@@ -2018,7 +2053,7 @@ function levelClear() {
   if (!G.starBest) G.starBest = [0,0,0,0,0];
   if (G.stars > (G.starBest[G.episode] || 0)) { G.starBest[G.episode] = G.stars; SAVE.set('starBest', G.starBest); }
   if (G.dist > G.distBest) { G.distBest = Math.floor(G.dist); SAVE.set('distBest', G.distBest); }
-  G.earned = Math.floor((G.coins + Math.floor(G.score / 400)) * (1 + trV('coin')) * (CH().coinMul || 1)) + G.stars * 100;
+  G.earned = Math.floor((G.coins + Math.floor(G.score / 400)) * (1 + trV('coin') + petTPv('coinEnd')) * (CH().coinMul || 1)) + G.stars * 100;
   G.bank += G.earned; SAVE.set('coins', G.bank);
   G.crystals += G.stars; SAVE.set('crystals', G.crystals);   // รางวัลคริสตัลตามดาว
   const st = G.stats; st.runs++; st.dist += Math.floor(G.dist); st.jellies += G.jellies; SAVE.set('stats', st);
@@ -2065,7 +2100,7 @@ function settleGameOver() {
     if (Math.random() < 0.2 * (1 + trV('gem'))) G.boxGems++;
   }
   if (G.boxGems > 0) { G.crystals += G.boxGems; SAVE.set('crystals', G.crystals); }
-  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (1 + trV('coin')) * (G.runBoost.coin ? 2 : 1) * (CH().coinMul || 1));
+  G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (1 + trV('coin') + petTPv('coinEnd')) * (G.runBoost.coin ? 2 : 1) * (CH().coinMul || 1));
   G.bank += G.earned;
   SAVE.set('coins', G.bank);
   const entry = { s: G.score, d: Math.floor(G.dist), c: G.charIdx, t: Date.now() };
@@ -3333,6 +3368,7 @@ function hurt(amount) {
     amount *= cf.v;   // เจ้าหญิง/กล้ามโต/แฟรี่: ลดดาเมจชน
     spawnActor('shield', { c: '#7ec8ff' });
   }
+  amount *= (1 - petTPv('crash'));   // สมบัติสัตว์เลี้ยง: ลดดาเมจตอนชน
   G.hp -= amount;
   G.runHit = (G.runHit || 0) + 1;
   G.combo = 0;
@@ -3862,6 +3898,7 @@ function collectJelly(j, jx) {
       if (j.type === 'bear' && PFX().k === 'bear') pts *= 1 + (PFX().v - 1) * petFxMul();
       if (j.type === 'bear') pts *= 1 + trV('bear');        // จี้หมีทองคำ
       if (G.scoreMulT > 0) pts *= 2;                         // สกิลนินจา
+      if (j.type !== 'coin') pts += petTPv('jpts');          // สมบัติสัตว์เลี้ยง: +แต้มโบนัสต่อเยลลี่
       pts = Math.round(pts);
       G.score += pts; G.jellies++;
       G.skill = Math.min(100, G.skill + 1.7 * (1 + trV('skill')) * (CH().skillFast || 1));   // ชาร์จเกจสกิล
@@ -3897,13 +3934,13 @@ function collectJelly(j, jx) {
       floatText(jx, j.y - 30, '+HP พลังคืนมา!', '#7bff9b', true);
       break;
     case 'giant':
-      P.giantT = 6 * itemMul() * (CH().itemMul || 1) * (1 + trV('item'));
+      P.giantT = 6 * itemMul() * (CH().itemMul || 1) * (1 + trV('item') + petTPv('dur'));
       AudioSys.power();
       sparkle(jx, j.y, 20, '#ffd24a');
       banner('ยักษ์โหมด! GIANT MODE!', '#ffd24a');
       break;
     case 'magnet':
-      P.magnetT = 8 * itemMul() * (CH().itemMul || 1) * (1 + trV('item'));
+      P.magnetT = 8 * itemMul() * (CH().itemMul || 1) * (1 + trV('item') + petTPv('dur'));
       AudioSys.power();
       sparkle(jx, j.y, 20, '#7ecbff');
       banner('แม่เหล็กเยลลี่!', '#7ecbff');
@@ -8192,6 +8229,12 @@ function drawGrid(LIST, kind) {
   ctx.textAlign = 'left';
   ctx.font = '13px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
   ctx.fillText((cur.desc[0] || '') + (cur.desc[1] ? ' · ' + cur.desc[1] : ''), 112, dy + 52);
+  // เอฟเฟกต์พาสซีฟสมบัติสัตว์เลี้ยง (ไต่ตามเกรด)
+  if (!isChar && ownedCur) {
+    const tpd = petTPdesc(focus);
+    if (tpd) { ctx.font = 'bold 12px Trebuchet MS'; ctx.fillStyle = '#ff9dd0';
+      ctx.fillText(tpd + (gdCur > 0 ? '' : ' (อัปเกรดเพื่อเพิ่ม)'), 112, dy + 71); }
+  }
   // คู่ซี้ Combi
   if (isChar && cur.mate && PET_BY_ID[cur.mate]) {
     const mateOn = PT().id === cur.mate && focus === curIdx;
