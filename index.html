@@ -1676,7 +1676,7 @@ function doJump() {
       G.cfxCount = (G.cfxCount || 0) + 1;
       if (G.cfxCount >= CFX().n) {
         G.cfxCount = 0;
-        G.formT = CFX().dur;
+        G.formT = CFX().dur; skillBurst('#ffd76e', true);
         G.shake = 6; AudioSys.power();
         banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#ffd24a');
       }
@@ -1819,7 +1819,7 @@ function gameOver() {
   if (G.revives > 0) {
     G.revives--;
     if (CFX().trig === 'revive') {
-      G.formT = CFX().dur;
+      G.formT = CFX().dur; skillBurst('#ffd76e', true);
       banner((CFX().tag || '🔥') + ' คืนชีพพร้อมพลัง! อมตะ ' + CFX().dur + ' วิ!', '#ff9d2e');
     }
     if (CFX().k === 'reviveHp') G.hp = Math.min(G.hpMax, G.hp + CFX().v);
@@ -1935,6 +1935,130 @@ function settleGameOver() {
   return true;
 }
 function banner(text, color) { G.banner = { text, color }; G.bannerT = 0; }
+
+/* ============================================================
+   VFX สกิลอลังการแบบเกมจริง: แฟลชจอ วงแหวนกระแทก จอสั่น
+   + เอฟเฟกต์ลายเซ็นรายตัว (คลื่นยักษ์ วงเวท ฝนดาว ฮาร์ตบีม)
+   ============================================================ */
+const FX = { flashT: 0, flashC: '#ffffff', rings: [], waveT: 0, circleT: 0, circleC: '#8fd8ff', starT: 0, starC: '#ffe98e', beamT: 0, beamC: '#ff6f9f' };
+function skillBurst(color, big) {
+  FX.flashT = big ? 0.5 : 0.3; FX.flashC = color;
+  FX.rings.push({ t: 0, c: '#ffffff', x: P.x + 28, y: P.y + P.h / 2 },
+                { t: -0.1, c: color, x: P.x + 28, y: P.y + P.h / 2 });
+  G.shake = Math.max(G.shake || 0, big ? 14 : 8);
+  sparkle(P.x + 30, P.y + 20, big ? 26 : 14, color);
+}
+const SKILL_SIG = {
+  seafairy: () => { FX.waveT = 1.1; skillBurst('#7ec8ff', true); },
+  wizard: () => { FX.circleT = 1; FX.circleC = '#7ea8ff'; skillBurst('#7ea8ff'); },
+  alchemist: () => { FX.circleT = 1; FX.circleC = '#b07ae0'; skillBurst('#b07ae0'); },
+  prophet: () => { FX.circleT = 1; FX.circleC = '#e8b03a'; skillBurst('#e8b03a'); },
+  moonlight: () => { FX.starT = 1.2; FX.starC = '#ffe98e'; skillBurst('#ffd76e'); },
+  snowsugar: () => { FX.starT = 1.1; FX.starC = '#bfe8ff'; skillBurst('#bfe8ff'); },
+  carol: () => { FX.starT = 1; FX.starC = '#a0e8b0'; skillBurst('#8fd8a0'); },
+  blackberry: () => { FX.starT = 1; FX.starC = '#c8a8e8'; skillBurst('#9a7ad0'); },
+  dancheong: () => { FX.starT = 1; FX.starC = '#ffb0c8'; skillBurst('#ffb0c8'); },
+  pinkchoco: () => { FX.beamT = 0.7; FX.beamC = '#ff6f9f'; skillBurst('#ff9dbb'); },
+};
+function skillFX(id, fallback, big) {
+  (SKILL_SIG[id] || (() => skillBurst(fallback || '#ffd24a', big)))();
+}
+function updateFX(dt) {
+  FX.flashT = Math.max(0, FX.flashT - dt);
+  FX.waveT = Math.max(0, FX.waveT - dt * 0.9);
+  FX.circleT = Math.max(0, FX.circleT - dt * 0.8);
+  FX.starT = Math.max(0, FX.starT - dt * 0.8);
+  FX.beamT = Math.max(0, FX.beamT - dt * 1.6);
+  for (const r of FX.rings) r.t += dt * 2.4;
+  FX.rings = FX.rings.filter(r => r.t < 1);
+}
+function drawFX() {
+  // วงแหวนคลื่นกระแทก
+  for (const r of FX.rings) {
+    if (r.t < 0) continue;
+    const rr = 20 + r.t * 250;
+    ctx.globalAlpha = (1 - r.t) * 0.7;
+    ctx.strokeStyle = r.c; ctx.lineWidth = 7 * (1 - r.t) + 2;
+    ctx.beginPath(); ctx.ellipse(r.x, r.y, rr, rr * 0.78, 0, 0, TAU); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // 🌊 คลื่นยักษ์ (นางฟ้าทะเล) กวาดขวาทั้งจอ
+  if (FX.waveT > 0) {
+    const t = 1.1 - FX.waveT;
+    const wx = -240 + t * (W + 500);
+    ctx.globalAlpha = Math.min(1, FX.waveT * 2.4) * 0.88;
+    for (const [off, cc, sc] of [[44, '#2e6ab8', 1.12], [0, '#4a9ae0', 1], [-28, '#bfe8ff', 0.85]]) {
+      ctx.fillStyle = cc;
+      ctx.beginPath();
+      ctx.moveTo(wx - 270 + off, GROUND_Y + 30);
+      ctx.quadraticCurveTo(wx - 150 + off, GROUND_Y - 300 * sc, wx + off, GROUND_Y - 330 * sc);
+      ctx.quadraticCurveTo(wx + 74 + off, GROUND_Y - 342 * sc, wx + 42 + off, GROUND_Y - 262 * sc);
+      ctx.quadraticCurveTo(wx - 40 + off, GROUND_Y - 300 * sc, wx - 95 + off, GROUND_Y - 180);
+      ctx.lineTo(wx + 60 + off, GROUND_Y + 30);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = '#eaf8ff';
+    for (let q = 0; q < 8; q++) {
+      ctx.beginPath();
+      ctx.arc(wx - 20 + Math.sin(q * 2.7) * 95, GROUND_Y - 255 + Math.cos(q * 1.9) * 65, 7 + (q % 3) * 4, 0, TAU);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // 🔮 วงเวทหมุนใต้เท้า (สายเวท)
+  if (FX.circleT > 0) {
+    const rot = G.time * 2.6;
+    ctx.save(); ctx.translate(P.x + 28, GROUND_Y - 4); ctx.scale(1, 0.32);
+    ctx.globalAlpha = Math.min(1, FX.circleT * 2) * 0.8;
+    ctx.strokeStyle = FX.circleC; ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.arc(0, 0, 88, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, 62, 0, TAU); ctx.stroke();
+    for (const ph of [0, Math.PI / 3]) {
+      ctx.beginPath();
+      for (let q = 0; q < 3; q++) {
+        const aa = rot + ph + q * TAU / 3;
+        ctx[q ? 'lineTo' : 'moveTo'](Math.cos(aa) * 88, Math.sin(aa) * 88);
+      }
+      ctx.closePath(); ctx.stroke();
+    }
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+  // 🌟 ฝนดาวตก (แสงจันทร์/หิมะ/แครอล)
+  if (FX.starT > 0) {
+    const a = Math.min(1, FX.starT * 2);
+    for (let q = 0; q < 11; q++) {
+      const sx = ((q * 173 + Math.floor(G.time * 2.5) * 67) % (W + 80)) - 40;
+      const sy = ((G.time * 480 + q * 217) % (GROUND_Y + 70)) - 40;
+      ctx.globalAlpha = a * (0.45 + (q % 3) * 0.22);
+      ctx.strokeStyle = FX.starC; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + 24, sy - 36); ctx.stroke();
+      ctx.fillStyle = FX.starC;
+      ctx.beginPath(); ctx.arc(sx, sy, 4.2, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // 💗 ฮาร์ตบีม (พิงก์ช็อกโก)
+  if (FX.beamT > 0) {
+    const by = P.y + 24;
+    const g = ctx.createLinearGradient(P.x + 40, 0, W, 0);
+    g.addColorStop(0, FX.beamC); g.addColorStop(1, 'rgba(255,150,190,0)');
+    ctx.globalAlpha = Math.min(1, FX.beamT * 3) * 0.85;
+    ctx.fillStyle = g;
+    ctx.fillRect(P.x + 40, by - 16, W - P.x - 40, 32);
+    ctx.fillStyle = '#ffd0e0';
+    ctx.fillRect(P.x + 40, by - 6, W - P.x - 40, 12);
+    ctx.fillStyle = '#ff8fb8';
+    for (let q = 0; q < 5; q++) {
+      const hx = P.x + 90 + ((G.time * 700 + q * 150) % (W - P.x - 120));
+      ctx.save(); ctx.translate(hx, by + Math.sin(G.time * 9 + q) * 18); ctx.rotate(-0.2); ctx.scale(1.6, 1.6);
+      ctx.beginPath();
+      ctx.moveTo(0, 2); ctx.quadraticCurveTo(-1, -2, -3.5, -2); ctx.quadraticCurveTo(-6.5, 0, 0, 6.5);
+      ctx.quadraticCurveTo(6.5, 0, 3.5, -2); ctx.quadraticCurveTo(1, -2, 0, 2);
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
 function togglePause() {
   G.paused = !G.paused;
   if (G.paused) AudioSys.stopMusic();
@@ -2264,6 +2388,7 @@ function update(dt) {
   if (cf.k === 'slamLand' && slideHeld && !P.onGround && G.bonusT <= 0 && !P.fallingPit)
     P.vy = Math.max(P.vy, 1500);   // กบฏ: กดสไลด์กลางอากาศ = ดิ่งลงพื้นทันที
   G.formT = Math.max(0, (G.formT || 0) - dt);
+  updateFX(dt);
   if (['spawnSp', 'destroyIv', 'coinIv', 'transform', 'songs', 'streak'].includes(cf.k) && cf.trig === undefined) {
     G.cfxT = (G.cfxT || 0) + dt;
     let iv = cf.iv * (1 - ((G.charLv[G.charIdx] || 1) - 1) * 0.04);
@@ -2279,7 +2404,9 @@ function update(dt) {
           jellyList.push({ x: worldX + P.x + 380 + q * 44, y: GROUND_Y - 70 - Math.sin(q * 0.9) * 34, type: 'pink', t: 0, dead: false });
         sparkle(P.x + 60, P.y + 20, 10, '#ff9db8');
         floatText(P.x + 40, P.y - 24, '✨ ' + (cf.tag || 'เยลลี่พิเศษ') + '!', '#ff9db8');
+        skillFX(CHARS[G.charIdx].id, '#ff9db8');
       } else if (cf.k === 'destroyIv') {
+        skillFX(CHARS[G.charIdx].id, '#ffd24a');   // เอฟเฟกต์ลายเซ็นออกทุกครั้งที่สกิลทำงาน
         const o = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 20; });
         if (o) {
           obstacles.splice(obstacles.indexOf(o), 1);
@@ -2288,6 +2415,7 @@ function update(dt) {
           G.score += pts2;
           sparkle(ox, GROUND_Y - 26, 20, '#ffd24a');
           floatText(ox, GROUND_Y - 66, (cf.tag || '💥') + ' +' + pts2, '#ffd24a', true);
+          FX.rings.push({ t: 0, c: '#ffd24a', x: ox, y: GROUND_Y - 40 });
           if (cf.jelly) for (let q = 0; q < 2; q++)
             jellyList.push({ x: o.x + q * 40, y: GROUND_Y - 60, type: 'pink', t: 0, dead: false });
           if (cf.coins) { G.coins += cf.coins; floatText(ox, GROUND_Y - 90, '🪙 +' + cf.coins, '#ffd24a'); }
@@ -2327,6 +2455,7 @@ function update(dt) {
         }
       } else {
         G.formT = cf.dur;
+        skillBurst('#ffd76e', true);
         G.shake = 6; AudioSys.power();
         banner((cf.tag || '✨ แปลงร่าง!') + ' อมตะ ' + cf.dur + ' วิ!', '#ffd24a');
       }
@@ -2659,7 +2788,7 @@ function collectJelly(j, jx) {
         G.cfxCount = (G.cfxCount || 0) + 1;
         if (G.cfxCount >= CFX().n) {
           G.cfxCount = 0;
-          G.formT = CFX().dur;
+          G.formT = CFX().dur; skillBurst('#ffd76e', true);
           G.shake = 6; AudioSys.power();
           banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#ffd24a');
         }
@@ -2703,7 +2832,7 @@ function collectJelly(j, jx) {
     case 'potion':
       G.hp = Math.min(G.hpMax, G.hp + 30 * (1 + (CFX().k === 'potionPlus' ? CFX().v : 0)));
       if (CFX().trig === 'potion') {
-        G.formT = CFX().dur;
+        G.formT = CFX().dur; skillBurst('#ffd76e', true);
         banner((CFX().tag || '✨') + ' อมตะ ' + CFX().dur + ' วิ!', '#7ecbff');
       }
       AudioSys.potion();
@@ -2810,9 +2939,25 @@ function draw() {
   drawTrail();
   drawJellies();
   drawObstacles();
+  if (G.state === 'play' && G.formT > 0) {
+    // ✨ ออร่าแปลงร่าง + ภาพติดตาไล่หลัง (ใช้สไปรต์เฟรมก่อนหน้า)
+    const pu = 0.7 + Math.sin(G.time * 9) * 0.3;
+    const ag = ctx.createRadialGradient(P.x + 28, P.y + P.h / 2, 10, P.x + 28, P.y + P.h / 2, 95);
+    ag.addColorStop(0, 'rgba(255,230,120,.34)');
+    ag.addColorStop(1, 'rgba(255,200,60,0)');
+    ctx.fillStyle = ag; ctx.globalAlpha = pu;
+    ctx.beginPath(); ctx.ellipse(P.x + 28, P.y + P.h / 2, 100, 90, 0, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1;
+    for (const [gd, ga] of [[-52, 0.10], [-28, 0.22]]) {
+      ctx.globalAlpha = ga;
+      ctx.drawImage(olOut, P.x + 28 - C_OX + gd, P.y + P.h - C_OY * SQ, 200, 205 * SQ);
+    }
+    ctx.globalAlpha = 1;
+  }
   if (G.state === 'play' || G.state === 'over' || G.state === 'continue') drawPlayer();
   if (G.state === 'play') drawPet();
   drawParticles();
+  if (G.state === 'play') drawFX();
 
   ctx.restore();
 
@@ -2835,6 +2980,13 @@ function draw() {
   if (G.flash > 0) {
     ctx.fillStyle = `rgba(255,60,60,${G.flash * 0.35})`;
     ctx.fillRect(0, 0, W, H);
+  }
+  if (FX.flashT > 0) {
+    // แฟลชเปิดสกิลเต็มจอ (สีตามสกิล)
+    ctx.fillStyle = FX.flashC;
+    ctx.globalAlpha = Math.min(1, FX.flashT * 2.2) * 0.3;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
   }
 
   if (G.state === 'play') drawHUD();
