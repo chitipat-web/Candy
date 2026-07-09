@@ -62,6 +62,9 @@ const olTmpCtx = olTmp.getContext('2d');
 const olOut = document.createElement('canvas');
 olOut.width = charCanvas.width; olOut.height = charCanvas.height;
 const olOutCtx = olOut.getContext('2d');
+const olRim = document.createElement('canvas');
+olRim.width = charCanvas.width; olRim.height = charCanvas.height;
+const olRimCtx = olRim.getContext('2d');
 function finishSprite(olc) {
   // 1) เงาดำรูปเดียวกับตัวละคร — สีขอบดึงจากสีตัวคุกกี้ (hue เดียวกัน เข้มกว่า)
   olTmpCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -88,6 +91,19 @@ function finishSprite(olc) {
   olOutCtx.fillStyle = g;
   olOutCtx.fillRect(0, 0, olOut.width, olOut.height);
   olOutCtx.globalCompositeOperation = 'source-over';
+  // 4) ริมไลต์: เส้นแสงบาง ๆ ตามขอบด้านบน (ด้านรับแสง) แบบสไปรต์ทางการ
+  olRimCtx.setTransform(1, 0, 0, 1, 0, 0);
+  olRimCtx.globalCompositeOperation = 'source-over';
+  olRimCtx.clearRect(0, 0, olRim.width, olRim.height);
+  olRimCtx.drawImage(charCanvas, 0, 0);
+  olRimCtx.globalCompositeOperation = 'destination-out';
+  olRimCtx.drawImage(charCanvas, 0, 4.5);
+  olRimCtx.globalCompositeOperation = 'source-in';
+  olRimCtx.fillStyle = '#fff6dc';
+  olRimCtx.fillRect(0, 0, olRim.width, olRim.height);
+  olOutCtx.globalAlpha = 0.3;
+  olOutCtx.drawImage(olRim, 0, 1.5);
+  olOutCtx.globalAlpha = 1;
 }
 
 function fit() {
@@ -842,7 +858,7 @@ const LOOK = {
   bcchoco: { body: '#6a4028', deco: ['swirl:#f6e8d0', 'buttons:#f2d8b0'] },
   gclaus: { icing: '#c8342a', deco: ['suit:#c8342a', 'belt:#3a3028', 'collar:#ffffff', 'gloves:#ffffff', 'cuffs:#ffffff', 'sack:#b02a20', 'santa:#e0453a', 'beard:#ffffff', 'candycane'] },
   coffee: { body: '#5a3a26', eyeS: 'sharp', deco: ['vest:#6a5a9a', 'sleeves:#6a5a9a', 'collar:#ffffff', 'nytag', 'side:#d9a05e', 'mug:#e8e0d0'] },
-  angel: { deco: ['curl:#f2d977', 'icing:#ffffff'] },
+  angel: { deco: ['curl:#f2d977', 'icing:#ffffff', 'blushdot'] },
   skater: { deco: ['cap:#3a86c8', 'icing:#ffffff'] },
   princess: { icing: '#ff9ec0', deco: ['dress:#ff9ec0', 'frillhem:#fff4f8', 'drills:#f2d848', 'crown:#ffd24a', 'blushdot', 'heartwand:#ff5a8a'] },
   knight: { body: '#c8b090', deco: ['armor:#aab6c4', 'helmet:#aab6c4', 'gloves:#9aa6b4', 'sword:#dfe8f2'] },
@@ -4594,10 +4610,14 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.arc(0.5, -16, 24, Math.PI, TAU); ctx.closePath(); ctx.fill();
       roundRect(2, -20, 32, 7, 3.5); ctx.fill();
+      ctx.fillStyle = dk(c, 0.78);
+      roundRect(-23.5, -19, 47, 4.5, 2.2); ctx.fill();
     } else if (p === 'tophat') {
       ctx.fillStyle = c;
       roundRect(-17, -52, 34, 28, 4); ctx.fill();
       roundRect(-26, -28, 52, 7, 3.5); ctx.fill();
+      ctx.fillStyle = dk(c, 0.7);
+      roundRect(-17, -34, 34, 6, 2); ctx.fill();
     } else if (p === 'helmet') {
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.arc(0.5, -10, 28, Math.PI * 0.92, Math.PI * 2.08); ctx.closePath(); ctx.fill();
@@ -5054,7 +5074,9 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       ctx.rotate(knee * 0.75);
       segP(9, 12.5);
       if (mode === 'fill' && SHOE) ctx.fillStyle = SHOE;
+      if (mode === 'fill') AUTOL = true;   // เท้ามีเส้นขอบของตัวเองแบบสไปรต์จริง
       ctx.beginPath(); ctx.ellipse(FRONT ? 0 : 2, 10.5, 8.5 + pad, 6 + pad, 0, 0, TAU); ctx.fill();
+      AUTOL = false;
       if (mode === 'fill') {
         // เงาใต้เท้า (คลิปในรูปเท้า กันเลอะออกนอกเงาตัว)
         ctx.save();
@@ -5086,15 +5108,19 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
         ctx.beginPath(); ctx.moveTo(0, 4.6); ctx.lineTo(0, 6.8); ctx.stroke();
       }
       if (mode === 'fill') ctx.fillStyle = GLOVE || B;   // มือ = สีคุกกี้/ถุงมือ
+      if (mode === 'fill') AUTOL = true;   // มือมีเส้นขอบของตัวเอง
       ctx.beginPath(); ctx.arc(0, 11, 7.2 + pad, 0, TAU); ctx.fill();
+      AUTOL = false;
       ctx.restore();
     };
     if (FRONT) { armP(Math.PI + 0.62, 0.3, -11); armP(Math.PI - 0.62, -0.3, 11); }
     else { armP(armA, eA); armP(armB, eB); }
-    // หัวโตวงรีกว้าง (สเกลตามสัดส่วนจริง)
+    // หัวโตวงรีกว้าง (สเกลตามสัดส่วนจริง) — มีเส้นขอบคางแยกจากตัว
     ctx.save();
     ctx.translate(0, -84 + headBob);
+    if (mode === 'fill') AUTOL = true;
     ctx.beginPath(); ctx.ellipse(0.5, 0, 32 * HS + pad, 28.5 * HS + pad, 0, 0, TAU); ctx.fill();
+    AUTOL = false;
     ctx.restore();
   };
   drawParts('rim');
@@ -5245,10 +5271,13 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
       ctx.beginPath(); ctx.ellipse(ex, -3, r, r + 1.2, 0, 0, TAU); ctx.fill();
       ctx.fillStyle = '#241a10';
       ctx.beginPath(); ctx.ellipse(ex + 0.8, -1.6, r * 0.66, r * 0.78, 0, 0, TAU); ctx.fill();
+      // เปลือกตาบนหนา (ลุคสไปรต์ทางการ)
+      ctx.strokeStyle = RIM; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.ellipse(ex, -3, r + 1.4, r + 2.5, 0, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke();
       ctx.fillStyle = 'rgba(255,255,255,.95)';
-      ctx.beginPath(); ctx.arc(ex - r * 0.36, -6.4, r * 0.32, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(ex - r * 0.36, -6.4, r * 0.36, 0, TAU); ctx.fill();
       ctx.fillStyle = 'rgba(255,255,255,.7)';
-      ctx.beginPath(); ctx.arc(ex + r * 0.3, 1.2, r * 0.16, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(ex + r * 0.3, 1.2, r * 0.17, 0, TAU); ctx.fill();
       if (lash) {
         ctx.strokeStyle = RIM; ctx.lineWidth = 1.9; ctx.lineCap = 'round';
         const sgn = ex < 10 ? -1 : 1;
@@ -5259,6 +5288,12 @@ function cookieBody(bodyTilt, legA, legB, armA, armB, headBob, ch, joints) {
           ctx.stroke();
         }
       }
+    }
+    // แก้มแดงนุ่มเป็นค่าเริ่มต้นของสายน่ารัก (ถ้าไม่มีแก้มเฉพาะตัวอยู่แล้ว)
+    if (lash && !ds0.some(q => q.p === 'blushdot' || q.p === 'heartcheek' || q.p === 'flamecheek')) {
+      ctx.fillStyle = 'rgba(255,120,130,.26)';
+      ctx.beginPath(); ctx.ellipse(-8.5, 6.8, 4.6, 3.1, 0.1, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(31.5, 6.8, 4.4, 3, -0.1, 0, TAU); ctx.fill();
     }
   } else if (eyeStyle === 'sharp') {
     /* ตาเรียวเฉียบ */
