@@ -370,10 +370,11 @@ function adminGrant() {
   G.petLv = PETS.map(() => 8);
   G.bank = Math.max(G.bank, 9999999);
   G.crystals = Math.max(G.crystals, 999);
+  G.powder = Math.max(G.powder, 999);
   G.distBest = Math.max(G.distBest, 9999);
   SAVE.set('owned', G.owned); SAVE.set('petsOwned', G.petsOwned);
   SAVE.set('trOwned', G.trOwned); SAVE.set('charLv', G.charLv); SAVE.set('petLv', G.petLv);
-  SAVE.set('coins', G.bank); SAVE.set('crystals', G.crystals); SAVE.set('distBest', G.distBest);
+  SAVE.set('coins', G.bank); SAVE.set('crystals', G.crystals); SAVE.set('powder', G.powder); SAVE.set('distBest', G.distBest);
   SAVE.set('adminGrant', true);
   banner('👑 ADMIN MODE: ปลดล็อกทุกอย่างแล้ว!', '#ffd24a');
   AudioSys.power && AudioSys.power();
@@ -1384,6 +1385,8 @@ const G = {
   skill: 0, scoreMulT: 0,
   btProgress: 0, runBoxes: 0,
   crystals: SAVE.get('crystals', 0),
+  powder: SAVE.get('powder', 0),   // ✨ ผงเวทมนตร์ Magic Powder — อัปสกิลคุกกี้ (แบบเกมจริง)
+  runPowder: 0, powderT: 0,
   charLv: Object.assign([1, 1, 1, 1], SAVE.get('charLv', [])),
   petLv: Object.assign([1, 1, 1], SAVE.get('petLv', [])),
   petGrade: SAVE.get('petGrade', {}),   // เกรดสมบัติสัตว์เลี้ยง +0 → +9 (แกนที่สองแบบเกมจริง)
@@ -1976,6 +1979,7 @@ function startGame(mode, boosts) {
   G.runHit = 0; G.goal = G.mode === 'story' ? LV().goal : 0; G.cleared = false;
   bossReset();
   G.btProgress = 0; G.runBoxes = 0;
+  G.runPowder = 0; G.powderT = 0;
   jellyList = []; obstacles = []; pits = []; particles = []; floaters = []; platforms = [];
   Pet.x = 60; Pet.y = 280;
   worldX = 0; spawnX = W + 100;
@@ -2070,6 +2074,8 @@ function levelClear() {
   G.earned = Math.floor((G.coins + Math.floor(G.score / 400)) * (1 + trV('coin') + petTPv('coinEnd') + combiV('coin')) * (CH().coinMul || 1)) + G.stars * 100;
   G.bank += G.earned; SAVE.set('coins', G.bank);
   G.crystals += G.stars; SAVE.set('crystals', G.crystals);   // รางวัลคริสตัลตามดาว
+  G.earnedPowder = G.runPowder + Math.floor(G.dist / 400) + G.stars * 2;   // ✨ ผงเวทมนตร์ที่ได้รอบนี้
+  G.powder += G.earnedPowder; SAVE.set('powder', G.powder);
   const st = G.stats; st.runs++; st.dist += Math.floor(G.dist); st.jellies += G.jellies; SAVE.set('stats', st);
   cloudSave(true);
   setState('clear'); G.clearT = 0;
@@ -2117,6 +2123,8 @@ function settleGameOver() {
   G.earned = Math.floor((G.coins + Math.floor(G.score / 400) + G.boxCoins) * (1 + trV('coin') + petTPv('coinEnd') + combiV('coin')) * (G.runBoost.coin ? 2 : 1) * (CH().coinMul || 1));
   G.bank += G.earned;
   SAVE.set('coins', G.bank);
+  G.earnedPowder = G.runPowder + Math.floor(G.dist / 400);   // ✨ ผงเวทมนตร์ที่ได้รอบนี้
+  G.powder += G.earnedPowder; SAVE.set('powder', G.powder);
   const entry = { s: G.score, d: Math.floor(G.dist), c: G.charIdx, t: Date.now() };
   G.board.push(entry);
   G.board.sort((a, b) => b.s - a.s);
@@ -3696,6 +3704,14 @@ function update(dt) {
       }
     }
   }
+  // ✨ ผงเวทมนตร์โปรยระหว่างวิ่ง (แบบเกมจริง) — โผล่เป็นระยะ เก็บไว้อัปสกิลคุกกี้
+  if (G.bonusT <= 0) {
+    G.powderT += dt;
+    if (G.powderT >= 22) {
+      G.powderT = 0;
+      jellyList.push({ x: worldX + W + 60, y: GROUND_Y - rnd(70, 150), type: 'powder', t: rnd(0, TAU), dead: false });
+    }
+  }
   if (G.bonusT <= 0) G.hp -= G.hpDrain * (1 - trV('drain') - combiV('drain')) * (CH().drainMul || 1) * (PFX().k === 'drain' ? 1 - (1 - PFX().v) * petFxMul() : 1) * dt;
   if (G.hp <= 0) {
     G.hp = 0;
@@ -4020,6 +4036,15 @@ function collectJelly(j, jx) {
       sparkle(jx, j.y, 20, '#7ecbff');
       banner('แม่เหล็กเยลลี่!', '#7ecbff');
       break;
+    case 'powder': {
+      // ✨ ผงเวทมนตร์ — สะสมไว้อัปสกิลคุกกี้
+      const amt = 2 + Math.floor(G.stage / 2);
+      G.runPowder += amt;
+      AudioSys.potion();
+      sparkle(jx, j.y, 20, '#c79aff');
+      floatText(jx, j.y - 28, '✨ +' + amt + ' ผงเวทมนตร์!', '#c79aff', true);
+      break;
+    }
     case 'star': {
       // Star Jelly: แตกเป็นคอนเฟตตีให้เก็บกวาด (แบบเกมจริง)
       AudioSys.bear();
@@ -5471,6 +5496,28 @@ function drawJellies() {
         ctx.fillStyle = 'rgba(255,255,255,.8)';
         ctx.beginPath(); ctx.arc(-3, -4, 3, 0, TAU); ctx.fill();
         itemBubble('#ffe066');
+        break;
+      }
+      case 'powder': {
+        // ✨ ผงเวทมนตร์ Magic Powder — ขวดผงเรืองแสงม่วง
+        ctx.rotate(Math.sin(G.time * 3 + j.t) * 0.16);
+        const gl = 0.5 + Math.sin(G.time * 6 + j.t) * 0.3;
+        ctx.fillStyle = `rgba(190,130,255,${gl * 0.5})`;
+        ctx.beginPath(); ctx.arc(0, 0, 20, 0, TAU); ctx.fill();
+        // ขวดแก้ว
+        ctx.fillStyle = '#c79aff';
+        roundRect(-8, -6, 16, 18, 5); ctx.fill();
+        ctx.fillStyle = '#e8d4ff';
+        roundRect(-8, -6, 16, 7, 5); ctx.fill();
+        ctx.fillStyle = '#9a6ae0';
+        ctx.fillRect(-5, -12, 10, 6);   // จุก
+        // ประกายผง
+        ctx.fillStyle = '#fff';
+        for (let i = 0; i < 3; i++) {
+          const a = G.time * 3 + i * 2.1;
+          ctx.beginPath(); ctx.arc(Math.cos(a) * 5, Math.sin(a) * 5 + 2, 1.6, 0, TAU); ctx.fill();
+        }
+        itemBubble('#b98aff');
         break;
       }
     }
@@ -7561,6 +7608,20 @@ function drawGemChip(x, y) {
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 }
+function drawPowderChip(x, y) {
+  ctx.save();
+  ctx.font = 'bold 19px Trebuchet MS';
+  const text = G.powder.toLocaleString();
+  const tw = ctx.measureText(text).width + 52;
+  drawPanel(x - tw, y, tw, 34, 17);
+  ctx.font = '17px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('✨', x - tw + 20, y + 18);
+  ctx.font = 'bold 19px Trebuchet MS';
+  ctx.fillStyle = '#d8b8ff'; ctx.textAlign = 'left';
+  ctx.fillText(text, x - tw + 38, y + 18);
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
 function drawCoinChip(x, y, text) {
   const w = ctx.measureText(text).width;
   ctx.save();
@@ -8167,6 +8228,7 @@ function drawSelect() {
   ctx.fillRect(0, 0, W, H);
   drawTitleText('เลือกตัวละคร', W / 2, 52, 34);
   drawCoinChip(W - 20, 24, G.bank.toLocaleString());
+  drawPowderChip(W - 20, 62);   // ✨ ผงเวทมนตร์สำหรับอัปสกิลคุกกี้
   drawGrid(CHARS, 'char');
 }
 
@@ -8360,17 +8422,19 @@ function drawGrid(LIST, kind) {
     // แถวอัปเกรด: คุกกี้ = ปุ่ม Lv เต็มแถว / สัตว์เลี้ยง = Lv (ครึ่งซ้าย) + เกรดสมบัติ +9 (ครึ่งขวา)
     const lvW = isChar ? 200 : 96;
     if (lvCur < 8) {
-      const upCost = (isChar ? 350 : 300) * lvCur;
-      drawBtn(W - 228, dy + 50, lvW, 36, (isChar ? '⬆ Lv.' : '⬆Lv.') + (lvCur + 1) + (isChar ? '  🪙' + upCost.toLocaleString() : ' 🪙' + (upCost >= 1000 ? (upCost / 1000).toFixed(1) + 'k' : upCost)), () => {
-        if (G.bank >= upCost) {
-          G.bank -= upCost;
-          if (isChar) { G.charLv[focus] = lvCur + 1; SAVE.set('charLv', G.charLv); }
-          else { G.petLv[focus] = lvCur + 1; SAVE.set('petLv', G.petLv); }
-          SAVE.set('coins', G.bank);
+      // คุกกี้อัปสกิลด้วย ✨ ผงเวทมนตร์ (แบบเกมจริง) / สัตว์เลี้ยงใช้เหรียญ
+      const upCost = isChar ? (6 + lvCur * 4) : 300 * lvCur;
+      const canAfford = isChar ? G.powder >= upCost : G.bank >= upCost;
+      const label = isChar ? '⬆ Lv.' + (lvCur + 1) + '  ✨' + upCost
+                           : '⬆Lv.' + (lvCur + 1) + ' 🪙' + (upCost >= 1000 ? (upCost / 1000).toFixed(1) + 'k' : upCost);
+      drawBtn(W - 228, dy + 50, lvW, 36, label, () => {
+        if (canAfford) {
+          if (isChar) { G.powder -= upCost; SAVE.set('powder', G.powder); G.charLv[focus] = lvCur + 1; SAVE.set('charLv', G.charLv); }
+          else { G.bank -= upCost; SAVE.set('coins', G.bank); G.petLv[focus] = lvCur + 1; SAVE.set('petLv', G.petLv); }
           AudioSys.buy();
           floatText(W / 2, 100, cur.name + ' → Lv.' + (lvCur + 1) + '!', '#aee4ff', true);
-        } else { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true); }
-      }, G.bank >= upCost ? { color: '#5cb8e8', dark: '#3d92c4', font: isChar ? 13 : 11 } : { color: '#8a8178', dark: '#6e675f', font: isChar ? 13 : 11 });
+        } else { AudioSys.deny(); floatText(W / 2, 100, isChar ? 'ผงเวทมนตร์ไม่พอ!' : 'เหรียญไม่พอ!', '#ff8888', true); }
+      }, canAfford ? { color: '#5cb8e8', dark: '#3d92c4', font: isChar ? 13 : 11 } : { color: '#8a8178', dark: '#6e675f', font: isChar ? 13 : 11 });
     } else {
       drawBtn(W - 228, dy + 50, lvW, 36, isChar ? '★ MAX Lv.8' : '★MAX', () => {}, { disabled: true, font: isChar ? 13 : 11 });
     }
@@ -8692,6 +8756,7 @@ function drawGameOver() {
     ['ระยะทาง', Math.floor(G.dist).toLocaleString() + ' m'],
     ['เยลลี่ที่เก็บ', G.jellies.toLocaleString()],
     ['เหรียญที่ได้ (+โบนัส)', '🪙 ' + G.earned.toLocaleString()],
+    ['ผงเวทมนตร์', '✨ +' + (G.earnedPowder || 0)],
     G.runBoxes > 0
       ? ['กล่องปริศนา x' + G.runBoxes, '🎁 +' + (G.boxCoins || 0).toLocaleString() + '🪙' + (G.boxGems ? ' +' + G.boxGems + '💎' : '')]
       : G.mode === 'tower' ? ['ชั้นสูงสุดรอบนี้', '🧊 ชั้น ' + G.floorNow]
@@ -8827,7 +8892,7 @@ function drawLevelClear() {
 
   // รางวัล
   ctx.font = 'bold 22px Trebuchet MS'; ctx.fillStyle = '#ffd24a';
-  ctx.fillText('🪙 +' + (G.earned || 0).toLocaleString() + '   💎 +' + G.stars, W / 2, 330);
+  ctx.fillText('🪙 +' + (G.earned || 0).toLocaleString() + '   💎 +' + G.stars + (G.earnedPowder ? '   ✨ +' + G.earnedPowder : ''), W / 2, 330);
   if ((G.starBest[G.episode] || 0) >= 3) {
     ctx.font = 'bold 16px Trebuchet MS'; ctx.fillStyle = '#7bff9b';
     ctx.fillText('⭐ เก็บครบ 3 ดาวแล้ว!', W / 2, 358);
