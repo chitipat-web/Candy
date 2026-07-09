@@ -456,15 +456,20 @@ function checkMedals() {
 
 const EPISODES = [
   { id: 'oven',    name: 'หนีจากเตาอบ!',   icon: '🔥', seed: 424242, unlock: 0,
-    tint: null,                    ground: ['#c98d4e', '#a96f37', '#7a4a20'], spd: 0,  drain: 0 },
+    tint: null,                    ground: ['#c98d4e', '#a96f37', '#7a4a20'], spd: 0,  drain: 0,
+    sky: null },
   { id: 'jungle',  name: 'ป่าดึกดำบรรพ์',  icon: '🌴', seed: 111003, unlock: 500,
-    tint: 'rgba(40,120,55,.26)',   ground: ['#7da24e', '#5d8237', '#3f5a20'], spd: 25, drain: 0.2 },
+    tint: 'rgba(40,120,55,.16)',   ground: ['#7da24e', '#5d8237', '#3f5a20'], spd: 25, drain: 0.2,
+    sky: { top:'#bfe9c2', mid:'#8fd6a8', bot:'#e9f7d8', hill:'#6fb079', far:'#579066', sun:'#f4ffd0', night:0 } },
   { id: 'dragon',  name: 'หุบเขามังกร',    icon: '🐉', seed: 222004, unlock: 1200,
-    tint: 'rgba(185,62,30,.24)',   ground: ['#c9704e', '#a95637', '#7a3520'], spd: 50, drain: 0.4 },
+    tint: 'rgba(185,62,30,.18)',   ground: ['#c9704e', '#a95637', '#7a3520'], spd: 50, drain: 0.4,
+    sky: { top:'#3a2038', mid:'#8a3a30', bot:'#e0703a', hill:'#7a3a2e', far:'#5a2a26', sun:'#ffd88a', night:0.35 } },
   { id: 'wizard',  name: 'นครแห่งพ่อมด',   icon: '🔮', seed: 333005, unlock: 2000,
-    tint: 'rgba(88,58,165,.3)',    ground: ['#8d7ac9', '#6f5ba9', '#4a3a7a'], spd: 75, drain: 0.55 },
+    tint: 'rgba(88,58,165,.2)',    ground: ['#8d7ac9', '#6f5ba9', '#4a3a7a'], spd: 75, drain: 0.55,
+    sky: { top:'#241a52', mid:'#4a3a90', bot:'#8a6ac0', hill:'#4a3a7a', far:'#33285e', sun:'#e8e0ff', night:1 } },
   { id: 'dessert', name: 'สวรรค์ขนมหวาน',  icon: '🍰', seed: 444006, unlock: 3000,
-    tint: 'rgba(255,140,190,.2)',  ground: ['#e89cb8', '#c97d9a', '#9a4a6a'], spd: 100, drain: 0.7 },
+    tint: 'rgba(255,140,190,.12)', ground: ['#e89cb8', '#c97d9a', '#9a4a6a'], spd: 100, drain: 0.7,
+    sky: { top:'#ffd6ec', mid:'#ffc0e0', bot:'#fff0f6', hill:'#f2a8cc', far:'#e08cb8', sun:'#fff4c8', night:0 } },
 ];
 const EP = () => EPISODES[G.episode] || EPISODES[0];
 const epUnlocked = i => G.distBest >= EPISODES[i].unlock;
@@ -1380,7 +1385,18 @@ const SKIES = [
   { top:'#252a56', mid:'#453f7d', bot:'#6d5387', hill:'#383560', far:'#2b2950', sun:'#f4f0e0', night:1 },  // กลางคืน
 ];
 let skyPrev = 0, skyCur = 0, skyT = 1;
+function blendCol(a, b, t) {
+  if (typeof a === 'number' || typeof b === 'number') return t < 0.5 ? a : b;
+  return hexLerp(a, b, clamp(t, 0, 1));
+}
 function skyBlend(field) {
+  // อยู่ในเอพิโสด (ไม่ใช่เตาอบ) → ใช้ท้องฟ้าเฉพาะธีม
+  if (G.mode === 'normal' && EP().sky && ovenAmt < 0.5) {
+    const v = EP().sky[field];
+    if (typeof v === 'number') return v;
+    if (skyT >= 1) return v;
+    return blendCol(SKIES[skyPrev][field], v, skyT);
+  }
   const a = SKIES[skyPrev][field], b = SKIES[skyCur][field];
   if (typeof a === 'number') return lerp(a, b, skyT);
   return hexLerp(a, b, skyT);
@@ -4015,6 +4031,7 @@ function drawBackHills() {
     if (epi === 'jungle') drawJungleTree(x + 60, 442, alt);
     else if (epi === 'dragon') drawRockSpike(x + 60, 442, alt);
     else if (epi === 'wizard') drawWizTower(x + 60, 442, alt);
+    else if (epi === 'dessert') drawCupcakeProp(x + 60, 442, alt);
     else drawLollipop(x + 60, 442, 1, alt);
   }
 }
@@ -4056,6 +4073,33 @@ function drawWizTower(x, groundY, alt) {
   ctx.globalAlpha = 0.5 + Math.sin(G.time * 3 + x) * 0.3;
   ctx.beginPath(); ctx.arc(0, -164, 3.4, 0, TAU); ctx.fill();
   ctx.globalAlpha = 1;
+  ctx.restore();
+}
+/* คัพเค้กยักษ์ริมทางสวรรค์ขนมหวาน */
+function drawCupcakeProp(x, groundY, alt) {
+  ctx.save();
+  ctx.translate(x, groundY);
+  // ฐานถ้วยกระดาษ
+  ctx.fillStyle = alt ? '#f2a04a' : '#e88a3a';
+  ctx.beginPath();
+  ctx.moveTo(-30, 0); ctx.lineTo(-22, -52); ctx.lineTo(22, -52); ctx.lineTo(30, 0);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 3;
+  for (const dx of [-14, 0, 14]) { ctx.beginPath(); ctx.moveTo(dx, -50); ctx.lineTo(dx * 1.35, -2); ctx.stroke(); }
+  // ครีมวนก้นหอย 3 ชั้น
+  ctx.fillStyle = alt ? '#ffd0e6' : '#fff0d8';
+  for (const [dy, r] of [[-58, 30], [-80, 24], [-100, 17]]) {
+    ctx.beginPath(); ctx.arc(0, dy, r, 0, TAU); ctx.fill();
+  }
+  // เชอร์รีบนยอด
+  ctx.fillStyle = '#e0303a';
+  ctx.beginPath(); ctx.arc(0, -120, 8, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#3a7a3a'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0, -126); ctx.quadraticCurveTo(6, -138, 12, -136); ctx.stroke();
+  // เม็ดน้ำตาลโรย
+  ctx.fillStyle = '#7ecbff';
+  for (const [dx, dy] of [[-10, -70], [8, -78], [-4, -90], [12, -64]])
+    { ctx.beginPath(); ctx.arc(dx, dy, 2.4, 0, TAU); ctx.fill(); }
   ctx.restore();
 }
 function drawCastle(x, baseY) {
