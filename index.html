@@ -1918,6 +1918,7 @@ function startGame(mode, boosts) {
   P.dead = false; P.fallingPit = false; slideHeld = false; G.paused = false;
   G.runBears = 0; G.runStars = 0; G.maxCombo = 0; G.missionDone = false;
   G.runHit = 0; G.goal = G.mode === 'story' ? LV().goal : 0; G.cleared = false;
+  bossReset();
   G.btProgress = 0; G.runBoxes = 0;
   jellyList = []; obstacles = []; pits = []; particles = []; floaters = []; platforms = [];
   Pet.x = 60; Pet.y = 280;
@@ -2084,6 +2085,113 @@ function settleGameOver() {
 function banner(text, color) { G.banner = { text, color }; G.bannerT = 0; }
 
 /* ============================================================
+   บอสท้ายด่านผจญภัย: โผล่ช่วง 25% สุดท้าย มีหลอดเลือด
+   สู้ชนะ(ถึงเส้นชัย)ก่อนบอสไล่ทัน = ผ่านด่านแบบมีจุดไคลแมกซ์
+   ============================================================ */
+const BOSSES = {
+  oven:    { icon: '🔥', name: 'อสูรเตาอบ',    c1: '#e0451e', c2: '#7a1e0c', eye: '#ffe066' },
+  jungle:  { icon: '🦖', name: 'ไดโนยักษ์',     c1: '#3f8a3f', c2: '#245224', eye: '#ff4040' },
+  dragon:  { icon: '🐉', name: 'มังกรเพลิง',    c1: '#c8342a', c2: '#7a1810', eye: '#ffd24a' },
+  wizard:  { icon: '🧙', name: 'จอมเวทดำ',      c1: '#5a3a9a', c2: '#2e1a52', eye: '#8fe0ff' },
+  dessert: { icon: '🍰', name: 'เค้กมรณะ',       c1: '#e06a9a', c2: '#8a2e5a', eye: '#ffffff' },
+};
+const Boss = { active: false, hp: 0, hpMax: 0, x: 0, atkT: 0, hitT: 0, roarT: 0, def: null, defeatT: 0 };
+function bossReset() { Boss.active = false; Boss.defeatT = 0; }
+function bossStart() {
+  const id = (EP() && EP().id) || 'oven';
+  Boss.def = BOSSES[id] || BOSSES.oven;
+  Boss.active = true;
+  Boss.hpMax = 100; Boss.hp = 100;
+  Boss.x = W + 120; Boss.atkT = 1.6; Boss.hitT = 0; Boss.roarT = 1; Boss.defeatT = 0;
+  banner('⚔️ บอส: ' + Boss.def.name + ' ปรากฏตัว!', '#ff6a4a');
+  AudioSys.crash(); AudioSys.power();
+  FX.flashT = 0.4; FX.flashC = '#ff6a4a'; G.shake = 14;
+}
+function bossDamage(n) {
+  if (!Boss.active || Boss.defeatT > 0) return;
+  Boss.hp = Math.max(0, Boss.hp - n);
+  Boss.hitT = 0.16;
+  if (Boss.hp <= 0) {
+    Boss.defeatT = 0.01;
+    banner('💥 พิชิตบอส ' + Boss.def.name + '!', '#ffd24a');
+    G.shake = 20; FX.flashT = 0.5; FX.flashC = '#ffe98e';
+    sparkle(Boss.x, 200, 60, '#ffd24a');
+    AudioSys.clear();
+  }
+}
+function bossUpdate(dt) {
+  if (!Boss.active) return;
+  Boss.roarT = Math.max(0, Boss.roarT - dt);
+  Boss.hitT = Math.max(0, Boss.hitT - dt);
+  if (Boss.defeatT > 0) { Boss.defeatT += dt; Boss.x += 240 * dt; return; }
+  // บอสไล่มาอยู่ขอบขวา
+  Boss.x += (W - 120 - Boss.x) * Math.min(1, dt * 2);
+  // โจมตี: ปล่อยสิ่งกีดขวาง/ลูกไฟเป็นระยะ
+  Boss.atkT -= dt;
+  if (Boss.atkT <= 0) {
+    Boss.atkT = 1.5 + Math.random() * 0.8;
+    spawnActor('bossfire', { x0: Boss.x - 40, y0: 190, tx: P.x + 30, c: Boss.def.c1 });
+    Boss.roarT = 0.5;
+  }
+  // ค่อย ๆ ลดเลือดตามความคืบหน้าเข้าเส้นชัย (วิ่งไปข้างหน้า = ตีบอส)
+  const prog = clamp((G.dist - G.goal * 0.75) / (G.goal * 0.25), 0, 1);
+  const targetHp = 100 * (1 - prog);
+  if (Boss.hp > targetHp) bossDamage(Boss.hp - targetHp);
+}
+function drawBoss() {
+  if (!Boss.active) return;
+  const d = Boss.def;
+  const bob = Math.sin(G.time * 2.5) * 8 + (Boss.roarT > 0 ? -10 : 0);
+  const shk = Boss.hitT > 0 ? rnd(-5, 5) : 0;
+  ctx.save();
+  ctx.translate(Boss.x + shk, 210 + bob);
+  if (Boss.defeatT > 0) { ctx.rotate(Boss.defeatT * 2); ctx.globalAlpha = Math.max(0, 1 - Boss.defeatT); }
+  const s = 1 + (Boss.roarT > 0 ? 0.08 : 0);
+  ctx.scale(s, s);
+  // เงาตัวบอสก้อนใหญ่
+  ctx.fillStyle = d.c2;
+  ctx.beginPath(); ctx.ellipse(0, 20, 78, 60, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = Boss.hitT > 0 ? '#ffffff' : d.c1;
+  ctx.beginPath(); ctx.ellipse(0, 0, 72, 62, 0, 0, TAU); ctx.fill();
+  // เขา/หนามตามธีม
+  ctx.fillStyle = d.c2;
+  for (const sg of [-1, 1]) {
+    ctx.beginPath(); ctx.moveTo(sg * 40, -48); ctx.lineTo(sg * 58, -92); ctx.lineTo(sg * 22, -56); ctx.closePath(); ctx.fill();
+  }
+  // ตาดุ
+  ctx.fillStyle = d.eye;
+  ctx.beginPath(); ctx.ellipse(-26, -6, 15, 12, 0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(26, -6, 15, 12, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#2a1010';
+  const ex = clamp((P.x - Boss.x) * 0.02, -5, 5);
+  ctx.beginPath(); ctx.arc(-26 + ex, -4, 6, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(26 + ex, -4, 6, 0, TAU); ctx.fill();
+  // คิ้วโกรธ
+  ctx.strokeStyle = d.c2; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-40, -22); ctx.lineTo(-14, -12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(40, -22); ctx.lineTo(14, -12); ctx.stroke();
+  // ปากอ้าคำราม + เขี้ยว
+  ctx.fillStyle = '#3a1008';
+  ctx.beginPath(); ctx.ellipse(0, 28, 30, Boss.roarT > 0 ? 22 : 12, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  for (const fx2 of [-18, -6, 6, 18]) {
+    ctx.beginPath(); ctx.moveTo(fx2 - 4, 18); ctx.lineTo(fx2, 30); ctx.lineTo(fx2 + 4, 18); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  // หลอดเลือดบอสด้านบน
+  if (Boss.defeatT === 0) {
+    const bw = 520, bx = (W - bw) / 2, by = 84;
+    ctx.fillStyle = 'rgba(20,10,4,.6)'; roundRect(bx - 6, by - 6, bw + 12, 30, 10); ctx.fill();
+    ctx.fillStyle = '#3a1810'; roundRect(bx, by, bw, 18, 8); ctx.fill();
+    const hpw = bw * (Boss.hp / Boss.hpMax);
+    const hg = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+    hg.addColorStop(0, '#ff4030'); hg.addColorStop(1, '#ff8a4a');
+    ctx.fillStyle = hg; roundRect(bx, by, Math.max(0, hpw), 18, 8); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 15px Trebuchet MS'; ctx.textAlign = 'center';
+    ctx.fillText(d.icon + ' ' + d.name, W / 2, by + 14);
+  }
+}
+/* ============================================================
    VFX สกิลอลังการแบบเกมจริง: แฟลชจอ วงแหวนกระแทก จอสั่น
    + เอฟเฟกต์ลายเซ็นรายตัว (คลื่นยักษ์ วงเวท ฝนดาว ฮาร์ตบีม)
    ============================================================ */
@@ -2153,6 +2261,12 @@ function updateActors(dt) {
       if (a.t >= 0.3) a.dead = true;
     } else if (a.type === 'slash') {
       if (a.t >= 0.35) a.dead = true;
+    } else if (a.type === 'bossfire') {
+      if (!a.hit && a.t >= 0.55) {
+        a.hit = true; a.dead = true;
+        actorHitFX(a.tx, GROUND_Y - 40, a.c);
+        if (Math.abs((P.x + 28) - a.tx) < 60 && !isInvincible()) hurt(16);
+      }
     } else if (a.type === 'army') {
       if (a.t >= 1.7) a.dead = true;
     } else if (a.type === 'fly') {
@@ -2175,7 +2289,15 @@ function updateActors(dt) {
 }
 function drawActors() {
   for (const a of ACTORS) {
-    if (a.type === 'bomb') {
+    if (a.type === 'bossfire') {
+      const k = Math.min(1, a.t / 0.55);
+      const x = lerp(a.x0, a.tx, k), y = lerp(a.y0, GROUND_Y - 40, k) - Math.sin(k * Math.PI) * 70;
+      ctx.save(); ctx.translate(x, y);
+      ctx.fillStyle = a.c; ctx.beginPath(); ctx.arc(0, 0, 15, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#ffe066'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.5; ctx.fillStyle = a.c; ctx.beginPath(); ctx.arc(-8, 6, 9, 0, TAU); ctx.fill();
+      ctx.restore(); ctx.globalAlpha = 1;
+    } else if (a.type === 'bomb') {
       const k = Math.min(1, a.t / 0.5);
       const x = lerp(a.x0, a.tx, k), y = lerp(a.y0, GROUND_Y - 40, k) - Math.sin(k * Math.PI) * 130;
       ctx.save(); ctx.translate(x, y); ctx.rotate(a.t * 9);
@@ -3279,6 +3401,7 @@ function update(dt) {
       } else if (cf.k === 'destroyIv') {
         skillFX(CHARS[G.charIdx].id, '#ffd24a');   // เอฟเฟกต์ลายเซ็นออกทุกครั้งที่สกิลทำงาน
         skillCut(cf.tag, '#ffd24a');
+        if (Boss.active) bossDamage(6);
         const oT = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 20; });
         const actF = ACTOR_MAP[CHARS[G.charIdx].id];
         if (actF) actF(oT ? oT.x - worldX : W * 0.72);
@@ -3433,7 +3556,11 @@ function update(dt) {
   worldX += move;
   G.dist += move / 40;
   G.score += move * 0.02;
-  if (G.mode === 'story' && !G.cleared && G.dist >= G.goal) { levelClear(); return; }
+  if (G.mode === 'story') {
+    if (!Boss.active && !G.cleared && G.dist >= G.goal * 0.75) bossStart();
+    if (Boss.active) bossUpdate(dt);
+    if (!G.cleared && G.dist >= G.goal) { levelClear(); return; }
+  }
 
   while (spawnX < worldX + W + 700) {
     rngSrc = courseRng;      // สร้างด่านด้วย seed คงที่
@@ -3857,6 +3984,7 @@ function draw() {
     }
     ctx.globalAlpha = 1;
   }
+  if ((G.state === 'play' || G.state === 'clear') && Boss.active) drawBoss();
   if (G.state === 'play' || G.state === 'over' || G.state === 'continue' || G.state === 'clear') drawPlayer();
   if (G.state === 'play') drawPet();
   drawParticles();
