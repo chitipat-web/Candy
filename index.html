@@ -1940,6 +1940,301 @@ function banner(text, color) { G.banner = { text, color }; G.bannerT = 0; }
    VFX สกิลอลังการแบบเกมจริง: แฟลชจอ วงแหวนกระแทก จอสั่น
    + เอฟเฟกต์ลายเซ็นรายตัว (คลื่นยักษ์ วงเวท ฝนดาว ฮาร์ตบีม)
    ============================================================ */
+
+/* ---------- ตัวประกอบสกิลแบบเกมจริง: บอมบ์/บอล/หอก/สายฟ้า/ฟันดาบ/กองทัพ ---------- */
+const ACTORS = [];
+function spawnActor(type, opt) { ACTORS.push(Object.assign({ type, t: 0 }, opt)); }
+function actorHitFX(x, y, c) {
+  FX.rings.push({ t: 0, c: c || '#ffd24a', x, y });
+  sparkle(x, y, 14, c || '#ffd24a');
+}
+const ACTOR_MAP = {
+  cherry: ox => spawnActor('bomb', { x0: P.x + 30, y0: P.y + 6, tx: ox, c: '#d02030' }),
+  gimbap: () => spawnActor('army', { kind: 'roll', n: 4 }),
+  macaron: () => spawnActor('army', { kind: 'mac', n: 4 }),
+  orange: ox => spawnActor('ball', { x0: P.x + 30, y0: P.y + 8, tx: ox, c: '#f0a030' }),
+  lime: ox => spawnActor('ball', { x0: P.x + 30, y0: P.y + 8, tx: ox, c: '#a8e838', r: 13 }),
+  cricketer: ox => spawnActor('ball', { x0: P.x + 30, y0: P.y + 8, tx: ox, c: '#c83028' }),
+  gumball: ox => spawnActor('ball', { x0: P.x + 30, y0: P.y + 8, tx: ox, c: '#e878b0' }),
+  sforce: ox => spawnActor('ball', { x0: P.x + 30, y0: P.y + 8, tx: ox, c: '#ffd24a' }),
+  jujube: ox => spawnActor('slash', { tx: ox, c: '#ff6a5a' }),
+  whitechoco: ox => spawnActor('slash', { tx: ox, c: '#f6ecd2' }),
+  redpepper: ox => spawnActor('slash', { tx: ox, c: '#ff5030' }),
+  rollcake: ox => spawnActor('slash', { tx: ox, c: '#d8a868' }),
+  tigerlily: ox => spawnActor('spear', { x0: P.x + 30, y0: P.y + 6, tx: ox, c: '#8a5a2e' }),
+  kajukatli: ox => spawnActor('spear', { x0: P.x + 30, y0: P.y + 6, tx: ox, c: '#dfe8f2' }),
+  cucumber: ox => spawnActor('spear', { x0: P.x + 30, y0: P.y + 6, tx: ox, c: '#4a8a2e' }),
+  snowsugar: ox => spawnActor('drop', { tx: ox, c: '#bfe8ff' }),
+  wizard: ox => spawnActor('bolt', { tx: ox, c: '#7ea8ff' }),
+  alchemist: ox => spawnActor('bolt', { tx: ox, c: '#b07ae0' }),
+};
+function updateActors(dt) {
+  for (const a of ACTORS) {
+    a.t += dt;
+    if (a.type === 'bomb' || a.type === 'ball') {
+      if (a.t >= 0.5 && !a.hit) { a.hit = true; actorHitFX(a.tx, GROUND_Y - 40, a.c); a.dead = true; }
+    } else if (a.type === 'spear') {
+      if (a.t >= 0.28 && !a.hit) { a.hit = true; actorHitFX(a.tx, GROUND_Y - 44, a.c); a.dead = true; }
+    } else if (a.type === 'drop') {
+      if (a.t >= 0.5 && !a.hit) { a.hit = true; actorHitFX(a.tx, GROUND_Y - 36, a.c); a.dead = true; }
+    } else if (a.type === 'bolt') {
+      if (!a.hit) { a.hit = true; actorHitFX(a.tx, GROUND_Y - 40, a.c); }
+      if (a.t >= 0.3) a.dead = true;
+    } else if (a.type === 'slash') {
+      if (a.t >= 0.35) a.dead = true;
+    } else if (a.type === 'army') {
+      if (a.t >= 1.7) a.dead = true;
+    }
+  }
+  for (let i = ACTORS.length - 1; i >= 0; i--) if (ACTORS[i].dead) ACTORS.splice(i, 1);
+}
+function drawActors() {
+  for (const a of ACTORS) {
+    if (a.type === 'bomb') {
+      const k = Math.min(1, a.t / 0.5);
+      const x = lerp(a.x0, a.tx, k), y = lerp(a.y0, GROUND_Y - 40, k) - Math.sin(k * Math.PI) * 130;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(a.t * 9);
+      ctx.fillStyle = '#2e2830';
+      ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.fill();
+      ctx.fillStyle = a.c;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 13, -0.5, 0.9); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#c8a05e'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(4, -12); ctx.quadraticCurveTo(10, -18, 14, -16); ctx.stroke();
+      ctx.fillStyle = '#ffd24a';
+      ctx.beginPath(); ctx.arc(15, -16, 3.2 + Math.sin(G.time * 30) * 1.2, 0, TAU); ctx.fill();
+      ctx.restore();
+    } else if (a.type === 'ball') {
+      const k = Math.min(1, a.t / 0.5);
+      const x = lerp(a.x0, a.tx, k);
+      const y = GROUND_Y - 40 - Math.abs(Math.sin(k * Math.PI * 2)) * 90 * (1 - k * 0.5);
+      ctx.strokeStyle = a.c; ctx.globalAlpha = 0.4; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x - 42, y + 6); ctx.lineTo(x - 10, y); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = a.c;
+      ctx.beginPath(); ctx.arc(x, y, a.r || 10, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.arc(x, y, (a.r || 10) * 0.55, -1.2, 0.6); ctx.stroke();
+    } else if (a.type === 'spear') {
+      const k = Math.min(1, a.t / 0.28);
+      const x = lerp(a.x0, a.tx, k), y = lerp(a.y0, GROUND_Y - 48, k);
+      ctx.save(); ctx.translate(x, y); ctx.rotate(0.25);
+      ctx.strokeStyle = a.c; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-26, 0); ctx.lineTo(16, 0); ctx.stroke();
+      ctx.fillStyle = a.c;
+      ctx.beginPath(); ctx.moveTo(16, -6); ctx.lineTo(30, 0); ctx.lineTo(16, 6); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    } else if (a.type === 'slash') {
+      const k = a.t / 0.35;
+      ctx.save(); ctx.translate(a.tx, GROUND_Y - 60); ctx.rotate(-0.5 + k * 0.4);
+      ctx.globalAlpha = 1 - k;
+      ctx.strokeStyle = a.c; ctx.lineCap = 'round';
+      for (const [rr, w] of [[46 + k * 44, 11], [30 + k * 32, 6]]) {
+        ctx.lineWidth = w * (1 - k * 0.5);
+        ctx.beginPath(); ctx.arc(0, 0, rr, -1.9, 0.6); ctx.stroke();
+      }
+      ctx.restore(); ctx.globalAlpha = 1;
+    } else if (a.type === 'army') {
+      const bx = -80 + a.t * 720;
+      for (let i = 0; i < a.n; i++) {
+        const x = bx - i * 54, y = GROUND_Y - 14 - Math.abs(Math.sin(a.t * 14 + i)) * 8;
+        if (x < -60 || x > W + 60) continue;
+        ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 3.4; ctx.lineCap = 'round';
+        const sw = Math.sin(a.t * 22 + i) * 6;
+        ctx.beginPath(); ctx.moveTo(x - 5, y - 4); ctx.lineTo(x - 5 + sw, y + 10); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + 5, y - 4); ctx.lineTo(x + 5 - sw, y + 10); ctx.stroke();
+        if (a.kind === 'roll') {
+          ctx.fillStyle = '#26262c';
+          roundRect(x - 16, y - 30, 32, 28, 9); ctx.fill();
+          ctx.fillStyle = '#f2ecd8';
+          roundRect(x - 16, y - 21, 32, 8, 4); ctx.fill();
+          ctx.fillStyle = '#4aa84a';
+          ctx.beginPath(); ctx.arc(x, y - 17, 3, 0, TAU); ctx.fill();
+        } else {
+          ctx.fillStyle = '#eaa9c9';
+          ctx.beginPath(); ctx.arc(x, y - 18, 15, 0, TAU); ctx.fill();
+          ctx.fillStyle = '#c8303e';
+          roundRect(x - 14, y - 21, 28, 6, 3); ctx.fill();
+        }
+        ctx.fillStyle = '#2e2018';
+        ctx.beginPath(); ctx.arc(x - 4, y - 20, 1.7, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 4, y - 20, 1.7, 0, TAU); ctx.fill();
+      }
+    } else if (a.type === 'drop') {
+      const k = Math.min(1, a.t / 0.5);
+      const y = lerp(-50, GROUND_Y - 36, k * k);
+      ctx.save(); ctx.translate(a.tx, y); ctx.rotate(Math.PI);
+      ctx.fillStyle = '#e8c89a';
+      ctx.beginPath(); ctx.moveTo(0, 26); ctx.lineTo(-13, -6); ctx.lineTo(13, -6); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = a.c;
+      ctx.beginPath(); ctx.arc(0, -12, 14, 0, TAU); ctx.fill();
+      ctx.restore();
+    } else if (a.type === 'bolt') {
+      const al = 1 - a.t / 0.3;
+      ctx.globalAlpha = al;
+      for (const [w, cc] of [[9, a.c], [3.5, '#ffffff']]) {
+        ctx.strokeStyle = cc; ctx.lineWidth = w; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.moveTo(a.tx + 14, 0);
+        ctx.lineTo(a.tx - 8, GROUND_Y * 0.35); ctx.lineTo(a.tx + 10, GROUND_Y * 0.55);
+        ctx.lineTo(a.tx - 6, GROUND_Y - 40);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+/* ---------- ร่างแปลงจริงแบบเกมต้นฉบับ ---------- */
+const FORM_DRAW = {
+  vampire(anim) {   // 🦇 ค้างคาวน้ำองุ่น
+    const fl = Math.sin(G.time * 16) * 0.55;
+    ctx.save(); ctx.translate(0, -58 + Math.sin(G.time * 5) * 7);
+    for (const sg of [-1, 1]) {
+      ctx.save(); ctx.scale(sg, 1); ctx.rotate(-fl);
+      ctx.fillStyle = '#4a0c1c';
+      ctx.beginPath(); ctx.moveTo(10, -2);
+      ctx.quadraticCurveTo(46, -28, 60, -6);
+      ctx.quadraticCurveTo(48, -2, 46, 9);
+      ctx.quadraticCurveTo(33, 2, 27, 13);
+      ctx.quadraticCurveTo(18, 4, 10, 10);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle = '#8a1428';
+    ctx.beginPath(); ctx.arc(0, 0, 21, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-15, -12); ctx.lineTo(-19, -28); ctx.lineTo(-6, -19); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(15, -12); ctx.lineTo(19, -28); ctx.lineTo(6, -19); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffd24a';
+    ctx.beginPath(); ctx.arc(-7.5, -2, 3.6, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(7.5, -2, 3.6, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(-5, 8); ctx.lineTo(-3, 14); ctx.lineTo(-1, 8); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(1, 8); ctx.lineTo(3, 14); ctx.lineTo(5, 8); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  },
+  werewolf(anim) {   // 🐺 ร่างหมาป่า
+    const g = Math.sin(anim * 2.4);
+    ctx.save(); ctx.translate(0, -26 + Math.abs(g) * -5);
+    ctx.strokeStyle = '#56505a'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+    for (const [ox2, ph] of [[-22, 0], [-10, Math.PI], [14, Math.PI * 0.5], [26, Math.PI * 1.5]]) {
+      const sw = Math.sin(anim * 2.4 + ph) * 0.7;
+      ctx.beginPath(); ctx.moveTo(ox2, -8); ctx.lineTo(ox2 + Math.sin(sw) * 14, 14); ctx.stroke();
+    }
+    ctx.fillStyle = '#6a646e';
+    ctx.beginPath(); ctx.ellipse(0, -18, 36, 17, -0.06, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-32, -20); ctx.quadraticCurveTo(-56, -34, -50, -10);
+    ctx.quadraticCurveTo(-42, -4, -32, -10); ctx.closePath(); ctx.fill();   // หางฟู
+    ctx.beginPath(); ctx.arc(30, -32, 15, 0, TAU); ctx.fill();               // หัว
+    ctx.beginPath(); ctx.moveTo(40, -32); ctx.lineTo(56, -26); ctx.lineTo(40, -22); ctx.closePath(); ctx.fill(); // ปาก
+    ctx.beginPath(); ctx.moveTo(22, -42); ctx.lineTo(18, -56); ctx.lineTo(30, -48); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(34, -44); ctx.lineTo(40, -56); ctx.lineTo(42, -44); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#f2f0ea';
+    ctx.beginPath(); ctx.ellipse(6, -12, 20, 10, 0, 0, TAU); ctx.fill();     // อกขนขาว
+    ctx.fillStyle = '#4ac8e8';
+    ctx.beginPath(); ctx.arc(33, -34, 3.4, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.moveTo(44, -27); ctx.lineTo(46, -22); ctx.lineTo(48, -27); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  },
+  firespirit(anim) {   // 🔥 ร่างวิญญาณเพลิง
+    ctx.save(); ctx.translate(0, -46 + Math.sin(G.time * 7) * 5);
+    const wob = Math.sin(G.time * 11) * 5;
+    ctx.fillStyle = '#e83a10';
+    ctx.beginPath();
+    ctx.moveTo(-30, 26);
+    ctx.quadraticCurveTo(-40, -8, -20 + wob, -26);
+    ctx.quadraticCurveTo(-26, -50, -4 + wob, -66);
+    ctx.quadraticCurveTo(2, -46, 14 + wob, -36);
+    ctx.quadraticCurveTo(34, -46, 28, -18);
+    ctx.quadraticCurveTo(40, -4, 30, 26);
+    ctx.quadraticCurveTo(0, 36, -30, 26);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffb02e';
+    ctx.beginPath();
+    ctx.moveTo(-18, 24);
+    ctx.quadraticCurveTo(-24, -6, -8 + wob * 0.6, -24);
+    ctx.quadraticCurveTo(0, -38, 8 + wob * 0.6, -20);
+    ctx.quadraticCurveTo(20, -4, 16, 24);
+    ctx.quadraticCurveTo(0, 30, -18, 24);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff2b0';
+    ctx.beginPath(); ctx.ellipse(0, 10, 12, 15, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#7a1e00';
+    ctx.beginPath(); ctx.arc(-7, -4, 3.4, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(8, -4, 3.4, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#7a1e00'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(0.5, 4, 6, 0.2, Math.PI - 0.2); ctx.stroke();
+    ctx.restore();
+  },
+  kumiho(anim) {   // 🦊 จิ้งจอกเก้าหาง
+    ctx.save(); ctx.translate(0, -34 + Math.sin(G.time * 6) * 4);
+    for (let q = 0; q < 9; q++) {   // เก้าหางกางพัด
+      const aa = -0.5 - q * 0.26;
+      ctx.save(); ctx.translate(-16, -8); ctx.rotate(aa);
+      ctx.fillStyle = q % 2 ? '#eef6f8' : '#f8fcfd';
+      ctx.beginPath(); ctx.ellipse(-26, 0, 26, 8.5, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#f4b8cc';
+      ctx.beginPath(); ctx.ellipse(-44, 0, 8, 5.5, 0, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+    ctx.fillStyle = '#f8fcfd';
+    ctx.beginPath(); ctx.ellipse(4, 0, 30, 15, -0.08, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(28, -14, 13, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(20, -22); ctx.lineTo(16, -36); ctx.lineTo(28, -28); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(32, -24); ctx.lineTo(38, -36); ctx.lineTo(40, -24); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e84860';
+    ctx.beginPath(); ctx.arc(30, -15, 3, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#f4b8cc';
+    ctx.beginPath(); ctx.moveTo(38, -14); ctx.lineTo(46, -10); ctx.lineTo(38, -8); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  },
+};
+/* ร่างเสริม (วาดใต้ตัวปกติ): เซิร์ฟบอร์ด/วิญญาณ/ไอพ่น/ลมหมุน */
+const FORM_UNDER = {
+  soda(anim) {
+    ctx.save(); ctx.rotate(-0.08);
+    ctx.fillStyle = '#28b8ac';
+    ctx.beginPath(); ctx.ellipse(0, 2, 46, 10, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#eafcf8';
+    ctx.beginPath(); ctx.ellipse(0, 2, 30, 4.4, 0, 0, TAU); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(234,252,255,.8)';
+    for (let q = 0; q < 5; q++) {
+      ctx.beginPath();
+      ctx.arc(-40 - (G.time * 260 + q * 37) % 50, 2 - (q % 3) * 8, 6 - q, 0, TAU); ctx.fill();
+    }
+  },
+  bari(anim) {
+    ctx.globalAlpha = 0.5 + Math.sin(G.time * 8) * 0.2;
+    const g = ctx.createRadialGradient(0, -52, 8, 0, -52, 90);
+    g.addColorStop(0, 'rgba(190,240,255,.6)'); g.addColorStop(1, 'rgba(190,240,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(0, -52, 92, 86, 0, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#bfeaff';
+    for (let q = 0; q < 4; q++) {
+      const aa = G.time * 2 + q * TAU / 4;
+      ctx.beginPath();
+      ctx.ellipse(Math.cos(aa) * 58, -52 + Math.sin(aa) * 44, 5, 8, aa, 0, TAU); ctx.fill();
+    }
+  },
+  hero(anim) {
+    ctx.fillStyle = '#ff9d2e';
+    for (const [oy, ln] of [[-44, 26], [-56, 20]]) {
+      const f = 1 + Math.sin(G.time * 26 + oy) * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(-26, oy - 6); ctx.lineTo(-26 - ln * f, oy); ctx.lineTo(-26, oy + 6);
+      ctx.closePath(); ctx.fill();
+    }
+  },
+  windarcher(anim) {
+    ctx.strokeStyle = 'rgba(140,230,170,.55)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    for (let q = 0; q < 3; q++) {
+      const ph = G.time * 10 + q * 2.1;
+      ctx.beginPath();
+      ctx.arc(0, -52, 52 + q * 12, ph % TAU, (ph % TAU) + 1.6); ctx.stroke();
+    }
+  },
+};
+
 const FX = { flashT: 0, flashC: '#ffffff', rings: [], waveT: 0, circleT: 0, circleC: '#8fd8ff', starT: 0, starC: '#ffe98e', beamT: 0, beamC: '#ff6f9f' };
 function skillBurst(color, big) {
   FX.flashT = big ? 0.5 : 0.3; FX.flashC = color;
@@ -2389,6 +2684,7 @@ function update(dt) {
     P.vy = Math.max(P.vy, 1500);   // กบฏ: กดสไลด์กลางอากาศ = ดิ่งลงพื้นทันที
   G.formT = Math.max(0, (G.formT || 0) - dt);
   updateFX(dt);
+  updateActors(dt);
   if (['spawnSp', 'destroyIv', 'coinIv', 'transform', 'songs', 'streak'].includes(cf.k) && cf.trig === undefined) {
     G.cfxT = (G.cfxT || 0) + dt;
     let iv = cf.iv * (1 - ((G.charLv[G.charIdx] || 1) - 1) * 0.04);
@@ -2407,6 +2703,9 @@ function update(dt) {
         skillFX(CHARS[G.charIdx].id, '#ff9db8');
       } else if (cf.k === 'destroyIv') {
         skillFX(CHARS[G.charIdx].id, '#ffd24a');   // เอฟเฟกต์ลายเซ็นออกทุกครั้งที่สกิลทำงาน
+        const oT = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 20; });
+        const actF = ACTOR_MAP[CHARS[G.charIdx].id];
+        if (actF) actF(oT ? oT.x - worldX : W * 0.72);
         const o = obstacles.find(o2 => { const ox = o2.x - worldX; return ox > P.x + 40 && ox < W - 20; });
         if (o) {
           obstacles.splice(obstacles.indexOf(o), 1);
@@ -2957,7 +3256,7 @@ function draw() {
   if (G.state === 'play' || G.state === 'over' || G.state === 'continue') drawPlayer();
   if (G.state === 'play') drawPet();
   drawParticles();
-  if (G.state === 'play') drawFX();
+  if (G.state === 'play') { drawFX(); drawActors(); }
 
   ctx.restore();
 
@@ -4355,6 +4654,15 @@ function drawPlayer() {
     ctx.scale(1 + P.squash * 0.45, 1 - P.squash * 0.4);
   if (P.giantT > 0 && P.giantT < 1.2 && Math.floor(G.time * 10) % 2 === 0)
     ctx.globalAlpha = 0.6;
+
+  // ร่างแปลงจริงแบบเกมต้นฉบับ (ค้างคาว/หมาป่า/ร่างไฟ/เก้าหาง)
+  const formId = CHARS[G.charIdx] && CHARS[G.charIdx].id;
+  if (G.formT > 0 && FORM_DRAW[formId]) {
+    FORM_DRAW[formId](P.anim);
+    ctx.restore();
+    return;
+  }
+  if (G.formT > 0 && FORM_UNDER[formId]) FORM_UNDER[formId](P.anim);
 
   if (P.boostT > 0 || G.bonusT > 0) {
     ctx.save();
