@@ -1386,6 +1386,7 @@ const G = {
   crystals: SAVE.get('crystals', 0),
   charLv: Object.assign([1, 1, 1, 1], SAVE.get('charLv', [])),
   petLv: Object.assign([1, 1, 1], SAVE.get('petLv', [])),
+  petGrade: SAVE.get('petGrade', {}),   // เกรดสมบัติสัตว์เลี้ยง +0 → +9 (แกนที่สองแบบเกมจริง)
   mode: 'normal',            // normal | coins | tower
   towerBest: SAVE.get('towerBest', 0),
   floorNow: 0, floorT: 0,
@@ -1404,7 +1405,11 @@ const itemMul = () => (1 + G.upg.item * 0.18) * (G.runBoost.power ? 1.5 : 1);
 const hasTr = i => G.trEquip.includes(i);
 const lvMul = () => 1 + 0.03 * ((G.charLv[G.charIdx] || 1) - 1);   // โบนัสแต้มจากเลเวลคุกกี้
 const petLvNow = () => G.petLv[G.petIdx] || 1;
-const petFxMul = () => 1 + (petLvNow() - 1) * 0.12;   // สเกลพลังสัตว์เลี้ยงตามเลเวล
+const PET_MAXGRADE = 9;                                     // เกรดสมบัติสัตว์เลี้ยง +0 → +9 แบบเกมต้นฉบับ
+const petGradeNow = () => G.petGrade[G.petIdx] || 0;
+const petGradeCost = (i, g) => Math.round(280 * (g + 1) * (1 + g * 0.15));   // ค่าอัปเกรดไต่ขึ้นต่อขั้น
+// พลังรวม = สกิลเลเวล (1–8) + เกรดสมบัติ (+0→+9 เพิ่มผลพาสซีฟ ไต่ถึง +0.5 เท่าที่ +9)
+const petFxMul = () => 1 + (petLvNow() - 1) * 0.12 + petGradeNow() * (0.5 / PET_MAXGRADE);
 const PFX = () => PT().fx || { k: '', v: 0 };
 const CFX = () => CH().cfx || { k: '' };
 
@@ -8149,7 +8154,9 @@ function drawGrid(LIST, kind) {
     if (owned) {
       ctx.fillStyle = '#aee4ff';
       const lv = (isChar ? G.charLv : G.petLv)[i] || 1;
-      ctx.fillText('Lv.' + lv, x + cw / 2, y + chh - 9);
+      const gd = !isChar && (G.petGrade[i] || 0) > 0 ? '  +' + G.petGrade[i] : '';
+      if (gd) { ctx.fillStyle = '#ff8ad0'; }
+      ctx.fillText('Lv.' + lv + gd, x + cw / 2, y + chh - 9);
     } else {
       ctx.fillStyle = '#ffd24a';
       ctx.fillText('🪙' + (it.cost >= 1000 ? (it.cost / 1000) + 'k' : it.cost), x + cw / 2, y + chh - 9);
@@ -8174,7 +8181,8 @@ function drawGrid(LIST, kind) {
   ctx.font = 'bold 17px Trebuchet MS';
   ctx.fillStyle = '#ffd24a';
   const lvCur = (isChar ? G.charLv : G.petLv)[focus] || 1;
-  const title = cur.name + (ownedCur ? '  Lv.' + lvCur : '');
+  const gdCur = !isChar ? (G.petGrade[focus] || 0) : 0;
+  const title = cur.name + (ownedCur ? '  Lv.' + lvCur + (gdCur > 0 ? ' +' + gdCur : '') : '');
   const wN = ctx.measureText(title).width;
   ctx.fillText(title, 112, dy + 30);
   ctx.fillStyle = GRADES[cur.grade];
@@ -8212,9 +8220,11 @@ function drawGrid(LIST, kind) {
     } else {
       drawBtn(W - 228, dy + 8, 200, 36, '★ ใช้อยู่', () => {}, { disabled: true, font: 13 });
     }
+    // แถวอัปเกรด: คุกกี้ = ปุ่ม Lv เต็มแถว / สัตว์เลี้ยง = Lv (ครึ่งซ้าย) + เกรดสมบัติ +9 (ครึ่งขวา)
+    const lvW = isChar ? 200 : 96;
     if (lvCur < 8) {
       const upCost = (isChar ? 350 : 300) * lvCur;
-      drawBtn(W - 228, dy + 50, 200, 36, '⬆ Lv.' + (lvCur + 1) + '  🪙' + upCost.toLocaleString(), () => {
+      drawBtn(W - 228, dy + 50, lvW, 36, (isChar ? '⬆ Lv.' : '⬆Lv.') + (lvCur + 1) + (isChar ? '  🪙' + upCost.toLocaleString() : ' 🪙' + (upCost >= 1000 ? (upCost / 1000).toFixed(1) + 'k' : upCost)), () => {
         if (G.bank >= upCost) {
           G.bank -= upCost;
           if (isChar) { G.charLv[focus] = lvCur + 1; SAVE.set('charLv', G.charLv); }
@@ -8223,9 +8233,27 @@ function drawGrid(LIST, kind) {
           AudioSys.buy();
           floatText(W / 2, 100, cur.name + ' → Lv.' + (lvCur + 1) + '!', '#aee4ff', true);
         } else { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true); }
-      }, G.bank >= upCost ? { color: '#5cb8e8', dark: '#3d92c4', font: 13 } : { color: '#8a8178', dark: '#6e675f', font: 13 });
+      }, G.bank >= upCost ? { color: '#5cb8e8', dark: '#3d92c4', font: isChar ? 13 : 11 } : { color: '#8a8178', dark: '#6e675f', font: isChar ? 13 : 11 });
     } else {
-      drawBtn(W - 228, dy + 50, 200, 36, '★ MAX Lv.8', () => {}, { disabled: true, font: 13 });
+      drawBtn(W - 228, dy + 50, lvW, 36, isChar ? '★ MAX Lv.8' : '★MAX', () => {}, { disabled: true, font: isChar ? 13 : 11 });
+    }
+    // เกรดสมบัติสัตว์เลี้ยง +0 → +9 (ผลพาสซีฟไต่ถึง +50% ที่ +9)
+    if (!isChar) {
+      const gd = G.petGrade[focus] || 0;
+      if (gd < PET_MAXGRADE) {
+        const gCost = petGradeCost(focus, gd);
+        drawBtn(W - 228 + 104, dy + 50, 96, 36, '★+' + (gd + 1) + ' 🪙' + (gCost >= 1000 ? (gCost / 1000).toFixed(1) + 'k' : gCost), () => {
+          if (G.bank >= gCost) {
+            G.bank -= gCost; G.petGrade[focus] = gd + 1;
+            SAVE.set('coins', G.bank); SAVE.set('petGrade', G.petGrade);
+            AudioSys.buy();
+            const pc = Math.round((gd + 1) * (50 / PET_MAXGRADE));
+            floatText(W / 2, 100, cur.name + ' เกรด +' + (gd + 1) + '! (พลังพาสซีฟ +' + pc + '%)', '#ff8ad0', true);
+          } else { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true); }
+        }, G.bank >= gCost ? { color: '#c85aa8', dark: '#a03c84', font: 11 } : { color: '#8a8178', dark: '#6e675f', font: 11 });
+      } else {
+        drawBtn(W - 228 + 104, dy + 50, 96, 36, '★+9 สุด', () => {}, { disabled: true, font: 11 });
+      }
     }
   }
 
