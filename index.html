@@ -2931,6 +2931,8 @@ function skillBurst(color, big) {
   FX.zoomT = big ? 0.45 : 0.28;    // ซูมกล้องกระแทก
   sparkle(P.x + 30, P.y + 20, big ? 34 : 20, color);
   sparkle(P.x + 30, P.y + 10, big ? 18 : 10, '#ffffff');
+  FX.impactT = big ? 0.42 : 0.3; FX.impactC = color;   // แฟลร์กระแทกเปล่งวาบตอนร่ายสกิล
+  FX.impactX = P.x + 28; FX.impactY = P.y + P.h / 2;
 }
 const SKILL_SIG = {
   seafairy: () => { FX.waveT = 1.1; skillBurst('#7ec8ff', true); },
@@ -2960,6 +2962,7 @@ function updateFX(dt) {
   FX.raysT = Math.max(0, FX.raysT - dt * 1.4);
   FX.linesT = Math.max(0, FX.linesT - dt * 2);
   FX.zoomT = Math.max(0, FX.zoomT - dt * 1.7);
+  FX.impactT = Math.max(0, (FX.impactT || 0) - dt * 2.3);
   FX.cutT = Math.max(0, FX.cutT - dt * 1.05);
   for (const r of FX.rings) r.t += dt * 2.4;
   FX.rings = FX.rings.filter(r => r.t < 1);
@@ -2982,6 +2985,25 @@ function updateFX(dt) {
   }
 }
 function drawFX() {
+  // 💥 แฟลร์กระแทกตอนร่ายสกิล: วงวาบ + กากบาทแสงพุ่ง
+  if ((FX.impactT || 0) > 0) {
+    const k = FX.impactT / 0.42, gr = (1 - k) * 190 + 20;
+    ctx.save(); ctx.translate(FX.impactX, FX.impactY);
+    ctx.globalAlpha = Math.min(1, k * 1.4) * 0.9;
+    // วงวาบขาว
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(0, 0, gr * 0.28, 0, TAU); ctx.fill();
+    ctx.strokeStyle = FX.impactC; ctx.lineWidth = 5 * k + 1;
+    ctx.beginPath(); ctx.arc(0, 0, gr, 0, TAU); ctx.stroke();
+    // กากบาทแสง 4 แฉก
+    ctx.fillStyle = FX.impactC; ctx.globalAlpha = Math.min(1, k * 1.6) * 0.8;
+    for (let q = 0; q < 4; q++) {
+      ctx.rotate(TAU / 4);
+      const L = gr * 1.5;
+      ctx.beginPath(); ctx.moveTo(0, -6 * k - 1); ctx.lineTo(L, 0); ctx.lineTo(0, 6 * k + 1); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
   // ⚡ แสงเรย์หมุนรอบตัว (ตอนเปิดสกิล)
   if (FX.raysT > 0) {
     const al = Math.min(1, FX.raysT * 2.2) * 0.4;
@@ -3133,23 +3155,39 @@ function trySelectChar(i) {
   }
 }
 /* ---------- สกิลไม้ตายประจำตัวละคร (Magic Candy) ---------- */
+// 🎬 คัตซีนสกิลแบบเกมจริง: เบิร์สต์ใหญ่ + ลายเซ็นเฉพาะตัว + คัตอินหน้าตัวละคร + hitstop/zoom
+function skillCinematic(color, cutText) {
+  skillFX(CH().id, color, true);   // ลายเซ็นเฉพาะตัว (ถ้ามี) ไม่งั้นเบิร์สต์ใหญ่
+  skillCut(cutText, color);
+  FX.stopT = Math.max(FX.stopT, 0.2);   // หยุดเวลากระแทกนานขึ้นตอนกดสกิลเอง
+  FX.zoomT = Math.max(FX.zoomT, 0.5);
+  FX.linesT = Math.max(FX.linesT, 0.5);
+  G.shake = Math.max(G.shake || 0, 18);
+}
 function useSkill() {
   if (G.state !== 'play' || G.paused || P.dead || G.skill < 100) return;
   G.skill = 0;
   AudioSys.power();
-  G.shake = 6;
   const sk = CH().sk || 'strike';
   if (sk === 'strike') {
     P.boostT = Math.max(P.boostT, 3.6);
+    spawnActor('slash', { tx: P.x + 260, c: CH().button || '#ffd24a' });
+    spawnActor('slash', { tx: P.x + 340, c: '#ffffff' });
+    skillCinematic('#ffd24a', '⚔ ' + CH().name + ' STRIKE!!');
     banner('⚔ ' + CH().name + ' STRIKE!!', '#ffd24a');
   } else if (sk === 'heal') {
     G.hp = Math.min(G.hpMax, G.hp + 35);
     P.invT = Math.max(P.invT, 3);
+    spawnActor('heal', { c: '#7bff9b' });
+    spawnActor('shield', { c: '#7bff9b' });
+    skillCinematic('#7bff9b', '💚 ' + CH().name + ' HEAL!');
     banner('💚 ฮีล + โล่กันชน!', '#ff9db8');
-    sparkle(P.x + 28, P.y + 30, 22, '#7bff9b');
+    sparkle(P.x + 28, P.y + 30, 26, '#7bff9b');
   } else if (sk === 'dash') {
     G.scoreMulT = 6;
     P.magnetT = Math.max(P.magnetT, 6);
+    spawnActor('bolt', { tx: P.x + 320, c: '#b9c6ff' });
+    skillCinematic('#b9c6ff', '💨 SPEED DASH! x2');
     banner('💨 SPEED DASH! แต้ม x2', '#b9c6ff');
   } else if (sk === 'gold') {
     // เปลี่ยนเยลลี่ทั้งจอเป็นเหรียญ
@@ -3162,6 +3200,9 @@ function useSkill() {
       }
     }
     jellyList = jellyList.filter(j => !j.dead);
+    spawnActor('coins', { x0: P.x + 28, y0: P.y + 10 });
+    spawnActor('coins', { x0: P.x + 80, y0: P.y - 10 });
+    skillCinematic('#ffd24a', '💰 MIDAS TOUCH!');
     banner('💰 MIDAS TOUCH! +' + n * 2 + ' เหรียญ', '#ffd24a');
   } else if (sk === 'blast') {
     // ระเบิดเวทเคลียร์สิ่งกีดขวางทั้งจอ
@@ -3176,6 +3217,9 @@ function useSkill() {
     }
     G.score += 300 * n;
     P.invT = Math.max(P.invT, 2);
+    spawnActor('slam', { c: '#c9a2ff' });
+    FX.rings.push({ t: -0.1, c: '#c9a2ff', x: P.x + 28, y: P.y + P.h / 2 });
+    skillCinematic('#c9a2ff', '🔮 MAGIC BLAST!');
     banner('🔮 MAGIC BLAST! ล้าง ' + n + ' สิ่งกีดขวาง', '#c9a2ff');
   } else {
     // bless: เก็บเยลลี่ทั้งจอทันที
@@ -3187,8 +3231,10 @@ function useSkill() {
       }
     }
     jellyList = jellyList.filter(j => !j.dead);
+    spawnActor('pillar', { c: 'rgba(255,240,180,.55)' });
+    skillCinematic('#fff3b0', '✨ BLESSING! +' + n);
     banner('✨ BLESSING! +' + n + ' เยลลี่', '#fff3b0');
-    sparkle(P.x + 28, P.y + 30, 30, '#ffe066');
+    sparkle(P.x + 28, P.y + 30, 32, '#ffe066');
   }
 }
 
