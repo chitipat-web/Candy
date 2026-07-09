@@ -7984,146 +7984,185 @@ function drawMenu() {
     ctx.restore();
   });
 
-  // โลโก้ + แสงวิ่งผ่าน (บนสุดกึ่งกลาง)
+  // ชื่อเกมกะทัดรัดบนสุด + แถบสกุลเงิน
   ctx.save();
-  ctx.translate(W / 2, 90);
-  ctx.rotate(Math.sin(G.time * 1.2) * 0.02);
-  const _lb = 1 + Math.sin(G.time * 2.4) * 0.012;
-  ctx.scale(_lb, _lb);
-  drawTitleText('COOKIE RUN', 0, 0, 58);
-  const sw = ((G.time * 0.45) % 2) - 0.5;      // -0.5..1.5 รอบละ ~4.4 วิ
-  if (sw >= -0.2 && sw <= 1.2) {
-    ctx.save();
-    ctx.beginPath();
-    const bandX = -290 + sw * 580;
-    ctx.moveTo(bandX - 26, -56); ctx.lineTo(bandX + 26, -56);
-    ctx.lineTo(bandX - 8, 16);  ctx.lineTo(bandX - 58, 16);
-    ctx.closePath(); ctx.clip();
-    ctx.font = 'bold 58px Trebuchet MS';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.fillText('COOKIE RUN', 0, 0);
-    ctx.restore();
-  }
-  ctx.font = 'bold 22px Trebuchet MS';
-  ctx.lineWidth = 6; ctx.strokeStyle = '#5a2e10';
-  ctx.strokeText('~ คลาสสิค ~', 0, 33);
-  ctx.fillStyle = '#ffe9b8';
-  ctx.fillText('~ คลาสสิค ~', 0, 33);
+  ctx.translate(W / 2, 40);
+  ctx.rotate(Math.sin(G.time * 1.2) * 0.014);
+  drawTitleText('COOKIE RUN คลาสสิค', 0, 0, 30);
   ctx.restore();
+  drawCoinChip(W - 18, 62, G.bank.toLocaleString());
+  drawGemChip(W - 158, 62);
+  drawPowderChip(W - 278, 62);
 
-  // แถบสกุลเงินมุมขวาบน: เหรียญ / คริสตัล / ผงเวทมนตร์
-  drawCoinChip(W - 20, 14, G.bank.toLocaleString());
-  drawGemChip(W - 20, 52);
-  drawPowderChip(W - 20, 90);
+  /* ============ แผงซ้าย: กระดานผู้นำ ============ */
+  const LP = { x: 18, y: 100, w: 470, h: 428 };
+  drawPanel(LP.x, LP.y, LP.w, LP.h, 18);
+  // แท็บ อันดับ / สถิติ / คุกกี้
+  const lbTabs = ['🏆 อันดับ', '📊 สถิติ', '🍪 คุกกี้'];
+  G.lbTab = G.lbTab || 0;
+  lbTabs.forEach((t, i) => {
+    const tw = (LP.w - 24) / 3, tx = LP.x + 12 + i * (tw + 0);
+    drawBtn(tx, LP.y + 10, tw - 4, 34, t, () => { G.lbTab = i; },
+      i === G.lbTab ? { color: '#ffb84a', dark: '#e0842a', font: 14 } : { color: '#8a7258', dark: '#6a5642', font: 14 });
+  });
+  const pname = (PROFILES.find(q => q.id === ACTIVE) || {}).name || 'คุณ';
+  if (G.lbTab === 1) {
+    // สถิติรวม
+    const st = G.stats;
+    const rows = [['🏃 วิ่งทั้งหมด', (st.runs || 0) + ' รอบ'], ['📏 ระยะสะสม', (st.dist || 0).toLocaleString() + ' m'],
+      ['🐻 หมีเยลลี่', (st.bears || 0).toLocaleString()], ['🍬 เยลลี่รวม', (st.jellies || 0).toLocaleString()],
+      ['🪙 เหรียญสะสม', (st.coins || 0).toLocaleString()], ['🔥 คอมโบสูงสุด', (st.maxCombo || 0)]];
+    ctx.textAlign = 'left';
+    rows.forEach((r, i) => {
+      const ry = LP.y + 66 + i * 54;
+      drawPanel(LP.x + 14, ry, LP.w - 28, 44, 10);
+      ctx.font = 'bold 15px Trebuchet MS'; ctx.fillStyle = '#ffe9b8'; ctx.fillText(r[0], LP.x + 28, ry + 28);
+      ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24a'; ctx.fillText(r[1], LP.x + LP.w - 28, ry + 28);
+      ctx.textAlign = 'left';
+    });
+  } else if (G.lbTab === 2) {
+    // จำนวนคุกกี้/สัตว์เลี้ยง/สมบัติที่มี
+    const rows = [['🍪 ปลดล็อกคุกกี้', G.owned.length + '/' + CHARS.length],
+      ['🐥 สัตว์เลี้ยง', G.petsOwned.length + '/' + PETS.length],
+      ['💎 สมบัติ', G.trOwned.length + '/' + TREASURES.length],
+      ['⭐ ดาวผจญภัย', (G.starBest || []).reduce((a, b) => a + b, 0) + '/15']];
+    ctx.textAlign = 'left';
+    rows.forEach((r, i) => {
+      const ry = LP.y + 70 + i * 74;
+      drawPanel(LP.x + 14, ry, LP.w - 28, 62, 12);
+      ctx.font = 'bold 17px Trebuchet MS'; ctx.fillStyle = '#ffe9b8'; ctx.fillText(r[0], LP.x + 30, ry + 38);
+      ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24a'; ctx.fillText(r[1], LP.x + LP.w - 30, ry + 38);
+      ctx.textAlign = 'left';
+    });
+  } else {
+    // กระดานสกอร์
+    ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'left'; ctx.fillStyle = '#c8b8a0';
+    ctx.fillText('🏅 สกอร์สูงสุดตลอดกาล', LP.x + 18, LP.y + 66);
+    // แถวของผู้เล่น (ไฮไลต์)
+    drawPanel(LP.x + 14, LP.y + 76, LP.w - 28, 46, 10);
+    ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 2.5; roundRect(LP.x + 15, LP.y + 77, LP.w - 30, 44, 9); ctx.stroke();
+    ctx.font = 'bold 18px Trebuchet MS'; ctx.fillStyle = '#ffd24a'; ctx.fillText('1', LP.x + 28, LP.y + 105);
+    ctx.save(); ctx.translate(LP.x + 62, LP.y + 116); ctx.scale(0.34, 0.34);
+    try { ctx.drawImage(cookiePortrait(G.charIdx), -60, -150, 120, 138); } catch (e) {}
+    ctx.restore();
+    ctx.font = 'bold 15px Trebuchet MS'; ctx.fillStyle = '#fff'; ctx.fillText(pname, LP.x + 90, LP.y + 100);
+    ctx.font = 'bold 15px Trebuchet MS'; ctx.fillStyle = '#ffe066'; ctx.textAlign = 'right';
+    ctx.fillText('🏆 ' + (G.best || 0).toLocaleString(), LP.x + LP.w - 24, LP.y + 105);
+    ctx.textAlign = 'left';
+    // สกอร์ย้อนหลัง
+    const lb = (G.board || []).slice().sort((a, b) => b.s - a.s).slice(0, 4);
+    lb.forEach((e, i) => {
+      const ry = LP.y + 134 + i * 44;
+      drawPanel(LP.x + 14, ry, LP.w - 28, 38, 9);
+      ctx.font = 'bold 15px Trebuchet MS'; ctx.fillStyle = '#c8b8a0'; ctx.fillText((i + 2) + '', LP.x + 30, ry + 25);
+      ctx.fillStyle = '#ffe9b8'; ctx.fillText((CHARS[e.c] ? CHARS[e.c].name : 'คุกกี้').slice(0, 14), LP.x + 54, ry + 25);
+      ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24a'; ctx.fillText(e.s.toLocaleString(), LP.x + LP.w - 26, ry + 25);
+      ctx.textAlign = 'left';
+    });
+    if (!lb.length) { ctx.fillStyle = '#9a8a72'; ctx.font = '14px Trebuchet MS'; ctx.textAlign = 'center';
+      ctx.fillText('ยังไม่มีสถิติ — ลองวิ่งดูสิ!', LP.x + LP.w / 2, LP.y + 200); ctx.textAlign = 'left'; }
+  }
+  // ปุ่มอันดับออนไลน์ + ภารกิจ (ล่างแผงซ้าย)
+  drawBtn(LP.x + 14, LP.y + LP.h - 92, LP.w - 28, 38, '🌐 ดูอันดับออนไลน์', () => { fetchOnline(); setState('rank'); }, { color: '#9d7ee0', dark: '#7a5cc0', font: 15 });
+  const m = MISSIONS[G.missionIdx];
+  drawPanel(LP.x + 14, LP.y + LP.h - 48, LP.w - 28, 38, 10);
+  ctx.textAlign = 'left'; ctx.font = 'bold 12px Trebuchet MS'; ctx.fillStyle = '#ffd24a';
+  ctx.fillText('📜 ภารกิจ ' + (G.missionIdx + 1) + '/' + MISSIONS.length + ':', LP.x + 26, LP.y + LP.h - 24);
+  ctx.font = '12px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+  ctx.fillText(m ? (m.desc + ' →🪙' + m.reward).slice(0, 34) : 'ครบทุกภารกิจแล้ว!', LP.x + 150, LP.y + LP.h - 24);
 
-  /* ---------- กรอบเวทีตัวละคร ธีมกลางคืน (แบบหน้าโฮมเกมจริง) ---------- */
-  const fx0 = 46, fy0 = 172, fw = 336, fh = 226;
-  const cxm = fx0 + fw / 2, floorY = fy0 + fh - 34;
+  /* ============ แผงขวา: โซนเล่น ============ */
+  const RP = { x: 560, y: 100, w: 382, h: 428 };
+  const rcx = RP.x + RP.w / 2;
+  // แท็บโหมด: วิ่งปกติ / ผจญภัย
+  G.menuTab = G.menuTab || 0;
+  drawBtn(RP.x, RP.y, RP.w / 2 - 4, 40, '🔥 วิ่งปกติ', () => { G.menuTab = 0; },
+    G.menuTab === 0 ? { color: '#ffb02e', dark: '#e07b12', font: 16 } : { color: '#8a7258', dark: '#6a5642', font: 16 });
+  const sb = (G.starBest || [0,0,0,0,0]).reduce((a, b) => a + b, 0);
+  drawBtn(RP.x + RP.w / 2 + 4, RP.y, RP.w / 2 - 4, 40, '🗺️ ผจญภัย', () => { G.menuTab = 1; },
+    G.menuTab === 1 ? { color: '#e8913a', dark: '#c06a1a', font: 16 } : { color: '#8a7258', dark: '#6a5642', font: 16 });
+
+  // กรอบเวทีธีมกลางคืน
+  const fx0 = RP.x + 24, fy0 = RP.y + 52, fw = RP.w - 48, fh = 152;
+  const cxm = fx0 + fw / 2, floorY = fy0 + fh - 28;
   ctx.save();
-  roundRect(fx0, fy0, fw, fh, 18); ctx.clip();
-  // ท้องฟ้ากลางคืน
+  roundRect(fx0, fy0, fw, fh, 16); ctx.clip();
   const nsg = ctx.createLinearGradient(0, fy0, 0, fy0 + fh);
   nsg.addColorStop(0, '#1b2652'); nsg.addColorStop(0.62, '#31407a'); nsg.addColorStop(1, '#3a4a2e');
   ctx.fillStyle = nsg; ctx.fillRect(fx0, fy0, fw, fh);
-  // ดาวกระพริบ
   ctx.fillStyle = '#fff';
-  for (let s = 0; s < 28; s++) {
-    const sx = fx0 + ((s * 71 + 20) % fw), sy = fy0 + ((s * 47 + 12) % (fh - 70));
+  for (let s = 0; s < 24; s++) {
+    const sx = fx0 + ((s * 71 + 20) % fw), sy = fy0 + ((s * 47 + 12) % (fh - 60));
     ctx.globalAlpha = 0.35 + Math.abs(Math.sin(G.time * 2 + s)) * 0.55;
-    ctx.beginPath(); ctx.arc(sx, sy, s % 4 === 0 ? 1.8 : 1, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(sx, sy, s % 4 === 0 ? 1.7 : 1, 0, TAU); ctx.fill();
   }
   ctx.globalAlpha = 1;
-  // พระจันทร์เสี้ยว
-  ctx.fillStyle = '#f6edd2';
-  ctx.beginPath(); ctx.arc(fx0 + fw - 46, fy0 + 44, 22, 0, TAU); ctx.fill();
-  ctx.fillStyle = nsg;
-  ctx.beginPath(); ctx.arc(fx0 + fw - 38, fy0 + 38, 20, 0, TAU); ctx.fill();
-  // ดาวตก
+  ctx.fillStyle = '#f6edd2'; ctx.beginPath(); ctx.arc(fx0 + fw - 40, fy0 + 36, 18, 0, TAU); ctx.fill();
+  ctx.fillStyle = nsg; ctx.beginPath(); ctx.arc(fx0 + fw - 33, fy0 + 31, 16, 0, TAU); ctx.fill();
   const shoot = (G.time * 0.55) % 4.5;
   if (shoot < 1) {
-    const sxp = fx0 + 60 + shoot * 190, syp = fy0 + 24 + shoot * 66;
-    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(sxp, syp); ctx.lineTo(sxp - 34, syp - 14); ctx.stroke();
+    const sxp = fx0 + 50 + shoot * 160, syp = fy0 + 20 + shoot * 56;
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(sxp, syp); ctx.lineTo(sxp - 30, syp - 12); ctx.stroke();
   }
-  // พื้นหิน
   ctx.fillStyle = '#465a32'; ctx.fillRect(fx0, floorY, fw, fh - (floorY - fy0));
   ctx.fillStyle = 'rgba(120,145,80,.6)'; ctx.fillRect(fx0, floorY, fw, 5);
-  // สถิติสูงสุด (มุมซ้ายบนในกรอบ)
-  if (G.best > 0) {
-    ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'left'; ctx.fillStyle = '#ffd24a';
-    ctx.fillText('🏆 ' + G.best.toLocaleString(), fx0 + 12, fy0 + 22);
-  }
-  // สัตว์เลี้ยง + ตัวละครยืนบนพื้น
   ctx.save();
-  ctx.translate(cxm - 96, floorY - 42 + Math.sin(G.time * 4) * 8);
-  ctx.scale(1.12, 1.12); drawPet(PT()); ctx.restore();
+  ctx.translate(cxm - 84, floorY - 38 + Math.sin(G.time * 4) * 8);
+  ctx.scale(1.0, 1.0); drawPet(PT()); ctx.restore();
   ctx.save();
-  ctx.translate(cxm + 8, floorY + 2 + Math.abs(Math.sin(G.time * 3)) * -14);
-  ctx.scale(1.42, 1.42); drawCookieRun(P.anim); ctx.restore();
-  ctx.restore();   // ยกเลิก clip
-  // ขอบกรอบ 2 ชั้น
-  ctx.strokeStyle = '#7a4a24'; ctx.lineWidth = 6;
-  roundRect(fx0, fy0, fw, fh, 18); ctx.stroke();
-  ctx.strokeStyle = '#c99a5a'; ctx.lineWidth = 2.5;
-  roundRect(fx0 + 3.5, fy0 + 3.5, fw - 7, fh - 7, 15); ctx.stroke();
-  // ป้าย Combi Bonus ใต้ตัวละคร (ถ้าสัตว์เลี้ยงเข้าคู่)
+  ctx.translate(cxm + 6, floorY + 2 + Math.abs(Math.sin(G.time * 3)) * -12);
+  ctx.scale(1.28, 1.28); drawCookieRun(P.anim); ctx.restore();
+  ctx.restore();
+  ctx.strokeStyle = '#7a4a24'; ctx.lineWidth = 5; roundRect(fx0, fy0, fw, fh, 16); ctx.stroke();
+  ctx.strokeStyle = '#c99a5a'; ctx.lineWidth = 2; roundRect(fx0 + 3, fy0 + 3, fw - 6, fh - 6, 13); ctx.stroke();
+  // Combi Bonus ใต้ตัวละคร
   if (PT().id === CH().mate) {
     const cbTxt = '💞 COMBI +15% · ' + combiCatOf(CH()).label;
-    ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center';
-    const cbw = ctx.measureText(cbTxt).width + 20;
-    ctx.fillStyle = 'rgba(20,45,12,.82)';
-    roundRect(cxm - cbw / 2, fy0 + fh - 26, cbw, 21, 9); ctx.fill();
-    ctx.fillStyle = '#a6ff8f'; ctx.fillText(cbTxt, cxm, fy0 + fh - 11);
+    ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'center';
+    const cbw = ctx.measureText(cbTxt).width + 18;
+    ctx.fillStyle = 'rgba(20,45,12,.85)'; roundRect(cxm - cbw / 2, fy0 + fh - 24, cbw, 19, 8); ctx.fill();
+    ctx.fillStyle = '#a6ff8f'; ctx.fillText(cbTxt, cxm, fy0 + fh - 10);
   }
-  // ป้ายชื่อ + เลเวล (คาดบนกรอบ)
-  drawPanel(cxm - 92, fy0 - 8, 184, 28, 12);
-  ctx.font = 'bold 14px Trebuchet MS'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
-  ctx.fillText(CH().name + '  Lv.' + (G.charLv[G.charIdx] || 1), cxm, fy0 + 11);
-  // แถบเลือกด่วน: สัตว์เลี้ยง | ตัวละคร | สมบัติ (แบบแถบ Pet|Cookie|Treasure)
-  const qy = fy0 + fh + 12, qw = (fw - 8) / 3;
+  // ป้ายชื่อคาดบนกรอบ
+  drawPanel(cxm - 88, fy0 - 8, 176, 26, 11);
+  ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+  ctx.fillText(CH().name + '  Lv.' + (G.charLv[G.charIdx] || 1), cxm, fy0 + 10);
+  // ปุ่มดาวเทียมรอบกรอบ (แบบเกมจริง)
+  const orb = (ox, oy, emo, label, cb, c1, c2) => {
+    ctx.fillStyle = 'rgba(50,25,8,.5)'; ctx.beginPath(); ctx.arc(ox, oy + 3, 20, 0, TAU); ctx.fill();
+    const og = ctx.createLinearGradient(ox, oy - 20, ox, oy + 20); og.addColorStop(0, c1); og.addColorStop(1, c2);
+    ctx.fillStyle = og; ctx.beginPath(); ctx.arc(ox, oy, 20, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ox, oy, 20, 0, TAU); ctx.stroke();
+    ctx.font = '19px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(emo, ox, oy + 1); ctx.textBaseline = 'alphabetic';
+    ctx.font = 'bold 9.5px Trebuchet MS'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(50,25,0,.85)'; ctx.fillStyle = '#fff';
+    ctx.strokeText(label, ox, oy + 32); ctx.fillText(label, ox, oy + 32);
+    drawBtn(ox - 20, oy - 20, 40, 40, '', cb, { invisible: true });
+  };
+  orb(fx0 - 2, fy0 + 28, '🎁', 'เช็กอิน', () => { G.dailyShow = true; }, '#f08aab', '#c9557d');
+  orb(fx0 - 2, fy0 + 86, '🛍', 'ร้านค้า', () => setState('shop'), '#6fc0ec', '#4d92c4');
+  orb(fx0 + fw + 2, fy0 + 28, '🏴‍☠️', 'เกาะ', () => startGame('coins'), '#e0c24a', '#b7962a');
+  orb(fx0 + fw + 2, fy0 + 86, '🧊', 'หอคอย', () => startGame('tower'), '#84c8e4', '#5b9ec0');
+
+  // แถบ สัตว์เลี้ยง | ตัวละคร | สมบัติ
+  const qy = fy0 + fh + 14, qw = (fw - 8) / 3;
+  ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'right'; ctx.fillStyle = '#ff6b6b';
+  ctx.fillText('ฟรี!', fx0 + fw, qy - 4);
   drawBtn(fx0, qy, qw, 40, '🐥 สัตว์เลี้ยง', () => setState('pets'), { color: '#7bd94a', dark: '#57a832', font: 13 });
   drawBtn(fx0 + qw + 4, qy, qw, 40, '🍪 ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 13 });
   drawBtn(fx0 + qw * 2 + 8, qy, qw, 40, '💎 สมบัติ', () => setState('treasure'), { color: '#e8b23c', dark: '#c08d1e', font: 13 });
 
-  /* ---------- แผงเมนู (ขวา) — เน้นโหมดเล่น ---------- */
-  const mx = 424, mw = 512;
-  drawPanel(mx - 8, 150, mw + 16, 320, 18);
-  // ปุ่ม PLAY ใหญ่เด่น
-  drawBtn(mx, 164, mw, 66, '▶  เริ่มวิ่ง!', () => { G.boostSel = {}; setState('prep'); }, { color: '#7bd94a', dark: '#57a832', font: 28 });
-  const sb = (G.starBest || [0,0,0,0,0]).reduce((a, b) => a + b, 0);
-  drawBtn(mx, 238, mw, 46, '🗺️ โหมดผจญภัย  (ดาว ' + sb + '/15)', () => setState('advmap'), { color: '#e8913a', dark: '#c06a1a', font: 17 });
-  // โหมดพิเศษ 2 คอลัมน์
-  const gw = (mw - 12) / 2, gx2 = mx + gw + 12;
-  drawBtn(mx, 292, gw, 48, '🏴‍☠️ เกาะเหรียญ', () => startGame('coins'), { color: '#c9a227', dark: '#a17d12', font: 15 });
-  drawBtn(gx2, 292, gw, 48, '🧊 หอคอย ' + (G.towerBest > 0 ? '(' + G.towerBest + ')' : ''), () => startGame('tower'), { color: '#6fb8d8', dark: '#4d92b4', font: 15 });
-  drawBtn(mx, 348, gw, 48, '🛍 ร้านค้า', () => setState('shop'), { color: '#5cb8e8', dark: '#3d92c4', font: 16 });
-  drawBtn(gx2, 348, gw, 48, '🏆 อันดับ', () => { fetchOnline(); setState('rank'); }, { color: '#9d7ee0', dark: '#7a5cc0', font: 16 });
-  // เช็กอินรายวัน (เต็มแถบ)
-  drawBtn(mx, 404, mw, 44, '🎁 เช็กอินรายวัน  รับของฟรีทุกวัน!', () => { G.dailyShow = true; }, { color: '#e0699a', dark: '#bb4a7d', font: 15 });
-
-  // ป้ายภารกิจปัจจุบัน (ล่างซ้าย)
-  const m = MISSIONS[G.missionIdx];
-  ctx.textAlign = 'left';
-  if (m) {
-    drawPanel(20, 484, 384, 44, 12);
-    ctx.font = 'bold 13px Trebuchet MS'; ctx.fillStyle = '#ffd24a';
-    ctx.fillText('📜 ภารกิจ ' + (G.missionIdx + 1) + '/' + MISSIONS.length, 34, 503);
-    ctx.font = '13px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
-    ctx.fillText((m.desc + '  → 🪙' + m.reward).slice(0, 46), 34, 521);
-  } else {
-    drawPanel(20, 494, 384, 34, 12);
-    ctx.font = 'bold 13px Trebuchet MS'; ctx.fillStyle = '#7bd94a';
-    ctx.fillText('🎖 เคลียร์ภารกิจครบทุกด่านแล้ว สุดยอด!', 34, 515);
-  }
-
-  // คำแนะนำการเล่น (ใต้แผงเมนู)
-  ctx.font = 'bold 12.5px Trebuchet MS'; ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(255,233,184,.85)';
-  ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(60,30,0,.7)';
-  const help = 'แตะซ้าย = โดด · โดด 2 ครั้ง = ตีลังกา · กดขวาค้าง = สไลด์ · M = เสียง';
-  ctx.strokeText(help, mx + mw / 2, 500);
-  ctx.fillText(help, mx + mw / 2, 500);
+  // ปุ่ม PLAY เขียวใหญ่ (ตามแท็บที่เลือก)
+  const playLabel = G.menuTab === 1 ? '▶  ผจญภัย! (ดาว ' + sb + '/15)' : '▶  เริ่มเล่น!';
+  drawBtn(fx0, qy + 48, fw, 60,  playLabel, () => {
+    if (G.menuTab === 1) setState('advmap'); else { G.boostSel = {}; setState('prep'); }
+  }, { color: '#7bd94a', dark: '#57a832', font: 26 });
+  // คำแนะนำ
+  ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,233,184,.8)'; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(60,30,0,.7)';
+  ctx.strokeText('แตะซ้าย=โดด · โดด2ครั้ง=ตีลังกา · ขวาค้าง=สไลด์', rcx, qy + 124);
+  ctx.fillText('แตะซ้าย=โดด · โดด2ครั้ง=ตีลังกา · ขวาค้าง=สไลด์', rcx, qy + 124);
 
   /* ---------- เช็กอินรายวัน 7 วัน ---------- */
   if (G.dailyShow) {
