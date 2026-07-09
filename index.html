@@ -875,9 +875,9 @@ const LOOK = {
   cheer: { deco: ['skirt:#3a86c8', 'pony:#f2d848', 'stripes:#3a86c8', 'pompom:#7ec8ff'] },
   kumiho: { body: '#fdf2ec', deco: ['foxears:#fdf2ec', 'foxtail:#fdf2ec', 'blushdot', 'lollipop:#ff9db8'] },
   devil: { body: '#e0483a', icing: '#8a1e14', eye: '#ffd24a', deco: ['deviltail:#a02818', 'horns:#a02818', 'batwings:#3a2a34', 'fangs', 'trident:#8a1e14'] },
-  fairy: { body: '#cfeee0', deco: ['fairywings:#eafff2', 'spiralbun:#c8d848', 'dress:#66d8bc', 'lilyflower:#f2d848'] },
-  firespirit: { deco: ['flame:#ff7a1e', 'robe:#6a2016', 'staff:#e0453a'] },
-  windarcher: { deco: ['batwings:#3f8a4a', 'leafswept:#3f8a4a', 'bowweapon:#6b4423'] },
+  fairy: { body: '#cfeee0', deco: ['fairywings:#c8f0dc', 'spiralbun:#c8d848', 'dress:#66d8bc', 'frillhem:#a8ecd8', 'lilyflower:#f2d848', 'lotus:#3ec8a8'] },
+  firespirit: { deco: ['flame:#ff7a1e', 'cape:#3a1620', 'collar:#3a1620', 'staff:#e0453a'] },
+  windarcher: { deco: ['batwings:#3f8a4a', 'leafswept:#3f8a4a', 'longbow:#4a8a3a'] },
   zombie: { deco: ['messy:#6a8a4a', 'stitch:#5a7a3a', 'zombieeye', 'bone:#f2ecdc'] },
   wizard: { deco: ['robe:#3f5fc0', 'wizhat:#3f5fc0', 'hatstars:#f2e060', 'bigbeard:#e8e4da', 'staff:#8a5a2e'] },
   rockstar: { deco: ['spiky:#f2f0ec', 'guitar:#e0453a', 'glasses', 'vest:#3a3a44'] },
@@ -4249,12 +4249,16 @@ function runDecos(ch, phase, RIM) {
         ctx.quadraticCurveTo(-20, -22, -8, -28);
         ctx.closePath(); ctx.fill();
       } else if (p === 'wings2') {
-        ctx.fillStyle = 'rgba(255,255,255,.75)';
-        for (const sgn of [0, 1]) {
-          ctx.save(); ctx.translate(-10, -56);
-          ctx.rotate(-0.5 - sgn * 0.5 + Math.sin(P.anim * 3) * 0.12);
-          ctx.fillStyle = sgn ? c : 'rgba(255,255,255,.85)';
-          ctx.beginPath(); ctx.ellipse(-13, 0, 15, 6, -0.3, 0, TAU); ctx.fill();
+        // ปีกนางฟ้า: หันหน้าตรงเห็นสองข้าง กลีบใหญ่+เล็ก
+        for (const m of FRONT ? [1, -1] : [1]) {
+          ctx.save(); ctx.scale(m, 1);
+          for (const sgn of [0, 1]) {
+            ctx.save(); ctx.translate(-10, -56);
+            ctx.rotate(-0.42 - sgn * 0.55 + Math.sin(P.anim * 3) * 0.12);
+            ctx.fillStyle = sgn ? c : 'rgba(255,255,255,.85)';
+            ctx.beginPath(); ctx.ellipse(-15, 0, sgn ? 13 : 18, sgn ? 6 : 8, -0.3, 0, TAU); ctx.fill();
+            ctx.restore();
+          }
           ctx.restore();
         }
       } else if (p === 'sack') {
@@ -4574,26 +4578,37 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.quadraticCurveTo(16, -18, 12, -8);
       ctx.quadraticCurveTo(0, -14, -14, -8);
       ctx.closePath(); ctx.fill();
+      // แกนไฟชั้นในสุด เหลืองสว่างแบบไฟจริง
+      ctx.fillStyle = shade(c, 105);
+      ctx.beginPath();
+      ctx.moveTo(-7, -10);
+      ctx.quadraticCurveTo(-11, -20, -3, -27);
+      ctx.quadraticCurveTo(-1, -34, 4, -30);
+      ctx.quadraticCurveTo(9, -19, 5, -10);
+      ctx.quadraticCurveTo(0, -13, -7, -10);
+      ctx.closePath(); ctx.fill();
     } else if (p === 'leafswept') {
       // ผมใบไม้กวาดแหลมแบบนักธนูสายลม + ใบซ้อนสว่าง + เพชรหน้าผาก
       drewHair = true; ctx.fillStyle = c;
+      // ใบแหลมกวาดไปทางซ้ายแบบเอลฟ์ (ปลายชี้ชัด)
       ctx.beginPath();
-      ctx.moveTo(-31, 0);
-      ctx.quadraticCurveTo(-42, -14, -30, -26);
-      ctx.quadraticCurveTo(-20, -32, -14, -28);
-      ctx.quadraticCurveTo(-18, -44, -2, -46);
-      ctx.quadraticCurveTo(0, -38, 6, -34);
-      ctx.quadraticCurveTo(14, -46, 22, -38);
-      ctx.quadraticCurveTo(20, -28, 24, -22);
-      ctx.quadraticCurveTo(34, -18, 28, -6);
-      ctx.quadraticCurveTo(0.5, -16, -31, 0);
+      ctx.moveTo(-30, 2);
+      ctx.quadraticCurveTo(-46, -10, -38, -26);   // ใบซ้ายล่างชี้ออกยาว
+      ctx.quadraticCurveTo(-28, -24, -22, -26);
+      ctx.quadraticCurveTo(-30, -40, -14, -44);   // ใบซ้ายบนแหลม
+      ctx.quadraticCurveTo(-8, -38, -4, -36);
+      ctx.quadraticCurveTo(-2, -52, 10, -48);     // ยอดกลางเฉียงซ้าย
+      ctx.quadraticCurveTo(8, -36, 14, -30);
+      ctx.quadraticCurveTo(26, -34, 24, -24);     // ใบขวาสั้น
+      ctx.quadraticCurveTo(32, -16, 27, -5);
+      ctx.quadraticCurveTo(0.5, -16, -30, 2);
       ctx.closePath(); ctx.fill();
       ctx.fillStyle = shade(c, 35);
       ctx.beginPath();
-      ctx.moveTo(-24, -8);
-      ctx.quadraticCurveTo(-26, -22, -12, -26);
-      ctx.quadraticCurveTo(-2, -28, 2, -22);
-      ctx.quadraticCurveTo(-8, -18, -24, -8);
+      ctx.moveTo(-26, -6);
+      ctx.quadraticCurveTo(-32, -18, -20, -24);
+      ctx.quadraticCurveTo(-8, -28, -1, -24);
+      ctx.quadraticCurveTo(-12, -16, -26, -6);
       ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#4adcb8';
       ctx.beginPath();
@@ -4953,6 +4968,32 @@ function runHeldDecos(ch, RIM) {
       line(5.5, '#6b4423'); ctx.beginPath(); ctx.moveTo(0, 24); ctx.lineTo(0, -30); ctx.stroke();
       ctx.fillStyle = c;
       ctx.beginPath(); ctx.arc(0, -34, 6.5, 0, TAU); ctx.fill();
+      ctx.restore();
+    } else if (p === 'longbow') {
+      // ธนูยาวเกือบเท่าตัวแบบนักธนูสายลม: คันโค้งใหญ่ + สาย + ด้ามจับ
+      ctx.save(); ctx.translate(36, -32); ctx.rotate(0.08);
+      line(5.2, dk(c, 0.7));
+      ctx.beginPath(); ctx.arc(-30, 0, 46, -0.72, 0.72); ctx.stroke();
+      line(3.6, c);
+      ctx.beginPath(); ctx.arc(-30, 0, 46, -0.7, 0.7); ctx.stroke();
+      line(1.7, '#f2f8ec');
+      ctx.beginPath(); ctx.moveTo(4.6, -29.6); ctx.lineTo(4.6, 29.6); ctx.stroke();
+      ctx.fillStyle = dk(c, 0.7);
+      roundRect(11.5, -7, 5.2, 14, 2.6); ctx.fill();
+      ctx.restore();
+    } else if (p === 'lotus') {
+      // ก้านดอกบัวแบบแฟรี่: กลีบ 3 ชั้น + เกสรสว่าง
+      ctx.save(); ctx.translate(25, -36); ctx.rotate(-0.1);
+      line(3.6, '#7ec8a0');
+      ctx.beginPath(); ctx.moveTo(0, 16); ctx.lineTo(0, -10); ctx.stroke();
+      ctx.fillStyle = c;
+      for (const [dx, rot] of [[-4.5, -0.65], [4.5, 0.65], [0, 0]]) {
+        ctx.save(); ctx.translate(dx, -14); ctx.rotate(rot);
+        ctx.beginPath(); ctx.ellipse(0, 0, 4.6, 7.5, 0, 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+      ctx.fillStyle = shade(c, 45);
+      ctx.beginPath(); ctx.ellipse(0, -13, 3, 5.2, 0, 0, TAU); ctx.fill();
       ctx.restore();
     } else if (p === 'wand') {
       ctx.save(); ctx.translate(27, -38); ctx.rotate(-0.4);
