@@ -1948,13 +1948,15 @@ function banner(text, color) { G.banner = { text, color }; G.bannerT = 0; }
 const ACTORS = [];
 function spawnActor(type, opt) { ACTORS.push(Object.assign({ type, t: 0 }, opt)); }
 function actorHitFX(x, y, c) {
-  FX.rings.push({ t: 0, c: c || '#ffd24a', x, y });
-  sparkle(x, y, 14, c || '#ffd24a');
+  FX.rings.push({ t: 0, c: c || '#ffd24a', x, y }, { t: -0.1, c: '#ffffff', x, y });
+  sparkle(x, y, 26, c || '#ffd24a');
+  sparkle(x, y - 12, 12, '#ffffff');
+  G.shake = Math.max(G.shake || 0, 7);
 }
 const ACTOR_MAP = {
   cherry: ox => spawnActor('bomb', { x0: P.x + 30, y0: P.y + 6, tx: ox, c: '#d02030' }),
-  gimbap: () => spawnActor('army', { kind: 'roll', n: 4 }),
-  macaron: () => spawnActor('army', { kind: 'mac', n: 4 }),
+  gimbap: () => spawnActor('army', { kind: 'roll', n: 6 }),
+  macaron: () => spawnActor('army', { kind: 'mac', n: 6 }),
   orange: ox => spawnActor('ball', { x0: P.x + 30, y0: P.y + 8, tx: ox, c: '#f0a030' }),
   lime: ox => spawnActor('ball', { x0: P.x + 30, y0: P.y + 8, tx: ox, c: '#a8e838', r: 13 }),
   cricketer: ox => spawnActor('ball', { x0: P.x + 30, y0: P.y + 8, tx: ox, c: '#c83028' }),
@@ -1988,6 +1990,14 @@ const SPAWN_ACT = {
 function updateActors(dt) {
   for (const a of ACTORS) {
     a.t += dt;
+    // หางประกายตามวัตถุพุ่ง
+    if ((a.type === 'bomb' || a.type === 'ball' || a.type === 'spear' || a.type === 'fly') && Math.random() < 0.55) {
+      const life = a.type === 'spear' ? 0.28 : (a.icon === 'whale' ? 1.1 : a.type === 'fly' ? 0.9 : 0.5);
+      const k2 = Math.min(1, a.t / life);
+      const tx2 = a.x0 !== undefined ? lerp(a.x0, a.tx !== undefined ? a.tx : a.x0 + 480, k2) : P.x;
+      const ty2 = a.y0 !== undefined ? a.y0 - Math.sin(k2 * Math.PI) * (a.type === 'bomb' ? 130 : a.icon === 'whale' ? 170 : 30) : P.y;
+      sparkle(tx2, ty2, 1, a.c || '#ffd24a');
+    }
     if (a.type === 'bomb' || a.type === 'ball') {
       if (a.t >= 0.5 && !a.hit) { a.hit = true; actorHitFX(a.tx, GROUND_Y - 40, a.c); a.dead = true; }
     } else if (a.type === 'spear') {
@@ -2198,8 +2208,8 @@ function drawActors() {
       }
       ctx.globalAlpha = 1;
     } else if (a.type === 'coins') {
-      for (let i = 0; i < 7; i++) {
-        const ang = -1.9 + i * 0.32, sp = 300 + (i % 3) * 70;
+      for (let i = 0; i < 12; i++) {
+        const ang = -2.1 + i * 0.21, sp = 300 + (i % 3) * 70;
         const x = a.x0 + Math.cos(ang) * sp * a.t;
         const y = a.y0 + Math.sin(ang) * sp * a.t + 640 * a.t * a.t;
         ctx.globalAlpha = Math.max(0, 1 - a.t / 0.9);
@@ -2417,13 +2427,17 @@ const FORM_UNDER = {
   },
 };
 
-const FX = { flashT: 0, flashC: '#ffffff', rings: [], waveT: 0, circleT: 0, circleC: '#8fd8ff', starT: 0, starC: '#ffe98e', beamT: 0, beamC: '#ff6f9f' };
+const FX = { flashT: 0, flashC: '#ffffff', rings: [], waveT: 0, circleT: 0, circleC: '#8fd8ff', starT: 0, starC: '#ffe98e', beamT: 0, beamC: '#ff6f9f', raysT: 0, raysC: '#ffd24a', linesT: 0, emberT: 0 };
 function skillBurst(color, big) {
-  FX.flashT = big ? 0.5 : 0.3; FX.flashC = color;
+  FX.flashT = big ? 0.55 : 0.35; FX.flashC = color;
   FX.rings.push({ t: 0, c: '#ffffff', x: P.x + 28, y: P.y + P.h / 2 },
-                { t: -0.1, c: color, x: P.x + 28, y: P.y + P.h / 2 });
-  G.shake = Math.max(G.shake || 0, big ? 14 : 8);
-  sparkle(P.x + 30, P.y + 20, big ? 26 : 14, color);
+                { t: -0.09, c: color, x: P.x + 28, y: P.y + P.h / 2 },
+                { t: -0.18, c: '#fff6c8', x: P.x + 28, y: P.y + P.h / 2 });
+  FX.raysT = big ? 0.7 : 0.45; FX.raysC = color;
+  FX.linesT = big ? 0.5 : 0.3;
+  G.shake = Math.max(G.shake || 0, big ? 16 : 10);
+  sparkle(P.x + 30, P.y + 20, big ? 34 : 20, color);
+  sparkle(P.x + 30, P.y + 10, big ? 18 : 10, '#ffffff');
 }
 const SKILL_SIG = {
   seafairy: () => { FX.waveT = 1.1; skillBurst('#7ec8ff', true); },
@@ -2446,10 +2460,47 @@ function updateFX(dt) {
   FX.circleT = Math.max(0, FX.circleT - dt * 0.8);
   FX.starT = Math.max(0, FX.starT - dt * 0.8);
   FX.beamT = Math.max(0, FX.beamT - dt * 1.6);
+  FX.raysT = Math.max(0, FX.raysT - dt * 1.4);
+  FX.linesT = Math.max(0, FX.linesT - dt * 2);
   for (const r of FX.rings) r.t += dt * 2.4;
   FX.rings = FX.rings.filter(r => r.t < 1);
+  // เอมเบอร์ลอยต่อเนื่องระหว่างร่างแปลง
+  if (G.formT > 0 && G.state === 'play') {
+    FX.emberT += dt;
+    if (FX.emberT > 0.07) {
+      FX.emberT = 0;
+      sparkle(P.x + rnd(0, 56), P.y + rnd(10, P.h), 2, ['#ffd24a', '#ffe98e', '#fff6c8'][rndi(0, 2)]);
+    }
+  }
 }
 function drawFX() {
+  // ⚡ แสงเรย์หมุนรอบตัว (ตอนเปิดสกิล)
+  if (FX.raysT > 0) {
+    const al = Math.min(1, FX.raysT * 2.2) * 0.4;
+    ctx.save(); ctx.translate(P.x + 28, P.y + P.h / 2);
+    ctx.rotate(G.time * 3);
+    ctx.fillStyle = FX.raysC; ctx.globalAlpha = al;
+    for (let q = 0; q < 8; q++) {
+      ctx.rotate(TAU / 8);
+      ctx.beginPath();
+      ctx.moveTo(0, 0); ctx.lineTo(210, -20); ctx.lineTo(210, 20);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+  // 💨 เส้นสปีดขอบจอแบบอนิเมะ
+  if (FX.linesT > 0) {
+    const al = Math.min(1, FX.linesT * 3) * 0.5;
+    ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = al; ctx.lineCap = 'round';
+    for (let q = 0; q < 14; q++) {
+      const yy = (q * 137 + 40) % H;
+      const ln = 60 + (q % 4) * 45;
+      const xx = (q % 2 ? W - 10 : 10) + (q % 2 ? -1 : 1) * ((G.time * 900 + q * 60) % 130);
+      ctx.lineWidth = 2 + (q % 3) * 2;
+      ctx.beginPath(); ctx.moveTo(xx, yy); ctx.lineTo(xx + (q % 2 ? -ln : ln), yy); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
   // วงแหวนคลื่นกระแทก
   for (const r of FX.rings) {
     if (r.t < 0) continue;
@@ -2503,7 +2554,7 @@ function drawFX() {
   // 🌟 ฝนดาวตก (แสงจันทร์/หิมะ/แครอล)
   if (FX.starT > 0) {
     const a = Math.min(1, FX.starT * 2);
-    for (let q = 0; q < 11; q++) {
+    for (let q = 0; q < 18; q++) {
       const sx = ((q * 173 + Math.floor(G.time * 2.5) * 67) % (W + 80)) - 40;
       const sy = ((G.time * 480 + q * 217) % (GROUND_Y + 70)) - 40;
       ctx.globalAlpha = a * (0.45 + (q % 3) * 0.22);
