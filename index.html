@@ -8561,12 +8561,12 @@ function drawGrid(LIST, kind) {
     }
 
     // ชื่อ + สถานะ
-    ctx.font = 'bold 10.5px Trebuchet MS'; ctx.textAlign = 'center';
+    ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center';
     ctx.fillStyle = focused ? '#7ec8ff' : using ? '#ffd24a' : '#fff';
     let nm = it.name.replace('คุกกี้', '');
-    if (nm.length > 11) nm = nm.slice(0, 10) + '…';
+    if (nm.length > 10) nm = nm.slice(0, 9) + '…';
     ctx.fillText(nm, x + cw / 2, y + chh - 22);
-    ctx.font = 'bold 10px Trebuchet MS';
+    ctx.font = 'bold 11.5px Trebuchet MS';
     if (owned) {
       ctx.fillStyle = '#aee4ff';
       const lv = (isChar ? G.charLv : G.petLv)[i] || 1;
@@ -8617,16 +8617,16 @@ function drawGrid(LIST, kind) {
   ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center';
   ctx.fillText(cur.grade, 112 + wN + 28, dy + 29);
   ctx.textAlign = 'left';
-  ctx.font = '13px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
-  ctx.fillText((cur.desc[0] || '') + (cur.desc[1] ? ' · ' + cur.desc[1] : ''), 112, dy + 52);
+  ctx.font = 'bold 15.5px Trebuchet MS'; ctx.fillStyle = '#fff3dc';
+  ctx.fillText((cur.desc[0] || '') + (cur.desc[1] ? ' · ' + cur.desc[1] : ''), 112, dy + 53);
   // เอฟเฟกต์พาสซีฟสมบัติสัตว์เลี้ยง (ไต่ตามเกรด)
   if (!isChar && ownedCur) {
     const tpd = petTPdesc(focus);
-    if (tpd) { ctx.font = 'bold 12px Trebuchet MS'; ctx.fillStyle = '#ff9dd0';
-      ctx.fillText(tpd + (gdCur > 0 ? '' : ' (อัปเกรดเพื่อเพิ่ม)'), 112, dy + 71); }
+    if (tpd) { ctx.font = 'bold 14px Trebuchet MS'; ctx.fillStyle = '#ffb0dc';
+      ctx.fillText(tpd + (gdCur > 0 ? '' : ' (อัปเกรดเพื่อเพิ่ม)'), 112, dy + 72); }
   }
   // คู่ซี้ Combi — โบนัสพิเศษเฉพาะคู่ (ต่างกันตามสายสกิลคุกกี้)
-  ctx.font = '12px Trebuchet MS';
+  ctx.font = 'bold 13.5px Trebuchet MS';
   if (isChar && cur.mate && PET_BY_ID[cur.mate]) {
     const mateOn = PT().id === cur.mate && focus === curIdx;
     ctx.fillStyle = mateOn ? '#7bd94a' : '#c8b8a0';
@@ -8740,23 +8740,29 @@ function drawTreasure() {
     ctx.fillText(t.icon, x + cw / 2, y + 30);
     ctx.globalAlpha = 1;
     ctx.textBaseline = 'alphabetic';
-    ctx.font = 'bold 11.5px Trebuchet MS';
+    ctx.font = 'bold 13px Trebuchet MS';
     ctx.fillStyle = equipped ? '#ffd24a' : '#fff';
     ctx.fillText(t.name, x + cw / 2, y + 62);
-    ctx.font = '10px Trebuchet MS'; ctx.fillStyle = '#ffe9b8';
+    ctx.font = 'bold 12px Trebuchet MS'; ctx.fillStyle = '#fff3dc';
     // ตัดคำอธิบายเป็น 2 บรรทัด
     const dwords = t.desc;
-    if (dwords.length > 16) {
+    if (dwords.length > 13) {
       const mid = Math.floor(dwords.length / 2);
       let cut = dwords.indexOf(' ', mid); if (cut < 0) cut = mid;
       ctx.fillText(dwords.slice(0, cut), x + cw / 2, y + 78);
-      ctx.fillText(dwords.slice(cut + (dwords[cut] === ' ' ? 1 : 0)), x + cw / 2, y + 91);
+      ctx.fillText(dwords.slice(cut + (dwords[cut] === ' ' ? 1 : 0)), x + cw / 2, y + 92);
     } else ctx.fillText(dwords, x + cw / 2, y + 82);
-    ctx.font = 'bold 11px Trebuchet MS';
-    ctx.fillStyle = equipped ? '#7bd94a' : owned ? '#aee4ff' : '#ffd24a';
-    // ของที่มีแล้ว: ดันสถานะขึ้นเหนือปุ่มอัปเกรด / ของที่ยังไม่ซื้อ: โชว์ราคาตรงล่าง
-    const statusY = owned ? y + chh - 32 : y + chh - 8;
-    ctx.fillText(equipped ? '✓ สวมอยู่ (แตะถอด)' : owned ? 'แตะการ์ดเพื่อสวม' : '🪙 ' + t.cost.toLocaleString(), x + cw / 2, statusY);
+    ctx.font = 'bold 12px Trebuchet MS';
+    // ยังไม่ซื้อ: ราคาอยู่ล่าง / สวมอยู่: ป้าย ✓ มุมขวาบน (ไม่ทับคำอธิบาย)
+    if (!owned) {
+      ctx.fillStyle = '#ffd24a';
+      ctx.fillText('🪙 ' + t.cost.toLocaleString(), x + cw / 2, y + chh - 8);
+    } else if (equipped) {
+      ctx.fillStyle = 'rgba(30,70,20,.85)';
+      roundRect(x + cw - 52, y + 6, 46, 17, 7); ctx.fill();
+      ctx.fillStyle = '#8fff70'; ctx.font = 'bold 11px Trebuchet MS';
+      ctx.fillText('✓ สวม', x + cw - 29, y + 18.5);
+    }
     drawBtn(x, y, cw, chh, '', () => tryTreasure(i), { invisible: true });
     // อัปเกรดสมบัติ +0 → +9 (เหมือนต้นฉบับ) — ผลไต่ถึง 2 เท่าที่ +9
     if (owned) {
