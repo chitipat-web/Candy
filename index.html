@@ -1511,8 +1511,17 @@ const combiV = k => { if (!G.combi) return 0; const m = combiCatOf(CH()); return
 const PFX = () => PT().fx || { k: '', v: 0 };
 const CFX = () => CH().cfx || { k: '' };
 
+const POPUP_STATES = ['select', 'pets', 'treasure', 'shop', 'rank', 'advmap', 'prep'];
+const popupScale = () => 0.85 + 0.09 * (1 - Math.pow(1 - (G.popT == null ? 1 : G.popT), 3));   // เด้งเข้าแล้วค้างที่ 94% เห็นโฮมรอบขอบ
 function setState(s) {
-  G.state = s; G.fade = 1;
+  const wasPopup = POPUP_STATES.includes(G.state);
+  G.state = s;
+  // เปิดป๊อปอัพจากเมนู: เด้งเข้า / สลับระหว่างป๊อปอัพ: ไม่กระพริบ
+  if (POPUP_STATES.includes(s)) { if (!wasPopup) G.popT = 0; G.fade = 0; return afterSetState(s); }
+  G.fade = 1;
+  return afterSetState(s);
+}
+function afterSetState(s) {
   if (s === 'menu') adminGrant();   // ปลดล็อกทุกอย่างให้บัญชีแอดมิน (ครั้งเดียว)
   if (s === 'menu' && !G.name && ACTIVE !== null) {
     const pf = PROFILES.find(q => q.id === ACTIVE);
@@ -1966,6 +1975,12 @@ function canvasXY(clientX, clientY) {
   return [(clientX - r.left) / r.width * W, (clientY - r.top) / r.height * H];
 }
 function pointerDown(x, y, id) {
+  if (POPUP_STATES.includes(G.state)) {
+    // ป๊อปอัพถูกย่อรอบกึ่งกลางจอ — แปลงพิกัดกลับก่อนเช็คปุ่ม
+    const pk = popupScale();
+    x = (x - W / 2) / pk + W / 2;
+    y = (y - H / 2) / pk + H / 2;
+  }
   if (G.state === 'play') {
     if (G.paused) { togglePause(); return; }
     if (Math.hypot(x - W / 2, y - 30) < 26) { togglePause(); return; }   // ปุ่มพักกลางบน
@@ -4361,14 +4376,39 @@ function draw() {
 
   if (G.state === 'play') drawHUD();
   if (G.state === 'menu') drawMenu();
-  if (G.state === 'advmap') drawAdvMap();
-  if (G.state === 'prep') drawPrep();
   if (G.state === 'login') drawLogin();
-  if (G.state === 'select') drawSelect();
-  if (G.state === 'pets') drawPets();
-  if (G.state === 'treasure') drawTreasure();
-  if (G.state === 'shop') drawShop();
-  if (G.state === 'rank') drawRank();
+  if (POPUP_STATES.includes(G.state)) {
+    // 🪟 หน้าเมนูย่อยเด้งเป็นป๊อปอัพ: โฮมมีชีวิตอยู่ข้างหลัง + เด้งเข้า + แตะพื้นมืดเพื่อปิด
+    UI_SILENT = true;
+    try { drawMenu(); } catch (e) {}
+    UI_SILENT = false;
+    G.popT = Math.min(1, (G.popT == null ? 1 : G.popT) + 0.09);
+    const pk = popupScale();
+    ctx.fillStyle = `rgba(18,9,3,${0.52 * G.popT})`;
+    ctx.fillRect(0, 0, W, H);
+    drawBtn(-240, -240, W + 480, H + 480, '', () => setState('menu'), { invisible: true });   // แตะรอบนอก = ปิด
+    ctx.save();
+    ctx.translate(W / 2, H / 2); ctx.scale(pk, pk); ctx.translate(-W / 2, -H / 2);
+    // แผ่นป๊อปอัพ: พื้นคาราเมลทึบ + มุมโค้ง + ขอบทอง
+    ctx.save();
+    roundRect(-4, -4, W + 8, H + 8, 24); ctx.clip();
+    const pg = ctx.createLinearGradient(0, 0, 0, H);
+    pg.addColorStop(0, '#8a5527'); pg.addColorStop(1, '#4e2c12');
+    ctx.fillStyle = pg; ctx.fillRect(-4, -4, W + 8, H + 8);
+    if (G.state === 'advmap') drawAdvMap();
+    if (G.state === 'prep') drawPrep();
+    if (G.state === 'select') drawSelect();
+    if (G.state === 'pets') drawPets();
+    if (G.state === 'treasure') drawTreasure();
+    if (G.state === 'shop') drawShop();
+    if (G.state === 'rank') drawRank();
+    ctx.restore();
+    const eg2 = ctx.createLinearGradient(0, -4, 0, H + 4);
+    eg2.addColorStop(0, '#f0d28a'); eg2.addColorStop(0.5, '#9a6a2a'); eg2.addColorStop(1, '#e2b968');
+    ctx.strokeStyle = eg2; ctx.lineWidth = 5;
+    roundRect(-4, -4, W + 8, H + 8, 24); ctx.stroke();
+    ctx.restore();
+  }
   if (G.state === 'over') drawGameOver();
   if (G.state === 'clear') drawLevelClear();
   if (G.state === 'continue') drawContinue();
@@ -7785,8 +7825,9 @@ function drawUiSparks() {
   ctx.globalAlpha = 1;
 }
 
+let UI_SILENT = false;   // วาดปุ่มโดยไม่รับคลิก (ฉากหลังป๊อปอัพ)
 function drawBtn(x, y, w, h, label, cb, opt = {}) {
-  uiButtons.push({ x, y, w, h, cb, disabled: opt.disabled });
+  if (!UI_SILENT) uiButtons.push({ x, y, w, h, cb, disabled: opt.disabled });
   if (opt.invisible) return;   // พื้นที่คลิกล่องหน (การ์ดกริด)
   const base = opt.disabled ? '#928982' : (opt.color || '#ff8b3d');
   const dark = opt.disabled ? '#6e675f' : (opt.dark || '#d96a1e');
