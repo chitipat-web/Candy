@@ -7598,7 +7598,7 @@ function drawBtn(x, y, w, h, label, cb, opt = {}) {
   roundRect(x - 1.5, y - 1.5, w + 3, h + 3, r + 1.5); ctx.fill();
   // เนื้อปุ่ม ไล่เฉด 3 สเตป (เจลลี่/ลูกอม)
   const g = ctx.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, dk(base, 1.16)); g.addColorStop(0.48, base); g.addColorStop(1, dark);
+  g.addColorStop(0, dk(base, 1.28)); g.addColorStop(0.48, base); g.addColorStop(1, dark);
   ctx.fillStyle = g;
   roundRect(x, y, w, h, r); ctx.fill();
   // เงาวับบน + เงาในล่าง (คลิปในรูปปุ่ม)
@@ -7630,13 +7630,13 @@ function drawPanel(x, y, w, h, r = 18) {
   // ขอบไม้เข้มรอบนอก
   ctx.fillStyle = '#3a2109';
   roundRect(x - 1.5, y - 1.5, w + 3, h + 3, r + 1.5); ctx.fill();
-  // พื้นไล่เฉด
+  // พื้นไล่เฉด (โทนคาราเมลสว่าง สดใสขึ้น)
   const g = ctx.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, 'rgba(92,54,22,.93)'); g.addColorStop(1, 'rgba(50,27,10,.93)');
+  g.addColorStop(0, 'rgba(128,78,36,.94)'); g.addColorStop(1, 'rgba(78,44,18,.94)');
   ctx.fillStyle = g;
   roundRect(x, y, w, h, r); ctx.fill();
   // เส้นไฮไลต์ขอบใน (เบเวล)
-  ctx.strokeStyle = 'rgba(255,222,168,.42)'; ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(255,228,178,.55)'; ctx.lineWidth = 2;
   roundRect(x + 3.5, y + 3.5, w - 7, h - 7, Math.max(2, r - 3)); ctx.stroke();
   // ประกายเส้นบนสุด
   ctx.strokeStyle = 'rgba(255,244,214,.22)'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
@@ -7919,7 +7919,7 @@ function drawBanner() {
    SCREENS
    ============================================================ */
 function drawLogin() {
-  ctx.fillStyle = 'rgba(40,20,5,.55)';
+  ctx.fillStyle = 'rgba(58,32,10,.40)';
   ctx.fillRect(0, 0, W, H);
   drawTitleText('COOKIE RUN', W / 2, 92, 52);
   ctx.font = 'bold 17px Trebuchet MS'; ctx.textAlign = 'center';
@@ -7972,9 +7972,9 @@ function drawLogin() {
 }
 
 function drawMenu() {
-  // พื้นหลังอบอุ่น + ขอบมืด (vignette) ให้แผงเด่น
-  const bg = ctx.createRadialGradient(W / 2, H * 0.42, 60, W / 2, H * 0.42, W * 0.72);
-  bg.addColorStop(0, 'rgba(70,38,12,.32)'); bg.addColorStop(1, 'rgba(24,11,2,.66)');
+  // พื้นหลังสดใส: แสงทองกลางจอ + ขอบเข้มบางๆ ให้แผงเด่น
+  const bg = ctx.createRadialGradient(W / 2, H * 0.40, 60, W / 2, H * 0.40, W * 0.78);
+  bg.addColorStop(0, 'rgba(255,200,110,.16)'); bg.addColorStop(0.55, 'rgba(120,66,22,.22)'); bg.addColorStop(1, 'rgba(34,16,4,.5)');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
   if (G.dailyLast !== todayStr() && !G.dailyShow) G.dailyShow = true;
@@ -8259,7 +8259,7 @@ function prepGo() {
   startGame('normal', Object.assign({}, G.boostSel));
 }
 function drawPrep() {
-  ctx.fillStyle = 'rgba(40,20,5,.62)';
+  ctx.fillStyle = 'rgba(58,32,10,.44)';
   ctx.fillRect(0, 0, W, H);
   drawTitleText('เตรียมพร้อมก่อนวิ่ง', W / 2, 56, 34);
   drawCoinChip(W - 20, 20, G.bank.toLocaleString());
@@ -8374,7 +8374,7 @@ function drawPrep() {
 
 /* ---------- เลือกตัวละคร ---------- */
 function drawSelect() {
-  ctx.fillStyle = 'rgba(40,20,5,.62)';
+  ctx.fillStyle = 'rgba(58,32,10,.44)';
   ctx.fillRect(0, 0, W, H);
   drawTitleText('เลือกตัวละคร', W / 2, 52, 34);
   drawCoinChip(W - 20, 24, G.bank.toLocaleString());
@@ -8384,7 +8384,7 @@ function drawSelect() {
 
 /* ---------- เลือกสัตว์เลี้ยง ---------- */
 function drawPets() {
-  ctx.fillStyle = 'rgba(40,20,5,.62)';
+  ctx.fillStyle = 'rgba(58,32,10,.44)';
   ctx.fillRect(0, 0, W, H);
   drawTitleText('เลือกสัตว์เลี้ยง', W / 2, 52, 34);
   drawCoinChip(W - 20, 24, G.bank.toLocaleString());
@@ -8633,7 +8633,7 @@ function drawGrid(LIST, kind) {
 
 /* ---------- สมบัติ ---------- */
 function drawTreasure() {
-  ctx.fillStyle = 'rgba(40,20,5,.62)';
+  ctx.fillStyle = 'rgba(58,32,10,.44)';
   ctx.fillRect(0, 0, W, H);
   drawTitleText('สมบัติ', W / 2, 50, 34);
   drawCoinChip(W - 20, 22, G.bank.toLocaleString());
@@ -8713,7 +8713,7 @@ function drawTreasure() {
 
 /* ---------- ร้านค้า ---------- */
 function drawShop() {
-  ctx.fillStyle = 'rgba(40,20,5,.62)';
+  ctx.fillStyle = 'rgba(58,32,10,.44)';
   ctx.fillRect(0, 0, W, H);
   drawTitleText('ร้านค้าอัปเกรด', W / 2, 62, 40);
   drawCoinChip(W - 20, 24, G.bank.toLocaleString());
@@ -8784,7 +8784,7 @@ function drawShop() {
 
 /* ---------- ตารางอันดับ ---------- */
 function drawRank() {
-  ctx.fillStyle = 'rgba(40,20,5,.62)';
+  ctx.fillStyle = 'rgba(58,32,10,.44)';
   ctx.fillRect(0, 0, W, H);
   drawTitleText('ตารางอันดับ', W / 2, 46, 30);
   drawCoinChip(W - 20, 20, G.bank.toLocaleString());
