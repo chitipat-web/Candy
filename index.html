@@ -1598,7 +1598,11 @@ function skyBlend(field) {
 /* ============================================================
    PATTERNS
    ============================================================ */
-const J = (x, y, type) => jellyList.push({ x, y, type, t: rnd(0, TAU), dead: false });
+const J = (x, y, type) => {
+  const j = { x, y, type, t: rnd(0, TAU), dead: false };
+  if (type === 'coin') { const r = Math.random(); j.cv = r < 0.05 ? 'b' : r < 0.30 ? 'g' : 's'; }  // เหรียญ 3 ระดับแบบเกมจริง
+  jellyList.push(j);
+};
 const OB = (x, type) => obstacles.push({ x, type, dead: false });
 
 const JSIZE = { bar: 22, pink: 26, coin: 24, bear: 46, potion: 30, giant: 32, magnet: 32, star: 32,
@@ -1813,7 +1817,8 @@ function spawnPattern() {
   else if (roll < 0.096)  w = spawnItem(x, 'magnet');
   else if (roll < 0.118)  w = spawnItem(x, 'star');
   else if (roll < 0.142)  w = spawnItem(x, 'blast');
-  else if (roll < 0.175)  w = spawnItem(x, 'box');
+  else if (roll < 0.157)  w = spawnItem(x, 'btjelly');   // เยลลี่พาเข้า BONUS TIME ทันที (แบบเกมจริง)
+  else if (roll < 0.19)   w = spawnItem(x, 'box');
   else {
     const hard = Math.min(G.stage, 6);
     const pool = [0,1,1,2,2,3,4,5,6,7,9,10,10,11]
@@ -3346,7 +3351,7 @@ function useSkill() {
     let n = 0;
     for (const j of jellyList) {
       const jx = j.x - worldX;
-      if (!j.dead && jx > -40 && jx < W + 40 && !['potion','giant','magnet','star','blast','box','letter','ingr'].includes(j.type)) {
+      if (!j.dead && jx > -40 && jx < W + 40 && !['potion','giant','magnet','star','blast','box','letter','ingr','btjelly'].includes(j.type)) {
         j.dead = true; collectJelly(j, jx); n++;
       }
     }
@@ -3983,7 +3988,7 @@ function update(dt) {
     let jx = j.x - worldX;
     if (jx < -80) { j.dead = true; continue; }
     if (jx > W + 80) break;
-    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0 || trV('magnet') > 0 || CH().magnet) && !['potion','giant','magnet','star','blast','box','letter','ingr'].includes(j.type)) {
+    if ((P.magnetT > 0 || P.boostT > 0 || G.bonusT > 0 || trV('magnet') > 0 || CH().magnet) && !['potion','giant','magnet','star','blast','box','letter','ingr','btjelly'].includes(j.type)) {
       const dx = cx - jx, dy = cy - j.y;
       const d = Math.hypot(dx, dy);
       // ช่วงโบนัสดูดรัศมีสั้นลง จะได้เห็นตัวอักษร BONUS ชัด ๆ ก่อนบินทะลุ
@@ -4078,6 +4083,7 @@ function collectJelly(j, jx) {
       const comboBonus = Math.min(G.combo, 50);
       let base = JSCORE[j.type];
       if (j.type === 'bear') base = j.v === 'b' ? 5000 : j.v === 'p' ? 2500 : 1000;   // หมี 3 ระดับ
+      if (j.type === 'coin') base = j.cv === 'b' ? 100 : j.cv === 'g' ? 40 : 20;      // เหรียญ เงิน/ทอง/ทองใหญ่
       let pts = (base + comboBonus) * mult;
       pts *= 1 + G.upg.jelly * 0.06;                         // เยลลี่พลัส
       pts *= lvMul();                                        // เลเวลคุกกี้
@@ -4093,8 +4099,11 @@ function collectJelly(j, jx) {
       G.score += pts; G.jellies++;
       G.skill = Math.min(100, G.skill + 1.7 * (1 + trV('skill') + combiV('skill')) * (CH().skillFast || 1));   // ชาร์จเกจสกิล + Combi
       G.maxCombo = Math.max(G.maxCombo, G.combo);
-      if (j.type === 'coin')
-        G.coins += PFX().k === 'coin' ? 1 + Math.round(PFX().v * petFxMul()) : 1;
+      if (j.type === 'coin') {
+        const cAmt = j.cv === 'b' ? 12 : j.cv === 'g' ? 3 : 1;   // อัตราส่วนตามเกมจริง (เงิน:ทอง:ทองใหญ่)
+        G.coins += cAmt + (PFX().k === 'coin' ? Math.round(PFX().v * petFxMul()) : 0);
+        if (j.cv === 'b') { sparkle(jx, j.y, 16, '#ffd84a'); floatText(jx, j.y - 26, '+' + cAmt + ' เหรียญใหญ่!', '#ffd84a', true); }
+      }
       if (j.type === 'bear') {
         G.runBears++;
         AudioSys.bear();
@@ -4142,6 +4151,14 @@ function collectJelly(j, jx) {
       AudioSys.potion();
       sparkle(jx, j.y, 20, '#c79aff');
       floatText(jx, j.y - 28, '✨ +' + amt + ' ผงเวทมนตร์!', '#c79aff', true);
+      break;
+    }
+    case 'btjelly': {
+      // เยลลี่โบนัสไทม์: เข้า BONUS TIME ทันที (แบบเกมจริง)
+      G.score += 500;
+      sparkle(jx, j.y, 24, '#ff9dd6');
+      if (G.bonusT <= 0) { startBonusTime(); banner('BONUS TIME JELLY!!', '#ffd24a'); }
+      else { G.bonusT += 2; floatText(jx, j.y - 26, '+2 วิ โบนัส!', '#ffd24a', true); }
       break;
     }
     case 'star': {
@@ -5459,19 +5476,28 @@ function drawJellies() {
         break;
       }
       case 'coin': {
-        ctx.fillStyle = 'rgba(255,216,74,.2)';
+        // เหรียญ 3 ระดับ: เงิน (s) / ทอง (g) / ทองใหญ่ (b) แบบเกมจริง
+        const big = j.cv === 'b', gold = j.cv === 'g' || big;
+        if (big) ctx.scale(1.5, 1.5);
+        const rim = gold ? '#b8830a' : '#8a909c', body = gold ? '#e8a90c' : '#b8bec8', face = gold ? '#ffd84a' : '#e0e6ee';
+        ctx.fillStyle = gold ? 'rgba(255,216,74,.2)' : 'rgba(220,228,240,.18)';
         ctx.beginPath(); ctx.arc(0, 0, 18, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#b8830a';
-        ctx.beginPath(); ctx.arc(0, 1.6, 12, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#e8a90c';
-        ctx.beginPath(); ctx.arc(0, 0, 12, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#ffd84a';
-        ctx.beginPath(); ctx.arc(0, 0, 9.5, 0, TAU); ctx.fill();
+        ctx.fillStyle = rim; ctx.beginPath(); ctx.arc(0, 1.6, 12, 0, TAU); ctx.fill();
+        ctx.fillStyle = body; ctx.beginPath(); ctx.arc(0, 0, 12, 0, TAU); ctx.fill();
+        ctx.fillStyle = face; ctx.beginPath(); ctx.arc(0, 0, 9.5, 0, TAU); ctx.fill();
         ctx.fillStyle = 'rgba(255,255,255,.75)';
         ctx.beginPath(); ctx.ellipse(-3.4, -4.2, 4.2, 2.4, -0.6, 0, TAU); ctx.fill();
-        ctx.fillStyle = '#e8a90c';
+        ctx.fillStyle = rim;
         ctx.font = 'bold 12px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('C', 0, 1);
+        if (big) {   // ประกายรอบเหรียญใหญ่
+          ctx.strokeStyle = 'rgba(255,240,160,.85)'; ctx.lineWidth = 1.6;
+          for (let q = 0; q < 4; q++) {
+            const a = G.time * 2 + q * TAU / 4;
+            ctx.beginPath(); ctx.moveTo(Math.cos(a) * 14, Math.sin(a) * 14);
+            ctx.lineTo(Math.cos(a) * 17.5, Math.sin(a) * 17.5); ctx.stroke();
+          }
+        }
         break;
       }
       case 'bear': {
@@ -5597,6 +5623,24 @@ function drawJellies() {
         ctx.fillStyle = 'rgba(255,255,255,.8)';
         ctx.beginPath(); ctx.arc(-3, -4, 3, 0, TAU); ctx.fill();
         itemBubble('#ffe066');
+        break;
+      }
+      case 'btjelly': {
+        // เยลลี่ BONUS TIME สีรุ้งเรืองแสง
+        ctx.rotate(Math.sin(G.time * 3.2 + j.t) * 0.18);
+        const gl2 = 0.5 + Math.sin(G.time * 5 + j.t) * 0.3;
+        ctx.fillStyle = `rgba(255,160,220,${gl2 * 0.45})`;
+        ctx.beginPath(); ctx.arc(0, 0, 21, 0, TAU); ctx.fill();
+        const rg = ctx.createLinearGradient(-10, -10, 10, 10);
+        rg.addColorStop(0, '#ff8ab0'); rg.addColorStop(0.5, '#ffd24a'); rg.addColorStop(1, '#7ec8ff');
+        ctx.fillStyle = rg;
+        ctx.beginPath(); ctx.ellipse(0, 0, 12, 11, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.7)';
+        ctx.beginPath(); ctx.ellipse(-3.5, -4, 4, 2.6, -0.5, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Trebuchet MS';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('B!', 0, 1); ctx.textBaseline = 'alphabetic';
+        itemBubble('#ff9dd6');
         break;
       }
       case 'powder': {
