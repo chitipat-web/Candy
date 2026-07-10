@@ -738,6 +738,16 @@ const CHARS = [
     ['curlhair:#f2b23c', 'drip:#ffd24a', 'blushdot'], { sk: 'gold', mate: 'diya' }),
   CK('survivor', 'คุกกี้ผู้รอดชีวิต', 'S', 12000, ['#b89a6a', '#4a5a3a', '#37472c', '#2c3a22'],
     ['helmet:#5a6a4a', 'facepaint:#37472c', 'vest:#4a5a3a'], { hpBonus: 25, sk: 'strike', mate: 'airdrop' }),
+  /* ----- เพื่อนซี้ 3 คน (ตัวละครพิเศษจากรูปเพื่อน — แจกฟรี) ----- */
+  CK('friendcool', 'คุกกี้หนุ่มชิล', 'S', 0, ['#dca468', '#f2e8da', '#3a3f4a', '#4a3624'],
+    ['curtain:#5a4030', 'tee:#3a3f4a', 'pants:#39424e', 'sneakfeet:#e8e8ea'],
+    { desc: ['เพื่อนซี้สายชิล วิ่งนิ่งๆ แต่ไว', 'สกิล: สปีดแดช แต้ม x2'], eyeS: 'sharp', sk: 'dash', ptMul: 1.08 }),
+  CK('friendbowl', 'คุกกี้ผมเห็ด', 'S', 0, ['#d9a05e', '#f2e8da', '#5a4a3a', '#3a2c1e'],
+    ['bob:#26221e', 'earstud:#dfe4ee', 'stubble:#4a3a2a', 'tee:#ece6d8', 'pants:#5a4a3a', 'sneakfeet:#2e2a26'],
+    { desc: ['เพื่อนซี้ผมเห็ดสายลุย ยิ้มมุมปาก', 'สกิล: สไตรก์พุ่งทะลุ'], eyeS: 'happy', hpBonus: 15, sk: 'strike' }),
+  CK('friendwow', 'คุกกี้แว่นว้าว', 'S', 0, ['#d9a05e', '#f2e8da', '#e0453a', '#3a2c1e'],
+    ['curtain:#2a241e', 'glasses:#c8a44a', 'tee:#e0453a', 'pants:#3a3f4a', 'sneakfeet:#f2eee6'],
+    { desc: ['เพื่อนซี้สายเซอร์ไพรส์ ตกใจเก่ง', 'สกิล: ระเบิดเวทล้างจอ'], eyeS: 'round', sk: 'blast', skillFast: 1.15 }),
 ];
 
 /* ============================================================
@@ -6332,6 +6342,19 @@ function runHeadDecos(ch, RIM, EYE) {
       ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 2; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(-13, -26); ctx.quadraticCurveTo(-15, -18, -13, -10); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(7, -27); ctx.quadraticCurveTo(6, -18, 7, -10); ctx.stroke();
+    } else if (p === 'curtain') {
+      // ผมแสกกลาง: แบ่งสองฝั่งโค้งคลุมหน้าผาก ปลายลู่ลงขมับ (ทรงหนุ่มเกาหลี)
+      drewHair = true; ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0.5, -3, 31.5, Math.PI * 0.96, Math.PI * 2.04);
+      ctx.quadraticCurveTo(28, 3, 21, -1);
+      ctx.quadraticCurveTo(9, -13, 3, -24);
+      ctx.quadraticCurveTo(-5, -13, -19, -1);
+      ctx.quadraticCurveTo(-27, 3, -30.5, -3);
+      ctx.closePath(); ctx.fill();
+      // เส้นรอยแสกกลาง
+      ctx.strokeStyle = dk(c, 0.74); ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(3, -27); ctx.quadraticCurveTo(12, -19, 17, -8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(3, -27); ctx.quadraticCurveTo(-7, -19, -13, -8); ctx.stroke();
     } else if (p === 'long') {
       // ผมยาว: คลุมหัว + ม่านผมสองข้างยาวถึงบ่า
       drewHair = true; ctx.fillStyle = c;
@@ -6877,10 +6900,16 @@ function runHeadDecos(ch, RIM, EYE) {
       for (const [x, y] of [[2, 15], [9, 17], [16, 15], [6, 19], [13, 19]])
         { ctx.beginPath(); ctx.arc(x, y, 1.1, 0, TAU); ctx.fill(); }
     } else if (p === 'glasses') {
-      line(2.6, '#3a2a1a');
+      line(2.6, c && c !== '#ffffff' ? c : '#3a2a1a');   // ระบุสีกรอบได้ เช่น ทอง
       ctx.beginPath(); ctx.arc(1.5, -2, 8, 0, TAU); ctx.stroke();
       ctx.beginPath(); ctx.arc(21.5, -2, 8, 0, TAU); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(9.5, -3); ctx.lineTo(13.5, -3); ctx.stroke();
+    } else if (p === 'earstud') {
+      // ต่างหูเม็ดเดียวข้างซ้าย
+      ctx.fillStyle = c && c !== '#ffffff' ? c : '#e0e6f0';
+      ctx.beginPath(); ctx.arc(-26.5, 7, 2.7, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.95)';
+      ctx.beginPath(); ctx.arc(-27.3, 6.2, 1.1, 0, TAU); ctx.fill();
     } else if (p === 'patch') {
       ctx.fillStyle = '#2a2a2a';
       ctx.beginPath(); ctx.ellipse(21.5, -3, 7.5, 8.5, 0, 0, TAU); ctx.fill();
