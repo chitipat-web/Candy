@@ -7677,6 +7677,211 @@ function drawBtn(x, y, w, h, label, cb, opt = {}) {
   ctx.textBaseline = 'alphabetic';
 }
 
+/* ---- ไอคอนวาดเอง (ไม่พึ่งอิโมจิ — บางเครื่องไม่แสดงอิโมจิใน canvas) ---- */
+function drawMiniCoin(x, y, r) {
+  ctx.save();
+  ctx.fillStyle = '#b8860b'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.arc(x, y, r * 0.78, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#e8a90c'; ctx.font = `bold ${Math.round(r * 1.15)}px Trebuchet MS`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('C', x, y + r * 0.08); ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
+function drawMiniGem(x, y, r) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = '#5aa8e8';
+  ctx.beginPath(); ctx.moveTo(-r, -r * 0.35); ctx.lineTo(-r * 0.5, -r); ctx.lineTo(r * 0.5, -r);
+  ctx.lineTo(r, -r * 0.35); ctx.lineTo(0, r); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#9ed4ff';
+  ctx.beginPath(); ctx.moveTo(-r * 0.5, -r); ctx.lineTo(r * 0.5, -r); ctx.lineTo(0, -r * 0.1); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-r, -r * 0.35); ctx.lineTo(r, -r * 0.35); ctx.stroke();
+  ctx.restore();
+}
+function drawMiniSparkle(x, y, r) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = '#e8c8ff';
+  ctx.beginPath();
+  ctx.moveTo(0, -r); ctx.quadraticCurveTo(r * 0.18, -r * 0.18, r, 0);
+  ctx.quadraticCurveTo(r * 0.18, r * 0.18, 0, r);
+  ctx.quadraticCurveTo(-r * 0.18, r * 0.18, -r, 0);
+  ctx.quadraticCurveTo(-r * 0.18, -r * 0.18, 0, -r);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, r * 0.22, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+// ไอคอนสมบัติ 18 แบบ ตามชนิดผล (fx.k)
+function drawTreasureIcon(k, x, y, s) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s / 32, s / 32);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  switch (k) {
+    case 'bear': {   // จี้หมีทองคำ
+      ctx.fillStyle = '#c8862a';
+      ctx.beginPath(); ctx.arc(-9, -9, 5.5, 0, TAU); ctx.arc(9, -9, 5.5, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, 13, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.ellipse(0, 4, 7, 5.5, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#5a3010';
+      ctx.beginPath(); ctx.arc(-4.5, -3.5, 1.9, 0, TAU); ctx.arc(4.5, -3.5, 1.9, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 2.5, 2.2, 0, TAU); ctx.fill();
+      break;
+    }
+    case 'revive': {   // เข็มกลัดหัวใจ
+      ctx.fillStyle = '#ff5a8a'; heart(0, -1, 14); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.beginPath(); ctx.arc(-4.5, -6, 2.6, 0, TAU); ctx.fill();
+      ctx.strokeStyle = '#ffd84a'; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(8, -10); ctx.lineTo(13, -15); ctx.stroke();
+      break;
+    }
+    case 'drain': {   // นาฬิกาทราย
+      ctx.fillStyle = '#8a5a28';
+      ctx.fillRect(-10, -15, 20, 3.5); ctx.fillRect(-10, 11.5, 20, 3.5);
+      ctx.fillStyle = 'rgba(190,230,255,.55)';
+      ctx.beginPath(); ctx.moveTo(-8, -11.5); ctx.lineTo(8, -11.5); ctx.lineTo(1.5, 0); ctx.lineTo(8, 11.5); ctx.lineTo(-8, 11.5); ctx.lineTo(-1.5, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffce5e';
+      ctx.beginPath(); ctx.moveTo(-5.5, -10); ctx.lineTo(5.5, -10); ctx.lineTo(0, -2.5); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-5.5, 11); ctx.lineTo(5.5, 11); ctx.lineTo(0, 5); ctx.closePath(); ctx.fill();
+      break;
+    }
+    case 'magnet': {   // แหวนแม่เหล็ก
+      ctx.strokeStyle = '#c8ccd8'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(0, 3, 8.5, 0, TAU); ctx.stroke();
+      drawMiniGem(0, -9, 6.5);
+      break;
+    }
+    case 'coin': {   // กระเป๋าทองคำ
+      ctx.fillStyle = '#e87aa0';
+      ctx.beginPath(); ctx.moveTo(-11, -2); ctx.quadraticCurveTo(-13, 12, 0, 12);
+      ctx.quadraticCurveTo(13, 12, 11, -2); ctx.quadraticCurveTo(6, -8, 0, -8);
+      ctx.quadraticCurveTo(-6, -8, -11, -2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#c05680'; ctx.beginPath(); ctx.ellipse(0, -6, 8, 3.4, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.arc(0, -6, 2.6, 0, TAU); ctx.fill();
+      break;
+    }
+    case 'skill': {   // ดาวตก
+      ctx.strokeStyle = '#8ac8ff'; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.moveTo(-14, 8); ctx.lineTo(-2, -2); ctx.moveTo(-14, 1); ctx.lineTo(-5, -6); ctx.stroke();
+      ctx.fillStyle = '#ffd84a';
+      ctx.beginPath();
+      for (let q = 0; q < 10; q++) {
+        const rr = q % 2 ? 5 : 11, a = -Math.PI / 2 + q * Math.PI / 5;
+        ctx[q ? 'lineTo' : 'moveTo'](5 + Math.cos(a) * rr, -3 + Math.sin(a) * rr);
+      }
+      ctx.closePath(); ctx.fill();
+      break;
+    }
+    case 'bt': {   // ขนนกเทวดา
+      ctx.fillStyle = '#f6f2ea';
+      for (const [ox, oy, rot, sc] of [[-4, 4, -0.5, 0.85], [0, 0, -0.25, 1], [5, -3, 0, 0.9]]) {
+        ctx.save(); ctx.translate(ox, oy); ctx.rotate(rot); ctx.scale(sc, sc);
+        ctx.beginPath(); ctx.ellipse(0, 0, 4.6, 12, 0.5, 0, TAU); ctx.fill(); ctx.restore();
+      }
+      ctx.strokeStyle = '#d8ccb8'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(-7, 12); ctx.quadraticCurveTo(2, 0, 10, -10); ctx.stroke();
+      break;
+    }
+    case 'item': {   // อมยิ้ม
+      ctx.strokeStyle = '#e8dcc8'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, 2); ctx.lineTo(0, 15); ctx.stroke();
+      ctx.fillStyle = '#ff7ba0'; ctx.beginPath(); ctx.arc(0, -5, 10, 0, TAU); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.6;
+      ctx.beginPath(); ctx.arc(0, -5, 6.4, 0.3, 3.6); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -5, 2.8, 3.4, 6.4); ctx.stroke();
+      break;
+    }
+    case 'hp': {   // เกราะบิสกิต
+      ctx.fillStyle = '#d29a5a';
+      ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(11, -8); ctx.lineTo(11, 2);
+      ctx.quadraticCurveTo(11, 11, 0, 15); ctx.quadraticCurveTo(-11, 11, -11, 2);
+      ctx.lineTo(-11, -8); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#9a6a30'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, 15); ctx.moveTo(-11, 0); ctx.lineTo(11, 0); ctx.stroke();
+      ctx.fillStyle = '#e0453a'; heart(0, -1, 6); ctx.fill();
+      break;
+    }
+    case 'boost': {   // รองเท้าบูตแดง
+      ctx.fillStyle = '#e0453a';
+      ctx.beginPath(); ctx.moveTo(-6, -14); ctx.lineTo(4, -14); ctx.lineTo(4, 2);
+      ctx.quadraticCurveTo(12, 4, 12, 10); ctx.lineTo(12, 13) ; ctx.lineTo(-6, 13); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#b02a22'; ctx.fillRect(-6, 9.5, 18, 3.5);
+      ctx.fillStyle = '#ffd84a'; ctx.fillRect(-6, -14, 10, 3.2);
+      break;
+    }
+    case 'combo': {   // ริบบิ้นโบว์
+      ctx.fillStyle = '#ff6b8d';
+      ctx.beginPath(); ctx.moveTo(-2, 0); ctx.lineTo(-14, -8); ctx.quadraticCurveTo(-16, 0, -14, 8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(14, -8); ctx.quadraticCurveTo(16, 0, 14, 8); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#d84a6e'; ctx.beginPath(); ctx.arc(0, 0, 4.2, 0, TAU); ctx.fill();
+      ctx.strokeStyle = '#ff9db8'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-2, 3); ctx.lineTo(-6, 13); ctx.moveTo(2, 3); ctx.lineTo(6, 13); ctx.stroke();
+      break;
+    }
+    case 'pit': {   // ร่มชูชีพ
+      ctx.fillStyle = '#7ec8e8';
+      ctx.beginPath(); ctx.arc(0, -4, 12, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffd84a';
+      ctx.beginPath(); ctx.arc(0, -4, 12, Math.PI + 0.6, Math.PI + 1.4); ctx.lineTo(0, -4); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#c8b89a'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(-11, -3); ctx.lineTo(-3, 10); ctx.moveTo(11, -3); ctx.lineTo(3, 10); ctx.stroke();
+      ctx.fillStyle = '#b07840'; ctx.fillRect(-4, 9, 8, 6);
+      break;
+    }
+    case 'box': {   // กุญแจ
+      ctx.strokeStyle = '#e8b23c'; ctx.lineWidth = 3.4;
+      ctx.beginPath(); ctx.arc(-5, -6, 6, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-1, -2); ctx.lineTo(11, 10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(7, 12); ctx.lineTo(10, 9); ctx.moveTo(3, 8); ctx.lineTo(6, 5); ctx.stroke();
+      break;
+    }
+    case 'gem': {   // เศษคริสตัล
+      drawMiniGem(0, 0, 13);
+      ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(11, -12); ctx.lineTo(14, -15); ctx.stroke();
+      break;
+    }
+    case 'jelly': {   // ลูกอมเยลลี่
+      ctx.fillStyle = '#b06ae0';
+      ctx.beginPath(); ctx.moveTo(-9, -4); ctx.lineTo(-15, -9); ctx.lineTo(-13, 0); ctx.lineTo(-15, 8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(9, -4); ctx.lineTo(15, -9); ctx.lineTo(13, 0); ctx.lineTo(15, 8); ctx.closePath(); ctx.fill();
+      const jg = ctx.createLinearGradient(0, -9, 0, 9);
+      jg.addColorStop(0, '#e08aff'); jg.addColorStop(1, '#9a4ad0');
+      ctx.fillStyle = jg; ctx.beginPath(); ctx.ellipse(0, 0, 10, 9, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.beginPath(); ctx.ellipse(-3, -3.5, 3.4, 2.2, -0.5, 0, TAU); ctx.fill();
+      break;
+    }
+    case 'pt': {   // มงกุฎ
+      ctx.fillStyle = '#ffd24a';
+      ctx.beginPath(); ctx.moveTo(-12, 8); ctx.lineTo(-13, -7); ctx.lineTo(-6, -1); ctx.lineTo(0, -11);
+      ctx.lineTo(6, -1); ctx.lineTo(13, -7); ctx.lineTo(12, 8); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e8a90c'; ctx.fillRect(-12, 8, 24, 4);
+      ctx.fillStyle = '#e0453a'; ctx.beginPath(); ctx.arc(0, 2, 2.6, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#7ec8e8';
+      ctx.beginPath(); ctx.arc(-7.5, 4, 1.8, 0, TAU); ctx.arc(7.5, 4, 1.8, 0, TAU); ctx.fill();
+      break;
+    }
+    case 'lift': {   // กรงนก
+      ctx.strokeStyle = '#e8c073'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, -2, 11, Math.PI, 0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-11, -2); ctx.lineTo(-11, 10); ctx.moveTo(11, -2); ctx.lineTo(11, 10);
+      ctx.moveTo(-5.5, -11); ctx.lineTo(-5.5, 10); ctx.moveTo(0, -13); ctx.lineTo(0, 10); ctx.moveTo(5.5, -11); ctx.lineTo(5.5, 10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-13, 10); ctx.lineTo(13, 10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, -16); ctx.stroke();
+      ctx.fillStyle = '#7ec8e8'; ctx.beginPath(); ctx.arc(2.8, 4, 2.6, 0, TAU); ctx.fill();
+      break;
+    }
+    case 'letter': {   // กระดิ่ง
+      ctx.fillStyle = '#ffd24a';
+      ctx.beginPath(); ctx.moveTo(-10, 7); ctx.quadraticCurveTo(-10, -10, 0, -11);
+      ctx.quadraticCurveTo(10, -10, 10, 7); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e8a90c'; ctx.fillRect(-12, 7, 24, 3.4);
+      ctx.fillStyle = '#b8860b'; ctx.beginPath(); ctx.arc(0, 13, 3, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#ffe9a0'; ctx.fillRect(-2.4, -14, 4.8, 3.4);
+      break;
+    }
+    default: drawMiniCoin(0, 0, 12);
+  }
+  ctx.restore();
+}
+
 function drawPanel(x, y, w, h, r = 18) {
   // เงาทิ้ง
   ctx.fillStyle = 'rgba(24,11,0,.32)';
@@ -7716,8 +7921,8 @@ function drawGemChip(x, y) {
   const text = G.crystals.toLocaleString();
   const tw = ctx.measureText(text).width + 52;
   drawPanel(x - tw, y, tw, 34, 17);
-  ctx.font = '17px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('💎', x - tw + 20, y + 18);
+  drawMiniGem(x - tw + 20, y + 17, 8.5);
+  ctx.textBaseline = 'middle';
   ctx.font = 'bold 19px Trebuchet MS';
   ctx.fillStyle = '#bfe8ff'; ctx.textAlign = 'left';
   ctx.fillText(text, x - tw + 38, y + 18);
@@ -7730,8 +7935,8 @@ function drawPowderChip(x, y) {
   const text = G.powder.toLocaleString();
   const tw = ctx.measureText(text).width + 52;
   drawPanel(x - tw, y, tw, 34, 17);
-  ctx.font = '17px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('✨', x - tw + 20, y + 18);
+  drawMiniSparkle(x - tw + 20, y + 17, 8.5);
+  ctx.textBaseline = 'middle';
   ctx.font = 'bold 19px Trebuchet MS';
   ctx.fillStyle = '#d8b8ff'; ctx.textAlign = 'left';
   ctx.fillText(text, x - tw + 38, y + 18);
@@ -8735,11 +8940,10 @@ function drawTreasure() {
       ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 3.5;
       roundRect(x + 2, y + 2, cw - 4, chh - 4, 10); ctx.stroke();
     }
-    ctx.font = '28px Trebuchet MS'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
     ctx.globalAlpha = owned ? 1 : 0.55;
-    ctx.fillText(t.icon, x + cw / 2, y + 30);
+    drawTreasureIcon(t.fx.k, x + cw / 2, y + 30, 34);
     ctx.globalAlpha = 1;
-    ctx.textBaseline = 'alphabetic';
     ctx.font = 'bold 13px Trebuchet MS';
     ctx.fillStyle = equipped ? '#ffd24a' : '#fff';
     ctx.fillText(t.name, x + cw / 2, y + 62);
@@ -8756,7 +8960,10 @@ function drawTreasure() {
     // ยังไม่ซื้อ: ราคาอยู่ล่าง / สวมอยู่: ป้าย ✓ มุมขวาบน (ไม่ทับคำอธิบาย)
     if (!owned) {
       ctx.fillStyle = '#ffd24a';
-      ctx.fillText('🪙 ' + t.cost.toLocaleString(), x + cw / 2, y + chh - 8);
+      const prTxt = t.cost.toLocaleString();
+      drawMiniCoin(x + cw / 2 - ctx.measureText(prTxt).width / 2 - 9, y + chh - 12, 6.5);
+      ctx.font = 'bold 12px Trebuchet MS'; ctx.fillStyle = '#ffd24a'; ctx.textAlign = 'center';
+      ctx.fillText(prTxt, x + cw / 2 + 6, y + chh - 8);
     } else if (equipped) {
       ctx.fillStyle = 'rgba(30,70,20,.85)';
       roundRect(x + cw - 52, y + 6, 46, 17, 7); ctx.fill();
@@ -8777,7 +8984,7 @@ function drawTreasure() {
         const shortC = evCost >= 1000 ? (evCost / 1000).toFixed(1) + 'k' : evCost;
         const canUp = G.bank >= evCost;
         // ปุ่มอัปเกรดเต็มแถบล่าง โชว์ราคาชัดเจน
-        drawBtn(x + 8, y + chh - 26, cw - 16, 22, '⬆ อัป +' + (st + 1) + '  🪙' + shortC, () => {
+        drawBtn(x + 8, y + chh - 26, cw - 16, 22, '⬆ อัป +' + (st + 1) + ' · ' + shortC, () => {
           if (G.bank >= evCost) {
             G.bank -= evCost;
             G.trStar[i] = st + 1;
