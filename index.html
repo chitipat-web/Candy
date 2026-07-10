@@ -3266,7 +3266,8 @@ function trySelectChar(i) {
     G.charIdx = i;
     SAVE.set('coins', G.bank); SAVE.set('owned', G.owned); SAVE.set('char', i);
     AudioSys.buy();
-    floatText(W / 2, 100, '🎉 ปลดล็อก ' + c.name + '!', '#ffd24a', true);
+    uiBurst(W / 2, 240, '#ffd24a', 26);
+    floatText(W / 2, 100, 'ปลดล็อก ' + c.name + '!', '#ffd24a', true);
   } else {
     AudioSys.deny();
     floatText(W / 2, 100, 'เหรียญไม่พอ! ขาดอีก ' + (c.cost - G.bank).toLocaleString() + ' 🪙', '#ff8888', true);
@@ -3367,7 +3368,8 @@ function tryTreasure(i) {
       if (G.trEquip.length < 3) G.trEquip.push(i);
       SAVE.set('coins', G.bank); SAVE.set('trOwned', G.trOwned); SAVE.set('trEquip', G.trEquip);
       AudioSys.buy();
-      floatText(W / 2, 100, '🎉 ได้ ' + t.name + '!', '#ffd24a', true);
+      uiBurst(W / 2, 240, '#ffd24a', 26);
+      floatText(W / 2, 100, 'ได้ ' + t.name + '!', '#ffd24a', true);
     } else {
       AudioSys.deny();
       floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true);
@@ -3472,7 +3474,8 @@ function trySelectPet(i) {
     G.petIdx = i;
     SAVE.set('coins', G.bank); SAVE.set('petsOwned', G.petsOwned); SAVE.set('pet', i);
     AudioSys.buy();
-    floatText(W / 2, 100, '🎉 ปลดล็อก ' + p.name + '!', '#ffd24a', true);
+    uiBurst(W / 2, 240, '#7bd94a', 26);
+    floatText(W / 2, 100, 'ปลดล็อก ' + p.name + '!', '#ffd24a', true);
   } else {
     AudioSys.deny();
     floatText(W / 2, 100, 'เหรียญไม่พอ! ขาดอีก ' + (p.cost - G.bank).toLocaleString() + ' 🪙', '#ff8888', true);
@@ -4343,6 +4346,7 @@ function draw() {
   if (G.state === 'clear') drawLevelClear();
   if (G.state === 'continue') drawContinue();
   drawFloaters();
+  drawUiSparks();   // ประกายฉลองซื้อ/อัปเกรด (ทุกหน้า)
   drawBanner();
 
   if (G.fade > 0) {
@@ -7654,6 +7658,30 @@ function drawFloaters() {
 /* ============================================================
    UI WIDGETS
    ============================================================ */
+/* ---- ประกายฉลอง UI (ทำงานทุกหน้า ใช้ตอนซื้อ/อัปเกรดสำเร็จ) ---- */
+let uiSparks = [];
+function uiBurst(x, y, color, n = 18) {
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, TAU), sp = rnd(60, 240);
+    uiSparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60,
+                    t: 0, life: rnd(0.4, 0.8), c: Math.random() < 0.3 ? '#fff' : color, r: rnd(2, 4.5) });
+  }
+}
+function drawUiSparks() {
+  if (!uiSparks.length) return;
+  const dt = 1 / 60;
+  for (const s of uiSparks) {
+    s.t += dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 420 * dt;
+  }
+  uiSparks = uiSparks.filter(s => s.t < s.life);
+  for (const s of uiSparks) {
+    ctx.globalAlpha = 1 - s.t / s.life;
+    ctx.fillStyle = s.c;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r * (1 - s.t / s.life * 0.5), 0, TAU); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
 function drawBtn(x, y, w, h, label, cb, opt = {}) {
   uiButtons.push({ x, y, w, h, cb, disabled: opt.disabled });
   if (opt.invisible) return;   // พื้นที่คลิกล่องหน (การ์ดกริด)
@@ -8908,7 +8936,16 @@ function drawGrid(LIST, kind) {
   const viewW = W - 32;
   const maxS = Math.max(0, colsTotal * (cw + gapX) - gapX - viewW);
   if (Math.abs(G[vKey] || 0) > 0.4) { G[sKey] = (G[sKey] || 0) + G[vKey]; G[vKey] *= 0.92; }  // แรงเฉื่อยหลังปล่อยนิ้ว
-  else G[vKey] = 0;
+  else {
+    G[vKey] = 0;
+    // snap เข้าขอบการ์ดนุ่มๆ หลังหยุดไหล (ไม่ทำระหว่างลาก)
+    if (!gridDrag) {
+      const unit = cw + gapX;
+      const target = clamp(Math.round((G[sKey] || 0) / unit) * unit, 0, maxS);
+      G[sKey] = (G[sKey] || 0) + (target - (G[sKey] || 0)) * 0.18;
+      if (Math.abs(target - G[sKey]) < 0.4) G[sKey] = target;
+    }
+  }
   G[sKey] = clamp(G[sKey] || 0, 0, maxS);
   const scroll = G[sKey];
 
@@ -9060,6 +9097,7 @@ function drawGrid(LIST, kind) {
           if (isChar) { G.powder -= upCost; SAVE.set('powder', G.powder); G.charLv[focus] = lvCur + 1; SAVE.set('charLv', G.charLv); }
           else { G.bank -= upCost; SAVE.set('coins', G.bank); G.petLv[focus] = lvCur + 1; SAVE.set('petLv', G.petLv); }
           AudioSys.buy();
+          uiBurst(W - 128, dy + 68, '#7ec8ff');
           floatText(W / 2, 100, cur.name + ' → Lv.' + (lvCur + 1) + '!', '#aee4ff', true);
         } else { AudioSys.deny(); floatText(W / 2, 100, isChar ? 'ผงเวทมนตร์ไม่พอ!' : 'เหรียญไม่พอ!', '#ff8888', true); }
       }, canAfford ? { color: '#5cb8e8', dark: '#3d92c4', font: isChar ? 13 : 11 } : { color: '#8a8178', dark: '#6e675f', font: isChar ? 13 : 11 });
@@ -9076,6 +9114,7 @@ function drawGrid(LIST, kind) {
             G.bank -= gCost; G.petGrade[focus] = gd + 1;
             SAVE.set('coins', G.bank); SAVE.set('petGrade', G.petGrade);
             AudioSys.buy();
+            uiBurst(W - 80, dy + 68, '#ff8ad0');
             const pc = Math.round((gd + 1) * (50 / PET_MAXGRADE));
             floatText(W / 2, 100, cur.name + ' เกรด +' + (gd + 1) + '! (พลังพาสซีฟ +' + pc + '%)', '#ff8ad0', true);
           } else { AudioSys.deny(); floatText(W / 2, 100, 'เหรียญไม่พอ!', '#ff8888', true); }
@@ -9178,6 +9217,7 @@ function drawTreasure() {
             G.trStar[i] = st + 1;
             SAVE.set('coins', G.bank); SAVE.set('trStar', G.trStar);
             AudioSys.buy();
+            uiBurst(x + cw / 2, y + chh / 2, '#c9a2ff');
             const pc = Math.round((st + 1) * (100 / TR_MAXLV));
             floatText(W / 2, 100, '⬆ ' + t.name + ' +' + (st + 1) + '! (ผลรวม +' + pc + '%)', '#ffd24a', true);
           } else {
