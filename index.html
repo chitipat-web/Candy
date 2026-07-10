@@ -1998,7 +1998,7 @@ let mouseFly = false;   // เมาส์กดค้างฝั่งซ้�
 
 /* ---- ลากเลื่อนกริดเลือกตัวละคร/สัตว์เลี้ยง (swipe) ---- */
 let gridDrag = null;
-const inGridZone = (x, y) => (G.state === 'select' || G.state === 'pets') && y > 62 && y < 372;
+const inGridZone = (x, y) => (G.state === 'select' || G.state === 'pets') && y > 70 && y < 275;
 const gridSKey = () => G.state === 'select' ? 'selScroll' : 'petScroll';
 
 canvas.addEventListener('touchstart', e => {
@@ -9013,7 +9013,7 @@ function drawSelect() {
   ctx.fillRect(0, 0, W, H);
   drawTitleText('เลือกตัวละคร', W / 2, 52, 34);
   drawCoinChip(W - 20, 24, G.bank.toLocaleString());
-  drawPowderChip(W - 20, 62);   // ✨ ผงเวทมนตร์สำหรับอัปสกิลคุกกี้
+  drawPowderChip(W - 178, 24);   // ✨ ผงเวทมนตร์ (เรียงข้างเหรียญ ไม่ทับการ์ดแถวเดียว)
   drawGrid(CHARS, 'char');
 }
 
@@ -9023,7 +9023,7 @@ function drawPets() {
   ctx.fillRect(0, 0, W, H);
   drawTitleText('เลือกสัตว์เลี้ยง', W / 2, 52, 34);
   drawCoinChip(W - 20, 24, G.bank.toLocaleString());
-  drawGemChip(W - 20, 62);
+  drawGemChip(W - 178, 24);
   drawGrid(PETS, 'pet');
 }
 
@@ -9081,8 +9081,8 @@ function petPortrait(i) {
    คลิกการ์ด = ดูรายละเอียด · ซื้อ/เลือกใช้ ด้วยปุ่มในแถบล่าง */
 function drawGrid(LIST, kind) {
   const isChar = kind === 'char';
-  const cw = 106, chh = 140, gapX = 4, gapY = 8;
-  const x0 = 16, y0 = 72;
+  const cw = 128, chh = 172, gapX = 8, gapY = 8;   // แถวเดียว การ์ดใหญ่ขึ้น
+  const x0 = 16, y0 = 84;
   const curIdx = isChar ? G.charIdx : G.petIdx;           // ตัวที่ใช้อยู่
   let focus = isChar ? G.selFocus : G.petFocus;           // ตัวที่กำลังดู
   if (focus == null || focus >= LIST.length) focus = curIdx;
@@ -9090,7 +9090,7 @@ function drawGrid(LIST, kind) {
 
   // ---- สกรอลล์แนวนอนแบบลากเลื่อน (2 แถว เรียงคอลัมน์) ----
   const sKey = isChar ? 'selScroll' : 'petScroll', vKey = sKey + 'V';
-  const colsTotal = Math.ceil(LIST.length / 2);
+  const colsTotal = LIST.length;   // แถวเดียว
   const viewW = W - 32;
   const maxS = Math.max(0, colsTotal * (cw + gapX) - gapX - viewW);
   if (Math.abs(G[vKey] || 0) > 0.4) { G[sKey] = (G[sKey] || 0) + G[vKey]; G[vKey] *= 0.92; }  // แรงเฉื่อยหลังปล่อยนิ้ว
@@ -9108,12 +9108,12 @@ function drawGrid(LIST, kind) {
   const scroll = G[sKey];
 
   ctx.save();
-  ctx.beginPath(); ctx.rect(6, y0 - 6, W - 12, chh * 2 + gapY + 12); ctx.clip();
+  ctx.beginPath(); ctx.rect(6, y0 - 6, W - 12, chh + 12); ctx.clip();
   for (let i = 0; i < LIST.length; i++) {
     const it = LIST[i];
-    const x = x0 + ((i / 2) | 0) * (cw + gapX) - scroll;
+    const x = x0 + i * (cw + gapX) - scroll;
     if (x < -cw - 6 || x > W + 6) continue;
-    const y = y0 + (i % 2) * (chh + gapY);
+    const y = y0;
     const using = i === curIdx;
     const focused = i === focus;
     const owned = ownedArr.includes(i);
@@ -9138,8 +9138,8 @@ function drawGrid(LIST, kind) {
     ctx.save();
     if (!owned) ctx.globalAlpha = 0.38;
     const bob = focused ? Math.sin(G.time * 5) * 2.5 : 0;
-    if (isChar) ctx.drawImage(cookiePortrait(i), x + 2, y + 3 + bob, 102, 118);
-    else ctx.drawImage(petPortrait(i), x + 18, y + 22 + bob, 70, 70);
+    if (isChar) ctx.drawImage(cookiePortrait(i), x + 2, y + 6 + bob, 124, 143);
+    else ctx.drawImage(petPortrait(i), x + 21, y + 32 + bob, 86, 86);
     ctx.restore();
     if (!owned) drawIcon('lock', x + cw - 16, y + 18, 17);
     if (using) {
@@ -9174,7 +9174,7 @@ function drawGrid(LIST, kind) {
   ctx.restore();
   // แถบบอกตำแหน่งสกรอลล์
   if (maxS > 0) {
-    const barX = 60, barW = W - 120, barY = y0 + chh * 2 + gapY + 10;
+    const barX = 60, barW = W - 120, barY = y0 + chh + 12;
     ctx.fillStyle = 'rgba(0,0,0,.28)';
     roundRect(barX, barY, barW, 6, 3); ctx.fill();
     const thW = Math.max(46, barW * viewW / (colsTotal * (cw + gapX)));
@@ -9186,7 +9186,7 @@ function drawGrid(LIST, kind) {
   // ---------- แถบรายละเอียดตัวที่กำลังดู ----------
   const cur = LIST[focus];
   const ownedCur = ownedArr.includes(focus);
-  const dy = 372;
+  const dy = 322;
   drawPanel(16, dy, W - 32, 92, 14);
   ctx.save();
   if (isChar) { ctx.translate(64, dy + 78); ctx.scale(0.42, 0.42);
