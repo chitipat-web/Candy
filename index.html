@@ -461,17 +461,35 @@ const MEDALS = [
   { icon: '⭐', name: 'นักบินโบนัส',      need: 'BONUS TIME 20 ครั้ง',       chk: st => st.bt >= 20 },
   { icon: '🍪', name: 'นักสะสมคุกกี้',    need: 'มีคุกกี้ 10 ตัว',           chk: () => G.owned.length >= 10 },
   { icon: '🐥', name: 'นักสะสมเพื่อนซี้', need: 'มีสัตว์เลี้ยง 10 ตัว',      chk: () => G.petsOwned.length >= 10 },
+  /* --- Trophy ระยะสะสม + ความสำเร็จขั้นสูง (รางวัลใหญ่ขึ้นตามขั้น) --- */
+  { icon: '🏆', name: 'แสนเมตรแรก',      need: 'ระยะสะสม 100,000 m',       chk: st => st.dist >= 100000,  rw: { g: 3, p: 20 } },
+  { icon: '🏆', name: 'นักวิ่งเหล็ก',     need: 'ระยะสะสม 250,000 m',       chk: st => st.dist >= 250000,  rw: { g: 5, p: 40 } },
+  { icon: '🏆', name: 'ตำนานนักวิ่ง',     need: 'ระยะสะสม 500,000 m',       chk: st => st.dist >= 500000,  rw: { g: 8, p: 80 } },
+  { icon: '🎽', name: 'สองร้อยรอบ',      need: 'วิ่งครบ 200 รอบ',           chk: st => st.runs >= 200,     rw: { g: 4, p: 30 } },
+  { icon: '🍬', name: 'ทะเลเยลลี่',       need: 'เยลลี่สะสม 20,000 ชิ้น',    chk: st => st.jellies >= 20000, rw: { g: 3, p: 20 } },
+  { icon: '🐻', name: 'ราชาหมีเยลลี่',    need: 'หมีเยลลี่สะสม 200 ตัว',     chk: st => st.bears >= 200,    rw: { g: 3, p: 20 } },
+  { icon: '🍪', name: 'ครึ่งโหลโรสเตอร์', need: 'มีคุกกี้ 40 ตัว',           chk: () => G.owned.length >= 40, rw: { g: 4, p: 30 } },
+  { icon: '👑', name: 'สะสมครบทุกตัว',    need: 'มีคุกกี้ครบ ' + 84 + ' ตัว', chk: () => G.owned.length >= 84, rw: { g: 10, p: 100 } },
+  { icon: '⭐', name: 'ดาวเต็มฟ้า',       need: 'ดาวผจญภัยครบ 15 ดวง',      chk: () => (G.starBest || []).reduce((a, b) => a + b, 0) >= 15, rw: { g: 6, p: 50 } },
 ];
 function checkMedals() {
   MEDALS.forEach((m, i) => {
     if (!G.medals.includes(i) && m.chk(G.stats)) {
       G.medals.push(i);
-      G.crystals += 2;
+      const rw = m.rw || { g: 2 };
+      G.crystals += rw.g || 0;
+      if (rw.p) { G.powder += rw.p; SAVE.set('powder', G.powder); }
       SAVE.set('medals', G.medals); SAVE.set('crystals', G.crystals);
-      floatText(W / 2, 130 + G.medals.length * 8, m.icon + ' เหรียญตรา: ' + m.name + '! +2💎', '#ffd24a', true);
+      floatText(W / 2, 130 + G.medals.length * 8,
+        '🏅 เหรียญตรา: ' + m.name + '! +' + (rw.g || 0) + ' เพชร' + (rw.p ? ' +' + rw.p + ' ผงเวท' : ''), '#ffd24a', true);
       AudioSys.buy();
     }
   });
+}
+// เหรียญตราถัดไปที่ยังไม่ได้ (ไว้โชว์ progress ในเมนู)
+function nextMedal() {
+  for (let i = 0; i < MEDALS.length; i++) if (!G.medals.includes(i)) return MEDALS[i];
+  return null;
 }
 
 const EPISODES = [
@@ -8478,19 +8496,29 @@ function drawMenu() {
   });
   const pname = (PROFILES.find(q => q.id === ACTIVE) || {}).name || 'คุณ';
   if (G.lbTab === 1) {
-    // สถิติรวม
+    // สถิติรวม + Trophy ถัดไป
     const st = G.stats;
-    const rows = [['🏃 วิ่งทั้งหมด', (st.runs || 0) + ' รอบ'], ['📏 ระยะสะสม', (st.dist || 0).toLocaleString() + ' m'],
-      ['🐻 หมีเยลลี่', (st.bears || 0).toLocaleString()], ['🍬 เยลลี่รวม', (st.jellies || 0).toLocaleString()],
-      ['🪙 เหรียญสะสม', (st.coins || 0).toLocaleString()], ['🔥 คอมโบสูงสุด', (st.maxCombo || 0)]];
+    const rows = [['วิ่งทั้งหมด', (st.runs || 0) + ' รอบ', 'runner'], ['ระยะสะสม', (st.dist || 0).toLocaleString() + ' m', 'map'],
+      ['หมีเยลลี่', (st.bears || 0).toLocaleString(), 'heart'], ['เยลลี่รวม', (st.jellies || 0).toLocaleString(), 'jellybean'],
+      ['เหรียญสะสม', (st.coins || 0).toLocaleString(), 'coin'], ['คอมโบสูงสุด', (st.maxCombo || 0), 'flame']];
     ctx.textAlign = 'left';
     rows.forEach((r, i) => {
-      const ry = LP.y + 66 + i * 54;
-      drawPanel(LP.x + 14, ry, LP.w - 28, 44, 10);
-      ctx.font = 'bold 15px Trebuchet MS'; ctx.fillStyle = '#ffe9b8'; ctx.fillText(r[0], LP.x + 28, ry + 28);
-      ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24a'; ctx.fillText(r[1], LP.x + LP.w - 28, ry + 28);
+      const ry = LP.y + 62 + i * 40;
+      drawPanel(LP.x + 14, ry, LP.w - 28, 34, 9);
+      drawIcon(r[2], LP.x + 32, ry + 17, 17);
+      ctx.font = 'bold 14px Trebuchet MS'; ctx.fillStyle = '#ffe9b8'; ctx.textAlign = 'left'; ctx.fillText(r[0], LP.x + 46, ry + 22);
+      ctx.textAlign = 'right'; ctx.fillStyle = '#ffd24a'; ctx.fillText(r[1], LP.x + LP.w - 28, ry + 22);
       ctx.textAlign = 'left';
     });
+    // Trophy ถัดไป
+    const nm2 = nextMedal();
+    const ty2 = LP.y + 62 + 6 * 40;
+    drawPanel(LP.x + 14, ty2, LP.w - 28, 30, 9);
+    drawIcon('trophy', LP.x + 32, ty2 + 15, 16);
+    ctx.font = 'bold 12.5px Trebuchet MS'; ctx.fillStyle = '#ffd24a'; ctx.textAlign = 'left';
+    ctx.fillText('เหรียญตรา ' + G.medals.length + '/' + MEDALS.length, LP.x + 46, ty2 + 20);
+    ctx.fillStyle = '#ffe9b8';
+    ctx.fillText(nm2 ? 'ถัดไป: ' + nm2.need : 'ครบทุกเหรียญแล้ว!', LP.x + 175, ty2 + 20);
   } else if (G.lbTab === 2) {
     // จำนวนคุกกี้/สัตว์เลี้ยง/สมบัติที่มี
     const rows = [['ปลดล็อกคุกกี้', G.owned.length + '/' + CHARS.length, 'cookie'],
@@ -9306,24 +9334,36 @@ function drawRank() {
     });
   }
 
-  // ---- เหรียญตราความสำเร็จ (สะสมถาวร +2💎 ต่อเหรียญ) ----
+  // ---- เหรียญตราความสำเร็จ (Trophy สะสมถาวร — เหรียญวาดเอง 2 แถว) ----
   ctx.font = 'bold 12.5px Trebuchet MS'; ctx.textAlign = 'left';
   ctx.fillStyle = '#ffe9b8';
-  ctx.fillText('🏅 เหรียญตรา ' + G.medals.length + '/' + MEDALS.length + ':', 44, 434);
+  ctx.fillText('เหรียญตรา ' + G.medals.length + '/' + MEDALS.length + ':', 44, 412);
   MEDALS.forEach((m, i) => {
     const got = G.medals.includes(i);
-    const mx = 190 + i * 62, my = 418;
-    ctx.font = '22px Trebuchet MS'; ctx.textAlign = 'center';
-    ctx.globalAlpha = got ? 1 : 0.28;
-    ctx.fillText(m.icon, mx, my + 20);
+    const col = i % 11, row = (i / 11) | 0;
+    const mx = 176 + col * 70, my = 398 + row * 34;
+    // เหรียญกลม: ทอง (ได้แล้ว) / เทา (ยังไม่ได้)
+    ctx.globalAlpha = got ? 1 : 0.45;
+    ctx.fillStyle = got ? '#e8a90c' : '#7a7268';
+    ctx.beginPath(); ctx.arc(mx, my + 8, 11, 0, TAU); ctx.fill();
+    ctx.fillStyle = got ? '#ffd84a' : '#9a928a';
+    ctx.beginPath(); ctx.arc(mx, my + 8, 8.6, 0, TAU); ctx.fill();
+    // ดาวกลางเหรียญ
+    ctx.fillStyle = got ? '#b8791e' : '#6a625a';
+    ctx.beginPath();
+    for (let q = 0; q < 10; q++) {
+      const rr = q % 2 ? 2.4 : 5.4, a = -Math.PI / 2 + q * Math.PI / 5;
+      ctx[q ? 'lineTo' : 'moveTo'](mx + Math.cos(a) * rr, my + 8 + Math.sin(a) * rr);
+    }
+    ctx.closePath(); ctx.fill();
     ctx.globalAlpha = 1;
-    ctx.font = '8.5px Trebuchet MS';
+    ctx.font = '8.5px Trebuchet MS'; ctx.textAlign = 'center';
     ctx.fillStyle = got ? '#ffd24a' : 'rgba(255,233,184,.55)';
     let lbl = got ? m.name : m.need;
-    if (lbl.length > 10) lbl = lbl.slice(0, 9) + '…';
-    ctx.fillText(lbl, mx, my + 36);
-    ctx.fillStyle = '#ffe9b8';
+    if (lbl.length > 11) lbl = lbl.slice(0, 10) + '…';
+    ctx.fillText(lbl, mx, my + 28);
   });
+  ctx.textAlign = 'left'; ctx.fillStyle = '#ffe9b8';
 
   drawBtn(W / 2 - 230, 476, 200, 44, '✏ ตั้งชื่อผู้เล่น', () => {
     const nm = prompt('ตั้งชื่อผู้เล่น (ไม่เกิน 12 ตัวอักษร)', G.name || '');
