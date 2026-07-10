@@ -1947,16 +1947,43 @@ function pointerDown(x, y, id) {
 
 const touches = {};
 let mouseFly = false;   // เมาส์กดค้างฝั่งซ้าย (ใช้บังคับบินขึ้นช่วงโบนัส)
+
+/* ---- ลากเลื่อนกริดเลือกตัวละคร/สัตว์เลี้ยง (swipe) ---- */
+let gridDrag = null;
+const inGridZone = (x, y) => (G.state === 'select' || G.state === 'pets') && y > 62 && y < 372;
+const gridSKey = () => G.state === 'select' ? 'selScroll' : 'petScroll';
+
 canvas.addEventListener('touchstart', e => {
   e.preventDefault();
   AudioSys.init(); AudioSys.resume();
   for (const t of e.changedTouches) {
     const [x, y] = canvasXY(t.clientX, t.clientY);
+    if (!gridDrag && inGridZone(x, y)) {
+      gridDrag = { id: t.identifier, sx: x, sy: y, lx: x, moved: 0, vel: 0 };
+      G[gridSKey() + 'V'] = 0;
+      continue;   // รอดูว่าลากหรือแตะ ค่อยตัดสินตอนปล่อย
+    }
     pointerDown(x, y, t.identifier);
+  }
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  if (!gridDrag) return;
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier !== gridDrag.id) continue;
+    const [x] = canvasXY(t.clientX, t.clientY);
+    const dx = x - gridDrag.lx;
+    gridDrag.lx = x; gridDrag.moved += Math.abs(dx); gridDrag.vel = dx;
+    G[gridSKey()] = (G[gridSKey()] || 0) - dx;
   }
 }, { passive: false });
 canvas.addEventListener('touchend', e => {
   for (const t of e.changedTouches) {
+    if (gridDrag && t.identifier === gridDrag.id) {
+      if (gridDrag.moved < 10) pointerDown(gridDrag.sx, gridDrag.sy, t.identifier);   // แตะเฉยๆ = คลิกการ์ด
+      else G[gridSKey() + 'V'] = -gridDrag.vel;                                        // ปล่อยแล้วไหลต่อ
+      gridDrag = null;
+    }
     if (touches[t.identifier] === 'R') doSlide(false);
     delete touches[t.identifier];
   }
@@ -1964,9 +1991,34 @@ canvas.addEventListener('touchend', e => {
 canvas.addEventListener('mousedown', e => {
   AudioSys.init(); AudioSys.resume();
   const [x, y] = canvasXY(e.clientX, e.clientY);
+  if (inGridZone(x, y)) {
+    gridDrag = { id: 'm', sx: x, sy: y, lx: x, moved: 0, vel: 0 };
+    G[gridSKey() + 'V'] = 0;
+    return;
+  }
   pointerDown(x, y);
 });
-canvas.addEventListener('mouseup', () => { doSlide(false); mouseFly = false; });
+canvas.addEventListener('mousemove', e => {
+  if (!gridDrag || gridDrag.id !== 'm') return;
+  const [x] = canvasXY(e.clientX, e.clientY);
+  const dx = x - gridDrag.lx;
+  gridDrag.lx = x; gridDrag.moved += Math.abs(dx); gridDrag.vel = dx;
+  G[gridSKey()] = (G[gridSKey()] || 0) - dx;
+});
+canvas.addEventListener('mouseup', () => {
+  if (gridDrag && gridDrag.id === 'm') {
+    if (gridDrag.moved < 8) pointerDown(gridDrag.sx, gridDrag.sy);
+    else G[gridSKey() + 'V'] = -gridDrag.vel;
+    gridDrag = null;
+  }
+  doSlide(false); mouseFly = false;
+});
+// ล้อเมาส์เลื่อนกริดได้ด้วย
+canvas.addEventListener('wheel', e => {
+  if (G.state !== 'select' && G.state !== 'pets') return;
+  e.preventDefault();
+  G[gridSKey()] = (G[gridSKey()] || 0) + (e.deltaY || e.deltaX) * 0.9;
+}, { passive: false });
 
 /* ============================================================
    GAME FLOW
@@ -8447,23 +8499,30 @@ function petPortrait(i) {
    คลิกการ์ด = ดูรายละเอียด · ซื้อ/เลือกใช้ ด้วยปุ่มในแถบล่าง */
 function drawGrid(LIST, kind) {
   const isChar = kind === 'char';
-  const page = (isChar ? G.selPage : G.petPage) || 0;
-  const perPage = 16, cols = 8;
-  const pages = Math.ceil(LIST.length / perPage);
   const cw = 106, chh = 140, gapX = 4, gapY = 8;
-  const x0 = (W - (cols * cw + (cols - 1) * gapX)) / 2;
-  const y0 = 72;
+  const x0 = 16, y0 = 72;
   const curIdx = isChar ? G.charIdx : G.petIdx;           // ตัวที่ใช้อยู่
   let focus = isChar ? G.selFocus : G.petFocus;           // ตัวที่กำลังดู
   if (focus == null || focus >= LIST.length) focus = curIdx;
   const ownedArr = isChar ? G.owned : G.petsOwned;
 
-  for (let k = 0; k < perPage; k++) {
-    const i = page * perPage + k;
-    if (i >= LIST.length) break;
+  // ---- สกรอลล์แนวนอนแบบลากเลื่อน (2 แถว เรียงคอลัมน์) ----
+  const sKey = isChar ? 'selScroll' : 'petScroll', vKey = sKey + 'V';
+  const colsTotal = Math.ceil(LIST.length / 2);
+  const viewW = W - 32;
+  const maxS = Math.max(0, colsTotal * (cw + gapX) - gapX - viewW);
+  if (Math.abs(G[vKey] || 0) > 0.4) { G[sKey] = (G[sKey] || 0) + G[vKey]; G[vKey] *= 0.92; }  // แรงเฉื่อยหลังปล่อยนิ้ว
+  else G[vKey] = 0;
+  G[sKey] = clamp(G[sKey] || 0, 0, maxS);
+  const scroll = G[sKey];
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(6, y0 - 6, W - 12, chh * 2 + gapY + 12); ctx.clip();
+  for (let i = 0; i < LIST.length; i++) {
     const it = LIST[i];
-    const x = x0 + (k % cols) * (cw + gapX);
-    const y = y0 + Math.floor(k / cols) * (chh + gapY);
+    const x = x0 + ((i / 2) | 0) * (cw + gapX) - scroll;
+    if (x < -cw - 6 || x > W + 6) continue;
+    const y = y0 + (i % 2) * (chh + gapY);
     const using = i === curIdx;
     const focused = i === focus;
     const owned = ownedArr.includes(i);
@@ -8523,6 +8582,17 @@ function drawGrid(LIST, kind) {
       if (isChar) G.selFocus = i; else G.petFocus = i;
       AudioSys.click();
     }, { invisible: true });
+  }
+  ctx.restore();
+  // แถบบอกตำแหน่งสกรอลล์
+  if (maxS > 0) {
+    const barX = 60, barW = W - 120, barY = y0 + chh * 2 + gapY + 10;
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    roundRect(barX, barY, barW, 6, 3); ctx.fill();
+    const thW = Math.max(46, barW * viewW / (colsTotal * (cw + gapX)));
+    const thX = barX + (barW - thW) * (scroll / maxS);
+    ctx.fillStyle = 'rgba(255,214,138,.85)';
+    roundRect(thX, barY, thW, 6, 3); ctx.fill();
   }
 
   // ---------- แถบรายละเอียดตัวที่กำลังดู ----------
@@ -8623,21 +8693,19 @@ function drawGrid(LIST, kind) {
     }
   }
 
-  // ---------- แถวล่าง: เปลี่ยนหน้า + ไข่ + กลับ ----------
+  // ---------- แถวล่าง: เลื่อนกริด + ไข่ + กลับ ----------
   const by = 478;
   drawBtn(16, by, 52, 44, '‹', () => {
-    const np = (page - 1 + pages) % pages;
-    if (isChar) G.selPage = np; else G.petPage = np;
+    G[sKey] = clamp((G[sKey] || 0) - viewW, 0, maxS); G[vKey] = 0;
     AudioSys.click();
   }, { color: '#a08468', dark: '#7d6448', font: 22 });
   drawBtn(74, by, 52, 44, '›', () => {
-    const np = (page + 1) % pages;
-    if (isChar) G.selPage = np; else G.petPage = np;
+    G[sKey] = clamp((G[sKey] || 0) + viewW, 0, maxS); G[vKey] = 0;
     AudioSys.click();
   }, { color: '#a08468', dark: '#7d6448', font: 22 });
   ctx.font = 'bold 14px Trebuchet MS'; ctx.textAlign = 'center';
   ctx.fillStyle = '#ffe9b8';
-  ctx.fillText('หน้า ' + (page + 1) + '/' + pages + ' · มี ' + ownedArr.length + '/' + LIST.length + ' ตัว', 220, by + 27);
+  ctx.fillText('ลากเลื่อนดูได้ · มี ' + ownedArr.length + '/' + LIST.length + ' ตัว', 220, by + 27);
 
   if (!isChar) {
     drawBtn(330, by, 200, 44, '🥚 ฟักไข่ 800🪙', () => hatchEgg(false), { color: '#e8b23c', dark: '#c08d1e', font: 14 });
