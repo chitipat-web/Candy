@@ -8656,7 +8656,7 @@ function drawMenu() {
   drawPowderChip(W - 278, 62);
 
   /* ============ แผงซ้าย: กระดานผู้นำ ============ */
-  const LP = { x: 18, y: 100, w: 470, h: 428 };
+  const LP = { x: 18, y: 100, w: 392, h: 428 };
   drawPanel(LP.x, LP.y, LP.w, LP.h, 18);
   // แท็บ อันดับ / สถิติ / คุกกี้
   const lbTabs = [['อันดับ', 'trophy'], ['สถิติ', 'chart'], ['คุกกี้', 'cookie']];
@@ -8744,7 +8744,7 @@ function drawMenu() {
   ctx.fillText(m ? (m.desc + ' →🪙' + m.reward).slice(0, 34) : 'ครบทุกภารกิจแล้ว!', LP.x + 150, LP.y + LP.h - 24);
 
   /* ============ แผงขวา: โซนเล่น ============ */
-  const RP = { x: 560, y: 100, w: 382, h: 428 };
+  const RP = { x: 430, y: 100, w: 512, h: 428 };
   const rcx = RP.x + RP.w / 2;
   // แท็บโหมด: วิ่งปกติ / ผจญภัย
   G.menuTab = G.menuTab || 0;
@@ -8755,7 +8755,7 @@ function drawMenu() {
     G.menuTab === 1 ? { color: '#e8913a', dark: '#c06a1a', font: 16, icon: 'map' } : { color: '#8a7258', dark: '#6a5642', font: 16, icon: 'map' });
 
   // กรอบเวทีธีมกลางคืน
-  const fx0 = RP.x + 24, fy0 = RP.y + 52, fw = RP.w - 48, fh = 152;
+  const fx0 = RP.x + 30, fy0 = RP.y + 50, fw = RP.w - 60, fh = 198;
   const cxm = fx0 + fw / 2, floorY = fy0 + fh - 28;
   ctx.save();
   roundRect(fx0, fy0, fw, fh, 16); ctx.clip();
@@ -8780,11 +8780,11 @@ function drawMenu() {
   ctx.fillStyle = '#465a32'; ctx.fillRect(fx0, floorY, fw, fh - (floorY - fy0));
   ctx.fillStyle = 'rgba(120,145,80,.6)'; ctx.fillRect(fx0, floorY, fw, 5);
   ctx.save();
-  ctx.translate(cxm - 84, floorY - 38 + Math.sin(G.time * 4) * 8);
-  ctx.scale(1.0, 1.0); drawPet(PT()); ctx.restore();
+  ctx.translate(cxm - 108, floorY - 44 + Math.sin(G.time * 4) * 9);
+  ctx.scale(1.2, 1.2); drawPet(PT()); ctx.restore();
   ctx.save();
-  ctx.translate(cxm + 6, floorY + 2 + Math.abs(Math.sin(G.time * 3)) * -12);
-  ctx.scale(1.28, 1.28); drawCookieRun(P.anim); ctx.restore();
+  ctx.translate(cxm + 10, floorY + 2 + Math.abs(Math.sin(G.time * 3)) * -14);
+  ctx.scale(1.58, 1.58); drawCookieRun(P.anim); ctx.restore();
   ctx.restore();
   ctx.strokeStyle = '#7a4a24'; ctx.lineWidth = 5; roundRect(fx0, fy0, fw, fh, 16); ctx.stroke();
   ctx.strokeStyle = '#c99a5a'; ctx.lineWidth = 2; roundRect(fx0 + 3, fy0 + 3, fw - 6, fh - 6, 13); ctx.stroke();
@@ -8797,9 +8797,9 @@ function drawMenu() {
     ctx.fillStyle = '#a6ff8f'; ctx.fillText(cbTxt, cxm, fy0 + fh - 10);
   }
   // ป้ายชื่อคาดบนกรอบ
-  drawPanel(cxm - 88, fy0 - 8, 176, 26, 11);
-  ctx.font = 'bold 13px Trebuchet MS'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
-  ctx.fillText(CH().name + '  Lv.' + (G.charLv[G.charIdx] || 1), cxm, fy0 + 10);
+  drawPanel(cxm - 104, fy0 - 10, 208, 30, 12);
+  ctx.font = 'bold 15px Trebuchet MS'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+  ctx.fillText(CH().name + '  Lv.' + (G.charLv[G.charIdx] || 1), cxm, fy0 + 11);
   // ปุ่มดาวเทียมรอบกรอบ (แบบเกมจริง)
   const orb = (ox, oy, emo, label, cb, c1, c2) => {
     ctx.fillStyle = 'rgba(50,25,8,.5)'; ctx.beginPath(); ctx.arc(ox, oy + 3, 20, 0, TAU); ctx.fill();
@@ -8811,22 +8811,22 @@ function drawMenu() {
     ctx.strokeText(label, ox, oy + 32); ctx.fillText(label, ox, oy + 32);
     drawBtn(ox - 20, oy - 20, 40, 40, '', cb, { invisible: true });
   };
-  orb(fx0 - 2, fy0 + 28, 'gift', 'เช็กอิน', () => { G.dailyShow = true; }, '#f08aab', '#c9557d');
-  orb(fx0 - 2, fy0 + 86, 'bag', 'ร้านค้า', () => setState('shop'), '#6fc0ec', '#4d92c4');
-  orb(fx0 + fw + 2, fy0 + 28, 'flag', 'เกาะ', () => startGame('coins'), '#e0c24a', '#b7962a');
-  orb(fx0 + fw + 2, fy0 + 86, 'ice', 'หอคอย', () => startGame('tower'), '#84c8e4', '#5b9ec0');
+  orb(fx0 - 4, fy0 + 34, 'gift', 'เช็กอิน', () => { G.dailyShow = true; }, '#f08aab', '#c9557d');
+  orb(fx0 - 4, fy0 + 116, 'bag', 'ร้านค้า', () => setState('shop'), '#6fc0ec', '#4d92c4');
+  orb(fx0 + fw + 4, fy0 + 34, 'flag', 'เกาะ', () => startGame('coins'), '#e0c24a', '#b7962a');
+  orb(fx0 + fw + 4, fy0 + 116, 'ice', 'หอคอย', () => startGame('tower'), '#84c8e4', '#5b9ec0');
 
   // แถบ สัตว์เลี้ยง | ตัวละคร | สมบัติ
   const qy = fy0 + fh + 14, qw = (fw - 8) / 3;
   ctx.font = 'bold 11px Trebuchet MS'; ctx.textAlign = 'right'; ctx.fillStyle = '#ff6b6b';
   ctx.fillText('ฟรี!', fx0 + fw, qy - 4);
-  drawBtn(fx0, qy, qw, 40, 'สัตว์เลี้ยง', () => setState('pets'), { color: '#7bd94a', dark: '#57a832', font: 13, icon: 'chick' });
-  drawBtn(fx0 + qw + 4, qy, qw, 40, 'ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 13, icon: 'cookie' });
-  drawBtn(fx0 + qw * 2 + 8, qy, qw, 40, 'สมบัติ', () => setState('treasure'), { color: '#e8b23c', dark: '#c08d1e', font: 13, icon: 'gem' });
+  drawBtn(fx0, qy, qw, 46, 'สัตว์เลี้ยง', () => setState('pets'), { color: '#7bd94a', dark: '#57a832', font: 15, icon: 'chick' });
+  drawBtn(fx0 + qw + 4, qy, qw, 46, 'ตัวละคร', () => setState('select'), { color: '#f0699a', dark: '#c94d7d', font: 15, icon: 'cookie' });
+  drawBtn(fx0 + qw * 2 + 8, qy, qw, 46, 'สมบัติ', () => setState('treasure'), { color: '#e8b23c', dark: '#c08d1e', font: 15, icon: 'gem' });
 
   // ปุ่ม PLAY เขียวใหญ่ (ตามแท็บที่เลือก)
   const playLabel = G.menuTab === 1 ? 'ผจญภัย! (ดาว ' + sb + '/15)' : 'เริ่มเล่น!';
-  drawBtn(fx0, qy + 48, fw, 60,  playLabel, () => {
+  drawBtn(fx0, qy + 56, fw, 62,  playLabel, () => {
     if (G.menuTab === 1) setState('advmap'); else { G.boostSel = {}; setState('prep'); }
   }, { color: '#7bd94a', dark: '#57a832', font: 26, icon: 'play' });
   // คำแนะนำ
