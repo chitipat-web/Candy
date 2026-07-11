@@ -1998,7 +1998,7 @@ let mouseFly = false;   // เมาส์กดค้างฝั่งซ้�
 
 /* ---- ลากเลื่อนกริดเลือกตัวละคร/สัตว์เลี้ยง (swipe) ---- */
 let gridDrag = null;
-const inGridZone = (x, y) => (G.state === 'select' || G.state === 'pets') && y > 64 && y < 290;
+const inGridZone = (x, y) => (G.state === 'select' || G.state === 'pets') && y > 58 && y < 324;
 const gridSKey = () => G.state === 'select' ? 'selScroll' : 'petScroll';
 
 canvas.addEventListener('touchstart', e => {
@@ -9047,10 +9047,10 @@ function cookiePortrait(i) {
   let cv = portCache['c' + i];
   if (!cv) {
     cv = document.createElement('canvas');
-    cv.width = 260; cv.height = 300;   // ความละเอียด 2 เท่า ภาพคมบนการ์ดใหญ่
+    cv.width = 344; cv.height = 396;   // ความละเอียดสูง ภาพคมบนการ์ดใหญ่+จอ retina
     const pc = cv.getContext('2d');
     const old = ctx; ctx = pc;
-    pc.save(); pc.translate(130, 260); pc.scale(1.2, 1.2);
+    pc.save(); pc.translate(172, 343); pc.scale(1.59, 1.59);
     FRONT = true;   // ภาพยืน = หันหน้าตรงแบบภาพทางการ
     try {
       cookieBody(0, 0, 0, 0, 0, 0, CHARS[i],
@@ -9066,10 +9066,10 @@ function petPortrait(i) {
   let cv = portCache['p' + i];
   if (!cv) {
     cv = document.createElement('canvas');
-    cv.width = 180; cv.height = 180;   // ความละเอียด 2 เท่า
+    cv.width = 256; cv.height = 256;   // ความละเอียดสูง
     const pc = cv.getContext('2d');
     const old = ctx; ctx = pc;
-    pc.save(); pc.translate(90, 92); pc.scale(3, 3);
+    pc.save(); pc.translate(128, 131); pc.scale(4.27, 4.27);
     try { drawPet(PETS[i]); } catch (e) {}
     pc.restore(); ctx = old;
     portCache['p' + i] = cv;
@@ -9081,8 +9081,8 @@ function petPortrait(i) {
    คลิกการ์ด = ดูรายละเอียด · ซื้อ/เลือกใช้ ด้วยปุ่มในแถบล่าง */
 function drawGrid(LIST, kind) {
   const isChar = kind === 'char';
-  const cw = 150, chh = 204, gapX = 10, gapY = 8;   // แถวเดียว การ์ดใหญ่พิเศษ
-  const x0 = 16, y0 = 76;
+  const cw = 178, chh = 242, gapX = 12, gapY = 8;   // แถวเดียว การ์ดใหญ่เต็มโซน
+  const x0 = 16, y0 = 66;
   const curIdx = isChar ? G.charIdx : G.petIdx;           // ตัวที่ใช้อยู่
   let focus = isChar ? G.selFocus : G.petFocus;           // ตัวที่กำลังดู
   if (focus == null || focus >= LIST.length) focus = curIdx;
@@ -9138,8 +9138,8 @@ function drawGrid(LIST, kind) {
     ctx.save();
     if (!owned) ctx.globalAlpha = 0.38;
     const bob = focused ? Math.sin(G.time * 5) * 2.5 : 0;
-    if (isChar) ctx.drawImage(cookiePortrait(i), x + 3, y + 8 + bob, 144, 166);
-    else ctx.drawImage(petPortrait(i), x + 23, y + 42 + bob, 104, 104);
+    if (isChar) ctx.drawImage(cookiePortrait(i), x + 3, y + 12 + bob, 172, 198);
+    else ctx.drawImage(petPortrait(i), x + 26, y + 52 + bob, 126, 126);
     ctx.restore();
     if (!owned) drawIcon('lock', x + cw - 16, y + 18, 17);
     if (using) {
@@ -9149,12 +9149,12 @@ function drawGrid(LIST, kind) {
     }
 
     // ชื่อ + สถานะ
-    ctx.font = 'bold 14px Trebuchet MS'; ctx.textAlign = 'center';
+    ctx.font = 'bold 16px Trebuchet MS'; ctx.textAlign = 'center';
     ctx.fillStyle = focused ? '#7ec8ff' : using ? '#ffd24a' : '#fff';
     let nm = it.name.replace('คุกกี้', '');
-    if (nm.length > 11) nm = nm.slice(0, 10) + '…';
-    ctx.fillText(nm, x + cw / 2, y + chh - 24);
-    ctx.font = 'bold 13px Trebuchet MS';
+    if (nm.length > 12) nm = nm.slice(0, 11) + '…';
+    ctx.fillText(nm, x + cw / 2, y + chh - 28);
+    ctx.font = 'bold 14px Trebuchet MS';
     if (owned) {
       ctx.fillStyle = '#aee4ff';
       const lv = (isChar ? G.charLv : G.petLv)[i] || 1;
@@ -9186,7 +9186,7 @@ function drawGrid(LIST, kind) {
   // ---------- แถบรายละเอียดตัวที่กำลังดู ----------
   const cur = LIST[focus];
   const ownedCur = ownedArr.includes(focus);
-  const dy = 322;
+  const dy = 334;
   drawPanel(16, dy, W - 32, 92, 14);
   ctx.save();
   if (isChar) { ctx.translate(64, dy + 78); ctx.scale(0.42, 0.42);
