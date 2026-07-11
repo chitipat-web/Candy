@@ -5978,18 +5978,6 @@ function drawPlayer() {
     ctx.rotate(clamp(P.vy * 0.0007, -0.32, 0.32));   // เอียงหัวตามทิศบิน
 
   const run = P.anim;
-  // 👻 afterimage เงาซ้อนตอนพุ่งเร็ว (dash/boost/ยักษ์/ร่างแปลง) — เบลอการเคลื่อนไหว
-  if (!P.dead && !P.fallingPit && (P.boostT > 0 || G.scoreMulT > 0 || P.giantT > 0 || G.bonusT > 0)) {
-    for (let i = 1; i <= 2; i++) {
-      ctx.save();
-      ctx.globalAlpha = 0.15 * (3 - i);
-      ctx.translate(-i * 15, 0);
-      if (P.sliding) drawCookieSlide(run);
-      else if (!P.onGround) drawCookieJump(P.jumps >= 2);
-      else drawCookieRun(run);
-      ctx.restore();
-    }
-  }
   if (P.dead) {
     // ล้มคว่ำหมุนตัวตอนพลังหมด (แบบเกมจริง)
     const t = clamp(G.overT * 1.5, 0, 1);
